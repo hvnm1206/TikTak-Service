@@ -27,7 +27,6 @@
     .success { background: #d4edda; color: #155724; }
     .error { background: #f8d7da; color: #721c24; }
 
-    /* Nút bản đồ 📍 */
     .map-btn {
       cursor: pointer;
       margin-left: 5px;
@@ -54,6 +53,7 @@
     }
     .map-popup-content #popupMap {
       height: 400px;
+      margin-top: 10px;
     }
     .close-btn {
       float: right;
@@ -89,6 +89,7 @@
     <div class="map-popup-content">
       <span class="close-btn" onclick="closeMapPopup()">✖</span>
       <h3>Chọn vị trí</h3>
+      <button type="button" onclick="useMyLocation()">📍 Vị trí của tôi</button>
       <div id="popupMap"></div>
     </div>
   </div>
@@ -193,14 +194,13 @@
           if (popupMarker) popupMarker.setLatLng(e.latlng);
           else popupMarker = L.marker(e.latlng).addTo(popupMap);
 
-          // Điền input text + hidden
           document.getElementById(currentInputField).value = address;
           document.getElementById(currentInputField + "_latlon").value = lat + "," + lon;
 
           closeMapPopup();
         });
       }
-      setTimeout(()=>popupMap.invalidateSize(), 200); // Fix load map
+      setTimeout(()=>popupMap.invalidateSize(), 200);
     }
 
     function closeMapPopup() {
@@ -212,6 +212,34 @@
       const res = await fetch(url);
       const data = await res.json();
       return data.display_name || (lat + "," + lon);
+    }
+
+    // =========================
+    // Dùng vị trí hiện tại
+    // =========================
+    function useMyLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async pos => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+
+          popupMap.setView([lat, lon], 16);
+
+          if (popupMarker) popupMarker.setLatLng([lat, lon]);
+          else popupMarker = L.marker([lat, lon]).addTo(popupMap);
+
+          const address = await reverseGeocode(lat, lon);
+
+          document.getElementById(currentInputField).value = address;
+          document.getElementById(currentInputField + "_latlon").value = lat + "," + lon;
+
+          closeMapPopup();
+        }, err => {
+          alert("Không thể lấy vị trí hiện tại!");
+        });
+      } else {
+        alert("Trình duyệt không hỗ trợ định vị.");
+      }
     }
 
     // =========================
