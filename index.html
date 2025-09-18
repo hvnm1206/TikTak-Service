@@ -3,107 +3,322 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dịch Vụ Online</title>
+  <title>Dịch Vụ Online với Bản Đồ Chọn Vị Trí</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <style>
     body { font-family: Arial, sans-serif; background: #f5f5f5; margin:0; padding:20px; }
     h2 { text-align: center; color: #333; }
-    .services { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
-    .service-btn {
-      padding: 12px 18px; border: none; border-radius: 6px;
-      background: #007bff; color: white; font-size: 16px; cursor: pointer;
+    .container { max-width: 600px; margin: auto; }
+    select, input, textarea, button {
+      width: 100%; 
+      padding: 14px; 
+      margin: 10px 0;
+      border-radius: 6px; 
+      border: 1px solid #ccc;
+      font-size: 16px;
     }
-    .service-btn:hover { background: #0056b3; }
-    .form-container {
-      display: none; margin: 25px auto; background: #fff; padding: 20px;
-      border-radius: 8px; max-width: 400px;
+    #mainService, #subService {
+      font-size: 18px;
+      font-weight: 500;
+      padding: 16px;
     }
-    label { display: block; margin-top: 10px; font-weight: bold; }
-    input { width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; }
-    button.submit { margin-top: 20px; background: #28a745; color: #fff; padding: 10px; border: none; cursor: pointer; }
-    .message { margin-top: 15px; padding: 10px; background: #d4edda; color: #155724; border-radius: 5px; display: none; }
+    button { background: #28a745; color: white; font-weight: bold; cursor: pointer; }
+    button:hover { background: #218838; }
+    .message { margin-top: 15px; padding: 10px; border-radius: 5px; display: none; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+
+    /* Phần bản đồ popup/modal */
+    #mapModal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+    #mapContainer {
+      width: 90%;
+      max-width: 800px;
+      height: 80%;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    #map { height: 100%; }
+    #mapFooter {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(255,255,255,0.9);
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
   </style>
 </head>
 <body>
+  <div class="container">
+    <h2>Chọn Dịch Vụ</h2>
+    <label>Dịch vụ chính:</label>
+    <select id="mainService" onchange="loadSubService()">
+      <option value="">-- Chọn dịch vụ --</option>
+    </select>
 
-  <h2>Chọn Dịch Vụ</h2>
-  <div class="services">
-    <button class="service-btn" onclick="openForm('taxi')">🚖 Đặt Taxi</button>
-    <button class="service-btn" onclick="openForm('delivery')">📦 Giao Hàng</button>
-    <button class="service-btn" onclick="openForm('repair')">🛠️ Sửa Điện Nước</button>
-  </div>
+    <label>Dịch vụ con:</label>
+    <select id="subService" onchange="buildForm()">
+      <option value="">-- Chọn dịch vụ con --</option>
+    </select>
 
-  <!-- 🚖 Form Taxi -->
-  <div id="taxi" class="form-container">
-    <h3>🚖 Đặt Taxi</h3>
-    <form onsubmit="submitForm(event, 'Taxi')">
-      <label>Họ tên:</label><input type="text" name="ten" required>
-      <label>Số điện thoại:</label><input type="tel" name="dien_thoai" required>
-      <label>Điểm đón:</label><input type="text" name="diem_don" required>
-      <label>Điểm đến:</label><input type="text" name="diem_den" required>
-      <button class="submit">Gửi yêu cầu Taxi</button>
+    <form id="dynamicForm" onsubmit="submitForm(event)">
+      <!-- các field + input được tạo động ở đây -->
     </form>
+    <div id="messageBox" class="message"></div>
   </div>
 
-  <!-- 📦 Form Giao Hàng -->
-  <div id="delivery" class="form-container">
-    <h3>📦 Giao Hàng</h3>
-    <form onsubmit="submitForm(event, 'Giao Hàng')">
-      <label>Họ tên:</label><input type="text" name="ten" required>
-      <label>Số điện thoại:</label><input type="tel" name="dien_thoai" required>
-      <label>Địa chỉ nhận hàng:</label><input type="text" name="diem_don" required>
-      <label>Địa chỉ giao hàng:</label><input type="text" name="diem_den" required>
-      <button class="submit">Gửi yêu cầu Giao Hàng</button>
-    </form>
+  <!-- Modal bản đồ để chọn vị trí -->
+  <div id="mapModal">
+    <div id="mapContainer">
+      <div id="map"></div>
+      <div id="mapFooter">
+        <span id="addressDisplay">Chưa chọn vị trí</span>
+        <div>
+          <button onclick="confirmLocation()">Xác nhận</button>
+          <button onclick="closeMapModal()">Huỷ</button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- 🛠️ Form Sửa Điện Nước -->
-  <div id="repair" class="form-container">
-    <h3>🛠️ Sửa Điện Nước</h3>
-    <form onsubmit="submitForm(event, 'Sửa Điện Nước')">
-      <label>Họ tên:</label><input type="text" name="ten" required>
-      <label>Số điện thoại:</label><input type="tel" name="dien_thoai" required>
-      <label>Địa chỉ sửa chữa:</label><input type="text" name="diem_don" required>
-      <label>Mô tả sự cố:</label><input type="text" name="diem_den" required>
-      <button class="submit">Gửi yêu cầu Sửa</button>
-    </form>
-  </div>
-
-  <div class="message" id="messageBox"></div>
-
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
   <script>
-    function openForm(serviceId) {
-      document.querySelectorAll('.form-container').forEach(el => el.style.display = 'none');
-      document.getElementById(serviceId).style.display = 'block';
-      document.getElementById("messageBox").style.display = "none";
+    // =========================
+    // Cấu hình dịch vụ (giống bạn)
+    // =========================
+    const serviceConfig = {
+      "Taxi": {
+        "Sân bay": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"],
+        "Thông thường": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"]
+      },
+      "Sửa chữa điện nước": {
+        "Sửa điện": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Sửa nước": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
+      },
+      "Sửa chữa điện lạnh": {
+        "Điều hòa": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Máy giặt": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Tủ lạnh": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "TV": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Khác": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
+      },
+      "Đặt tiệc": {
+        "Tiệc tại nhà": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"],
+        "Tiệc tại nhà hàng": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"]
+      },
+      "Vệ sinh": {
+        "Dọn nhà theo giờ": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"],
+        "Vệ sinh công nghiệp": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"]
+      },
+      "Giao hàng / Vận chuyển": {
+        "Chuyển nhà trọn gói": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"],
+        "Chở đồ": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"]
+      },
+      "Khẩn cấp": {
+        "Cứu hộ ô tô": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Cứu hộ xe máy": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Phòng khám": ["dia_diem", "tinh_trang", "thoi_diem_can", "yeu_cau", "dien_thoai"]
+      }
+    };
+
+    const fieldLabels = {
+      ten: "Họ tên",
+      dien_thoai: "Số điện thoại",
+      dia_diem: "Địa điểm",
+      diem_don: "Điểm đón",
+      diem_den: "Điểm đến",
+      tinh_trang: "Tình trạng",
+      thoi_gian: "Thời gian",
+      thoi_gian_don: "Thời gian đón",
+      thoi_diem_can: "Thời điểm cần",
+      khu_vuc: "Khu vực muốn đặt",
+      mo_ta: "Mô tả",
+      yeu_cau: "Yêu cầu",
+      yeu_cau_taxi: "Yêu cầu (Loại xe, số chỗ...)"
+    };
+
+    // ===== biến dùng chung cho bản đồ =====
+    let map, marker;
+    let selectedLatLng = null;
+    let selectedAddress = "";
+
+    // =========================
+    // Khởi tạo dropdown
+    // =========================
+    window.onload = () => {
+      const mainSel = document.getElementById("mainService");
+      for (let main in serviceConfig) {
+        mainSel.innerHTML += `<option value="${main}">${main}</option>`;
+      }
+
+      // Tuỳ chọn: tự chọn dịch vụ đầu tiên
+      // mainSel.selectedIndex = 1;
+      // loadSubService();
+      // setTimeout(() => {
+      //   document.getElementById("subService").selectedIndex = 1;
+      //   buildForm();
+      // }, 100);
+    };
+
+    function loadSubService() {
+      const main = document.getElementById("mainService").value;
+      const subSel = document.getElementById("subService");
+      subSel.innerHTML = `<option value="">-- Chọn dịch vụ con --</option>`;
+      if (main && serviceConfig[main]) {
+        for (let sub in serviceConfig[main]) {
+          subSel.innerHTML += `<option value="${sub}">${sub}</option>`;
+        }
+      }
+      document.getElementById("dynamicForm").innerHTML = "";
     }
 
-    async function submitForm(event, serviceName) {
-      event.preventDefault();
-      const form = event.target;
-      const data = {
-        ten: form.ten.value,
-        dien_thoai: form.dien_thoai.value,
-        diem_don: form.diem_don.value,
-        diem_den: form.diem_den.value,
-        dich_vu: serviceName
-      };
+    function buildForm() {
+      const main = document.getElementById("mainService").value;
+      const sub = document.getElementById("subService").value;
+      const form = document.getElementById("dynamicForm");
+      form.innerHTML = "";
+      if (!main || !sub) return;
 
-      console.log("📤 Gửi dữ liệu:", data);
+      // Họ tên
+      form.innerHTML += `<label>${fieldLabels["ten"]}</label><input type="text" name="ten" required>`;
 
-      try {
-        const res = await fetch("https://zalo.nomahubvn.com/webhook/3fc8afa2-58bc-4d84-b052-ff3ae95ba0a6", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        console.log("✅ Server trả về:", await res.text());
-        document.getElementById("messageBox").innerText = `✅ Yêu cầu ${serviceName} đã được gửi!`;
-        document.getElementById("messageBox").style.display = "block";
-        form.reset();
-      } catch (err) {
-        console.error("❌ Lỗi gửi dữ liệu:", err);
-        alert("❌ Có lỗi khi gửi yêu cầu!");
+      const fields = serviceConfig[main][sub];
+      fields.forEach(f => {
+        let type = "text";
+        if (f === "thoi_gian" || f === "thoi_gian_don" || f === "thoi_diem_can") {
+          type = "datetime-local";
+        }
+        // Nếu là trường địa điểm hoặc điểm đón/điểm đến
+        if (["diem_don", "diem_den", "dia_diem"].includes(f)) {
+          form.innerHTML += `<label>${fieldLabels[f]}</label>
+            <div style="display: flex;">
+              <input type="text" name="${f}" id="${f}_input" required readonly style="flex:1;">
+              <button type="button" onclick="openMapModal('${f}_input')">📍</button>
+            </div>`;
+          // thêm trường ẩn lat lng
+          form.innerHTML += `<input type="hidden" name="${f}_lat" id="${f}_lat">
+                            <input type="hidden" name="${f}_lng" id="${f}_lng">`;
+        } else {
+          form.innerHTML += `<label>${fieldLabels[f]}</label><input type="${type}" name="${f}" required>`;
+        }
+      });
+
+      form.innerHTML += `<button type="submit">Gửi yêu cầu</button>`;
+    }
+
+    // ======================
+    // Mở modal bản đồ để chọn vị trí
+    // ======================
+    function openMapModal(inputId) {
+      const modal = document.getElementById("mapModal");
+      modal.style.display = "flex";
+
+      setTimeout(() => {
+        if (!map) {
+          initMap(inputId);
+        } else {
+          // khi modal mở lại với input khác, reset marker & address
+          selectedLatLng = null;
+          selectedAddress = "";
+          if (marker) { map.removeLayer(marker); marker = null; }
+          document.getElementById("addressDisplay").innerText = "Chưa chọn vị trí";
+        }
+      }, 0);
+
+      // ghi inputId đang chọn để sau xác nhận biết trả dữ liệu về input nào
+      mapModalOpenFor = inputId;
+    }
+
+    let mapModalOpenFor = null; 
+
+    function initMap(inputId) {
+      map = L.map('map').setView([21.0285, 105.8542], 13); // Hà Nội làm mặc định
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      map.on('click', async function(e) {
+        selectedLatLng = e.latlng;
+        if (marker) map.removeLayer(marker);
+        marker = L.marker(e.latlng).addTo(map);
+
+        // reverse geocoding
+        try {
+          const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`;
+          const res = await fetch(url, {
+            headers: {
+              "Accept-Language": "vi",  // nếu muốn tiếng Việt
+              "User-Agent": "BạnTênỨngDụng/1.0"
+            }
+          });
+          const data = await res.json();
+          selectedAddress = data.display_name || "Không tìm thấy địa chỉ";
+        } catch (err) {
+          console.error("Lỗi reverse geocoding:", err);
+          selectedAddress = "Lỗi lấy địa chỉ";
+        }
+        document.getElementById("addressDisplay").innerText = selectedAddress;
+      });
+    }
+
+    function confirmLocation() {
+      if (!selectedLatLng || !mapModalOpenFor) {
+        alert("Chưa chọn vị trí!");
+        return;
       }
+      // điền vào input chính
+      document.getElementById(mapModalOpenFor).value = selectedAddress;
+      // điền lat lng ẩn
+      document.getElementById(mapModalOpenFor + "_lat").value = selectedLatLng.lat;
+      document.getElementById(mapModalOpenFor + "_lng").value = selectedLatLng.lng;
+
+      closeMapModal();
+    }
+
+    function closeMapModal() {
+      document.getElementById("mapModal").style.display = "none";
+    }
+
+    // =====================
+    // Gửi form như trước
+    // =====================
+    function submitForm(e) {
+      e.preventDefault();
+      const main = document.getElementById("mainService").value;
+      const sub = document.getElementById("subService").value;
+      const formData = new FormData(e.target);
+      let data = { dich_vu_chinh: main, dich_vu_con: sub };
+      formData.forEach((v, k) => data[k] = v);
+
+      fetch("https://zalo.nomahubvn.com/webhook/3fc8afa2-58bc-4d84-b052-ff3ae95ba0a6", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      })
+      .then(res => {
+        document.getElementById("messageBox").className = "message success";
+        document.getElementById("messageBox").innerText = "✅ Đã gửi yêu cầu thành công!";
+        document.getElementById("messageBox").style.display = "block";
+        e.target.reset();
+      })
+      .catch(() => {
+        document.getElementById("messageBox").className = "message error";
+        document.getElementById("messageBox").innerText = "❌ Lỗi gửi dữ liệu!";
+        document.getElementById("messageBox").style.display = "block";
+      });
     }
   </script>
 </body>
