@@ -288,7 +288,7 @@
           suggestionBox.innerHTML = "";
           return;
         }
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&addressdetails=1&limit=5`;
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&addressdetails=1&limit=5&countrycodes=VN`;
         const res = await fetch(url);
         const data = await res.json();
         suggestionBox.innerHTML = "";
@@ -377,3 +377,4 @@
   </script>
 </body>
 </html>
+
