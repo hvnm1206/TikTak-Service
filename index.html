@@ -276,38 +276,42 @@
     // Autocomplete
     // =========================
     function enableAutocomplete(fieldId) {
-      const input = document.getElementById(fieldId);
-      let suggestionBox = document.createElement("div");
-      suggestionBox.className = "autocomplete-suggestions";
-      input.parentNode.style.position = "relative";
-      input.parentNode.appendChild(suggestionBox);
+  const input = document.getElementById(fieldId);
 
-      input.addEventListener("input", async function() {
-        const q = this.value;
-        if (q.length < 3) {
-          suggestionBox.innerHTML = "";
-          return;
-        }
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&addressdetails=1&limit=5&countrycodes=VN`;
-        const res = await fetch(url);
-        const data = await res.json();
-        suggestionBox.innerHTML = "";
-        data.forEach(place => {
-          let div = document.createElement("div");
-          div.innerText = place.display_name;
-          div.onclick = () => {
-            input.value = place.display_name;
-            document.getElementById(fieldId + "_latlon").value = place.lat + "," + place.lon;
-            suggestionBox.innerHTML = "";
-          };
-          suggestionBox.appendChild(div);
-        });
-      });
+  // tạo box suggestion
+  let suggestionBox = document.createElement("div");
+  suggestionBox.className = "autocomplete-suggestions";
+  input.parentNode.style.position = "relative";
+  input.parentNode.appendChild(suggestionBox);
 
-      input.addEventListener("blur", () => {
-        setTimeout(()=> suggestionBox.innerHTML="", 200);
-      });
+  input.addEventListener("input", async function() {
+    const q = this.value.trim();
+    if (q.length < 3) {
+      suggestionBox.innerHTML = "";
+      return;
     }
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&addressdetails=1&limit=5&countrycodes=vn`;
+    const res = await fetch(url);
+    const data = await res.json();
+    suggestionBox.innerHTML = "";
+    data.forEach(place => {
+      let div = document.createElement("div");
+      div.innerText = place.display_name;
+      div.onclick = () => {
+        input.value = place.display_name; // chỉ điền khi click
+        document.getElementById(fieldId + "_latlon").value = place.lat + "," + place.lon;
+        suggestionBox.innerHTML = "";
+      };
+      suggestionBox.appendChild(div);
+    });
+  });
+
+  // xóa suggestion khi mất focus
+  input.addEventListener("blur", () => {
+    setTimeout(()=> suggestionBox.innerHTML="", 200);
+  });
+}
+
 
     // =========================
     // Tạo form động
@@ -377,4 +381,5 @@
   </script>
 </body>
 </html>
+
 
