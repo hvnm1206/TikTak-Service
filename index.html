@@ -3,207 +3,102 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dịch Vụ Online</title>
+  <title>1 Bản đồ - 2 Trường</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; margin:0; padding:20px; }
-    h2 { text-align: center; color: #333; }
-    .container { max-width: 600px; margin: auto; }
-
-    select, input, textarea, button {
-      width: 100%; 
-      padding: 14px; 
-      margin: 10px 0;
-      border-radius: 6px; 
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
-
-    #mainService, #subService { font-size: 18px; font-weight: 500; padding: 16px; }
-    #mainService option, #subService option { font-size: 18px; padding: 8px; }
-
-    button { background: #28a745; color: white; font-weight: bold; cursor: pointer; }
-    button:hover { background: #218838; }
-    .message { margin-top: 15px; padding: 10px; border-radius: 5px; display: none; }
-    .success { background: #d4edda; color: #155724; }
-    .error { background: #f8d7da; color: #721c24; }
-
-    .map-container { height: 250px; margin: 10px 0; }
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    label { font-weight: bold; display: block; margin-top: 10px; }
+    input { width: 100%; padding: 8px; margin: 5px 0 10px; }
+    .map { height: 400px; margin: 15px 0; border: 1px solid #ccc; }
   </style>
-
-  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h2>Chọn Dịch Vụ</h2>
-    <label>Dịch vụ chính:</label>
-    <select id="mainService" onchange="loadSubService()">
-      <option value="">-- Chọn dịch vụ --</option>
-    </select>
+  <h2>Đặt dịch vụ</h2>
 
-    <label>Dịch vụ con:</label>
-    <select id="subService" onchange="buildForm()">
-      <option value="">-- Chọn dịch vụ con --</option>
-    </select>
+  <label>Điểm đón:</label>
+  <input type="text" id="diem_don" placeholder="Nhập địa chỉ hoặc click bản đồ">
 
-    <form id="dynamicForm" onsubmit="submitForm(event)"></form>
-    <div id="messageBox" class="message"></div>
-  </div>
+  <label>Điểm đến:</label>
+  <input type="text" id="diem_den" placeholder="Nhập địa chỉ hoặc click bản đồ">
+
+  <label>Chỉnh vị trí cho:</label>
+  <input type="radio" name="chon" value="don" checked> Điểm đón
+  <input type="radio" name="chon" value="den"> Điểm đến
+
+  <div id="map" class="map"></div>
 
   <script>
-    // =========================
-    // Cấu hình dịch vụ
-    // =========================
-    const serviceConfig = {
-      "Taxi": {
-        "Sân bay": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"],
-        "Thông thường": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"]
-      },
-      "Sửa chữa điện nước": {
-        "Sửa điện": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Sửa nước": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
-      },
-      "Sửa chữa điện lạnh": {
-        "Điều hòa": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Máy giặt": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Tủ lạnh": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "TV": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Khác": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
-      },
-      "Đặt tiệc": {
-        "Tiệc tại nhà": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"],
-        "Tiệc tại nhà hàng": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"]
-      },
-      "Vệ sinh": {
-        "Dọn nhà theo giờ": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"],
-        "Vệ sinh công nghiệp": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"]
-      },
-      "Giao hàng / Vận chuyển": {
-        "Chuyển nhà trọn gói": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"],
-        "Chở đồ": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"]
-      },
-      "Khẩn cấp": {
-        "Cứu hộ ô tô": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Cứu hộ xe máy": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Phòng khám": ["dia_diem", "tinh_trang", "thoi_diem_can", "yeu_cau", "dien_thoai"]
-      }
-    };
+    // Khởi tạo bản đồ
+    const map = L.map('map').setView([21.0285, 105.8542], 13); // Hà Nội mặc định
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-    // =========================
-    // Nhãn hiển thị tiếng Việt
-    // =========================
-    const fieldLabels = {
-      ten: "Họ tên",
-      dien_thoai: "Số điện thoại",
-      dia_diem: "Địa điểm",
-      diem_don: "Điểm đón",
-      diem_den: "Điểm đến",
-      tinh_trang: "Tình trạng",
-      thoi_gian: "Thời gian",
-      thoi_gian_don: "Thời gian đón",
-      thoi_diem_can: "Thời điểm cần",
-      khu_vuc: "Khu vực muốn đặt",
-      mo_ta: "Mô tả",
-      yeu_cau: "Yêu cầu",
-      yeu_cau_taxi: "Yêu cầu (Loại xe, số chỗ...)"
-    };
+    let markerDon, markerDen;
 
-    // Load dịch vụ chính
-    window.onload = () => {
-      const mainSel = document.getElementById("mainService");
-      for (let main in serviceConfig) {
-        mainSel.innerHTML += `<option value="${main}">${main}</option>`;
+    // Hàm geocode: địa chỉ -> latlng
+    async function geocode(address) {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data && data[0]) {
+        return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
       }
-    };
-
-    // Load dịch vụ con
-    function loadSubService() {
-      const main = document.getElementById("mainService").value;
-      const subSel = document.getElementById("subService");
-      subSel.innerHTML = `<option value="">-- Chọn dịch vụ con --</option>`;
-      if (main && serviceConfig[main]) {
-        for (let sub in serviceConfig[main]) {
-          subSel.innerHTML += `<option value="${sub}">${sub}</option>`;
-        }
-      }
-      document.getElementById("dynamicForm").innerHTML = "";
+      return null;
     }
 
-    // Tạo form động + bản đồ cho địa chỉ
-    function buildForm() {
-      const main = document.getElementById("mainService").value;
-      const sub = document.getElementById("subService").value;
-      const form = document.getElementById("dynamicForm");
-      form.innerHTML = "";
-      if (!main || !sub) return;
-
-      form.innerHTML += `<label>${fieldLabels["ten"]}</label><input type="text" name="ten" required>`;
-      const fields = serviceConfig[main][sub];
-      fields.forEach(f => {
-        let type = "text";
-        if (f === "thoi_gian" || f === "thoi_gian_don" || f === "thoi_diem_can") {
-          type = "datetime-local";
-        }
-
-        if (["dia_diem","diem_don","diem_den"].includes(f)) {
-          form.innerHTML += `
-            <label>${fieldLabels[f]}</label>
-            <input type="text" id="${f}" name="${f}" placeholder="Nhập hoặc chọn trên bản đồ" required>
-            <div id="map_${f}" class="map-container"></div>
-          `;
-          setTimeout(() => initMap(f), 100);
+    // Gõ địa chỉ -> cập nhật map
+    async function handleInput(field, type) {
+      const val = field.value.trim();
+      if (!val) return;
+      const coords = await geocode(val);
+      if (coords) {
+        map.setView(coords, 15);
+        if (type === "don") {
+          if (markerDon) markerDon.remove();
+          markerDon = L.marker(coords, {draggable:true}).addTo(map);
+          markerDon.on('dragend', e => {
+            const pos = e.target.getLatLng();
+            field.value = `${pos.lat},${pos.lng}`;
+          });
+          field.value = coords[0] + "," + coords[1];
         } else {
-          form.innerHTML += `<label>${fieldLabels[f]}</label><input type="${type}" name="${f}" required>`;
+          if (markerDen) markerDen.remove();
+          markerDen = L.marker(coords, {draggable:true, icon: L.icon({iconUrl:"https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png"})}).addTo(map);
+          markerDen.on('dragend', e => {
+            const pos = e.target.getLatLng();
+            field.value = `${pos.lat},${pos.lng}`;
+          });
+          field.value = coords[0] + "," + coords[1];
         }
-      });
-      form.innerHTML += `<button type="submit">Gửi yêu cầu</button>`;
+      }
     }
 
-    // Khởi tạo bản đồ cho field địa chỉ
-    function initMap(fieldId) {
-      const mapDiv = document.getElementById("map_" + fieldId);
-      if (!mapDiv) return;
+    document.getElementById("diem_don").addEventListener("change", e => handleInput(e.target, "don"));
+    document.getElementById("diem_den").addEventListener("change", e => handleInput(e.target, "den"));
 
-      const map = L.map(mapDiv).setView([21.0285, 105.8542], 13); // Default: Hà Nội
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
-
-      let marker;
-      map.on('click', function(e) {
-        if (marker) marker.remove();
-        marker = L.marker(e.latlng).addTo(map);
-        document.getElementById(fieldId).value = e.latlng.lat + "," + e.latlng.lng;
-      });
-    }
-
-    // Gửi dữ liệu
-    function submitForm(e) {
-      e.preventDefault();
-      const main = document.getElementById("mainService").value;
-      const sub = document.getElementById("subService").value;
-      const formData = new FormData(e.target);
-      let data = { dich_vu_chinh: main, dich_vu_con: sub };
-      formData.forEach((v, k) => data[k] = v);
-
-      fetch("https://zalo.nomahubvn.com/webhook/3fc8afa2-58bc-4d84-b052-ff3ae95ba0a6", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      })
-      .then(() => {
-        document.getElementById("messageBox").className = "message success";
-        document.getElementById("messageBox").innerText = "✅ Đã gửi yêu cầu thành công!";
-        document.getElementById("messageBox").style.display = "block";
-        e.target.reset();
-      })
-      .catch(() => {
-        document.getElementById("messageBox").className = "message error";
-        document.getElementById("messageBox").innerText = "❌ Lỗi gửi dữ liệu!";
-        document.getElementById("messageBox").style.display = "block";
-      });
-    }
+    // Click bản đồ -> đặt marker
+    map.on("click", function(e) {
+      const selected = document.querySelector('input[name="chon"]:checked').value;
+      if (selected === "don") {
+        if (markerDon) markerDon.remove();
+        markerDon = L.marker(e.latlng, {draggable:true}).addTo(map);
+        document.getElementById("diem_don").value = `${e.latlng.lat},${e.latlng.lng}`;
+        markerDon.on('dragend', ev => {
+          const pos = ev.target.getLatLng();
+          document.getElementById("diem_don").value = `${pos.lat},${pos.lng}`;
+        });
+      } else {
+        if (markerDen) markerDen.remove();
+        markerDen = L.marker(e.latlng, {draggable:true, icon: L.icon({iconUrl:"https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png"})}).addTo(map);
+        document.getElementById("diem_den").value = `${e.latlng.lat},${e.latlng.lng}`;
+        markerDen.on('dragend', ev => {
+          const pos = ev.target.getLatLng();
+          document.getElementById("diem_den").value = `${pos.lat},${pos.lng}`;
+        });
+      }
+    });
   </script>
 </body>
 </html>
