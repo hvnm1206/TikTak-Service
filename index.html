@@ -2,16 +2,24 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dịch Vụ Online</title>
-
-  <!-- CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
-    h2 { text-align: center; color: #333; }
-    .container { max-width: 600px; margin: auto; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
     select, input, textarea, button {
       width: 100%;
       padding: 14px;
@@ -24,39 +32,41 @@
       font-size: 18px;
       font-weight: 500;
     }
-    button { background: #28a745; color: white; font-weight: bold; cursor: pointer; }
-    button:hover { background: #218838; }
-    .message { margin-top: 15px; padding: 10px; border-radius: 5px; display: none; }
-    .success { background: #d4edda; color: #155724; }
-    .error { background: #f8d7da; color: #721c24; }
-
-    /* Bản đồ */
-    #mapModal {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
+    #mainService option, #subService option {
+      font-size: 18px;
     }
-    #mapContainer {
-      width: 90%;
-      max-width: 800px;
-      height: 80%;
-      background: white;
-      border-radius: 8px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
+    button {
+      background: #28a745;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
     }
-    #map { flex: 1; min-height: 300px; }
-    #mapFooter {
+    button:hover {
+      background: #218838;
+    }
+    .message {
+      margin-top: 15px;
       padding: 10px;
+      border-radius: 5px;
+      display: none;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    input[readonly] {
+      background: #fff !important;
+      color: #000;
+      cursor: pointer;
+    }
+    .row {
       display: flex;
-      justify-content: space-between;
+      gap: 6px;
       align-items: center;
-      background: #fff;
     }
   </style>
 </head>
@@ -77,33 +87,26 @@
     <div id="messageBox" class="message"></div>
   </div>
 
-  <!-- Bản đồ chọn vị trí -->
-  <div id="mapModal">
-    <div id="mapContainer">
-      <div id="map"></div>
-      <div id="mapFooter">
-        <span id="addressDisplay">📍 Chưa chọn vị trí</span>
-        <div>
-          <button onclick="confirmLocation()">Xác nhận</button>
-          <button onclick="closeMapModal()">Huỷ</button>
-        </div>
+  <!-- Modal bản đồ -->
+  <div id="mapModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
+    <div style="width:90%; max-width:600px; background:#fff; margin:40px auto; padding:10px; border-radius:6px;">
+      <div id="map" style="height:400px;"></div>
+      <p id="addressDisplay" style="padding:10px; font-weight:bold;"></p>
+      <div style="text-align:right; margin-top:10px;">
+        <button onclick="confirmLocation()">Xác nhận</button>
+        <button onclick="closeMapModal()" style="background:#ccc; color:#000;">Hủy</button>
       </div>
     </div>
   </div>
 
-  <!-- Script Leaflet -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-
   <script>
     const serviceConfig = {
       "Taxi": {
-        "Sân bay": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"],
-        "Thông thường": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"]
+        "Sân bay": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"]
       },
       "Giao hàng / Vận chuyển": {
-        "Chuyển nhà trọn gói": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"],
-        "Chở đồ": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"]
+        "Chuyển nhà trọn gói": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"]
       }
     };
 
@@ -147,28 +150,33 @@
       const sub = document.getElementById("subService").value;
       const form = document.getElementById("dynamicForm");
       form.innerHTML = "";
+
       if (!main || !sub) return;
 
-      form.innerHTML += `<label>${fieldLabels["ten"]}</label><input type="text" name="ten" required>`;
+      form.innerHTML += `
+        <label>${fieldLabels["ten"]}</label>
+        <input type="text" name="ten" required>
+      `;
 
       const fields = serviceConfig[main][sub];
       fields.forEach(f => {
-        let type = "text";
+        let label = `<label>${fieldLabels[f]}</label>`;
+        let inputHTML = "";
+
         if (["thoi_gian", "thoi_gian_don", "thoi_diem_can"].includes(f)) {
-          type = "datetime-local";
-        }
-        if (["diem_don", "diem_den", "dia_diem"].includes(f)) {
-          form.innerHTML += `
-            <label>${fieldLabels[f]}</label>
-            <div style="display:flex;">
-              <input type="text" name="${f}" id="${f}_input" required readonly style="flex:1;">
-              <button type="button" onclick="openMapModal('${f}_input')">📍</button>
+          inputHTML = `<input type="datetime-local" name="${f}" required>`;
+        } else if (["diem_don", "diem_den", "dia_diem"].includes(f)) {
+          inputHTML = `
+            <div class="row">
+              <input type="text" name="${f}" id="${f}_input" required readonly>
+              <button type="button" onclick="openMapModal('${f}_input')" style="width:44px; height:44px;">📍</button>
             </div>
-            <input type="hidden" name="${f}_lat" id="${f}_input_lat">
-            <input type="hidden" name="${f}_lng" id="${f}_input_lng">`;
+          `;
         } else {
-          form.innerHTML += `<label>${fieldLabels[f]}</label><input type="${type}" name="${f}" required>`;
+          inputHTML = `<input type="text" name="${f}" placeholder="${fieldLabels[f]}" required>`;
         }
+
+        form.innerHTML += label + inputHTML;
       });
 
       form.innerHTML += `<button type="submit">Gửi yêu cầu</button>`;
@@ -187,7 +195,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       })
-      .then(() => {
+      .then(res => {
         document.getElementById("messageBox").className = "message success";
         document.getElementById("messageBox").innerText = "✅ Đã gửi yêu cầu thành công!";
         document.getElementById("messageBox").style.display = "block";
@@ -200,83 +208,43 @@
       });
     }
 
-    // ====== MAP ======
-    let map, marker;
-    let selectedLatLng = null;
-    let selectedAddress = "";
-    let mapModalOpenFor = null;
-
+    // ======================
+    // Bản đồ Leaflet modal
+    // ======================
+    let map, marker, currentInput;
     function openMapModal(inputId) {
-      document.getElementById("mapModal").style.display = "flex";
-      selectedLatLng = null;
-      selectedAddress = "";
-      document.getElementById("addressDisplay").innerText = "📍 Chưa chọn vị trí";
-      mapModalOpenFor = inputId;
+      currentInput = inputId;
+      document.getElementById("mapModal").style.display = "block";
 
-      setTimeout(() => {
-        if (!map) initMap();
-        else if (marker) map.removeLayer(marker);
-      }, 0);
-    }
-
-    function initMap() {
-      map = L.map('map').setView([21.0285, 105.8542], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
-
-      map.locate({ setView: true, maxZoom: 16 });
-      map.on('locationfound', e => {
-        L.circle(e.latlng, { radius: 100 }).addTo(map);
-      });
-
-      map.on('click', async function(e) {
-        selectedLatLng = e.latlng;
-        if (marker) map.removeLayer(marker);
-        marker = L.marker(e.latlng).addTo(map);
-
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`, {
-            headers: {
-              "Accept-Language": "vi",
-              "User-Agent": "Tiktak-Service/1.0"
-            }
-          });
-          const data = await res.json();
-          selectedAddress = data.display_name || "Không tìm thấy địa chỉ";
-        } catch {
-          selectedAddress = "⚠️ Lỗi lấy địa chỉ";
-        }
-
-        document.getElementById("addressDisplay").innerText = selectedAddress;
-      });
-
-      L.Control.geocoder({
-        defaultMarkGeocode: true
-      }).on('markgeocode', function(e) {
-        const latlng = e.geocode.center;
-        map.setView(latlng, 16);
-        if (marker) map.removeLayer(marker);
-        marker = L.marker(latlng).addTo(map);
-        selectedLatLng = latlng;
-        selectedAddress = e.geocode.name;
-        document.getElementById("addressDisplay").innerText = selectedAddress;
-      }).addTo(map);
-    }
-
-    function confirmLocation() {
-      if (!selectedLatLng || !selectedAddress || !mapModalOpenFor) {
-        alert("⚠️ Vui lòng chọn vị trí hợp lệ!");
-        return;
+      if (!map) {
+        map = L.map("map").setView([21.0285, 105.8542], 13);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        map.on("click", function (e) {
+          const { lat, lng } = e.latlng;
+          if (marker) marker.setLatLng([lat, lng]);
+          else marker = L.marker([lat, lng]).addTo(map);
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+            .then(res => res.json())
+            .then(data => {
+              const address = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+              document.getElementById("addressDisplay").innerText = address;
+              document.getElementById(currentInput).value = address;
+            })
+            .catch(() => {
+              document.getElementById("addressDisplay").innerText = "Không thể lấy địa chỉ";
+            });
+        });
       }
-      document.getElementById(mapModalOpenFor).value = selectedAddress;
-      document.getElementById(mapModalOpenFor + "_lat").value = selectedLatLng.lat;
-      document.getElementById(mapModalOpenFor + "_lng").value = selectedLatLng.lng;
-      closeMapModal();
     }
 
     function closeMapModal() {
       document.getElementById("mapModal").style.display = "none";
+    }
+
+    function confirmLocation() {
+      closeMapModal();
     }
   </script>
 </body>
