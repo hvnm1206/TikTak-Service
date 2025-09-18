@@ -27,7 +27,40 @@
     .success { background: #d4edda; color: #155724; }
     .error { background: #f8d7da; color: #721c24; }
 
-    #map { height: 350px; margin: 15px 0; display:none; border: 1px solid #ccc; }
+    /* Nút bản đồ 📍 */
+    .map-btn {
+      cursor: pointer;
+      margin-left: 5px;
+      font-size: 20px;
+      color: red;
+    }
+
+    /* Popup overlay */
+    .map-popup {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .map-popup-content {
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      width: 90%; max-width: 600px;
+    }
+    .map-popup-content #popupMap {
+      height: 400px;
+    }
+    .close-btn {
+      float: right;
+      cursor: pointer;
+      font-weight: bold;
+      color: red;
+    }
   </style>
 
   <!-- Leaflet -->
@@ -48,13 +81,21 @@
     </select>
 
     <form id="dynamicForm" onsubmit="submitForm(event)"></form>
-    <div id="map"></div>
     <div id="messageBox" class="message"></div>
+  </div>
+
+  <!-- Popup Map -->
+  <div id="mapPopup" class="map-popup">
+    <div class="map-popup-content">
+      <span class="close-btn" onclick="closeMapPopup()">✖</span>
+      <h3>Chọn vị trí</h3>
+      <div id="popupMap"></div>
+    </div>
   </div>
 
   <script>
     // =========================
-    // Cấu hình dịch vụ (đầy đủ như bạn ban đầu)
+    // Cấu hình dịch vụ
     // =========================
     const serviceConfig = {
       "Taxi": {
@@ -128,47 +169,44 @@
         }
       }
       document.getElementById("dynamicForm").innerHTML = "";
-      document.getElementById("map").style.display = "none";
     }
 
     // =========================
-    // Map setup (1 bản đồ, nhiều marker, lưu cả địa danh + latlon)
+    // Popup Map
     // =========================
-    let map, markers = {}, currentField = null;
+    let popupMap, popupMarker, currentInputField;
 
-    function initMap() {
-      if (map) return; // tránh init lại
-      map = L.map('map').setView([21.0285, 105.8542], 13); // Default: Hà Nội
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
+    function openMapPopup(fieldId) {
+      currentInputField = fieldId;
+      document.getElementById("mapPopup").style.display = "flex";
 
-      map.on("click", async function(e) {
-        if (!currentField) return;
+      if (!popupMap) {
+        popupMap = L.map("popupMap").setView([21.0285,105.8542], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(popupMap);
 
-        const lat = e.latlng.lat, lon = e.latlng.lng;
-        const address = await reverseGeocode(lat, lon);
+        popupMap.on("click", async function(e) {
+          const lat = e.latlng.lat, lon = e.latlng.lng;
+          const address = await reverseGeocode(lat, lon);
 
-        // Tạo marker cho field
-        if (markers[currentField]) {
-          markers[currentField].setLatLng(e.latlng);
-        } else {
-          markers[currentField] = L.marker(e.latlng, {draggable:true}).addTo(map);
-          markers[currentField].on("dragend", async ev => {
-            const pos = ev.target.getLatLng();
-            const addr = await reverseGeocode(pos.lat, pos.lng);
-            document.getElementById(currentField).value = addr;
-            document.getElementById(currentField + "_latlon").value = `${pos.lat},${pos.lng}`;
-          });
-        }
+          if (popupMarker) popupMarker.setLatLng(e.latlng);
+          else popupMarker = L.marker(e.latlng).addTo(popupMap);
 
-        // Cập nhật input
-        document.getElementById(currentField).value = address;
-        document.getElementById(currentField + "_latlon").value = `${lat},${lon}`;
-      });
+          // Điền input text + hidden
+          document.getElementById(currentInputField).value = address;
+          document.getElementById(currentInputField + "_latlon").value = lat + "," + lon;
+
+          closeMapPopup();
+        });
+      }
+      setTimeout(()=>popupMap.invalidateSize(), 200); // Fix load map
     }
 
-    // Reverse geocode (lat/lon -> địa chỉ)
+    function closeMapPopup() {
+      document.getElementById("mapPopup").style.display = "none";
+    }
+
     async function reverseGeocode(lat, lon) {
       const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
       const res = await fetch(url);
@@ -188,7 +226,6 @@
 
       form.innerHTML += `<label>${fieldLabels["ten"]}</label><input type="text" name="ten" required>`;
       const fields = serviceConfig[main][sub];
-      let hasAddress = false;
 
       fields.forEach(f => {
         let type = "text";
@@ -197,24 +234,18 @@
         }
 
         if (["dia_diem","diem_don","diem_den","khu_vuc"].includes(f)) {
-          hasAddress = true;
           form.innerHTML += `
             <label>${fieldLabels[f]}</label>
-            <input type="text" id="${f}" name="${f}" placeholder="Nhập hoặc chọn trên bản đồ" 
-              onfocus="currentField='${f}'" required>
+            <div style="display:flex;align-items:center;">
+              <input type="text" id="${f}" name="${f}" placeholder="Nhập hoặc chọn 📍" required style="flex:1;">
+              <span class="map-btn" onclick="openMapPopup('${f}')">📍</span>
+            </div>
             <input type="hidden" id="${f}_latlon" name="${f}_latlon">
           `;
         } else {
           form.innerHTML += `<label>${fieldLabels[f]}</label><input type="${type}" name="${f}" required>`;
         }
       });
-
-      if (hasAddress) {
-        document.getElementById("map").style.display = "block";
-        initMap();
-      } else {
-        document.getElementById("map").style.display = "none";
-      }
 
       form.innerHTML += `<button type="submit">Gửi yêu cầu</button>`;
     }
@@ -250,4 +281,3 @@
   </script>
 </body>
 </html>
-
