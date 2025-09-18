@@ -33,7 +33,11 @@
     .error { background: #f8d7da; color: #721c24; }
 
     /* Input với icon 📍 */
-    .input-group { display: flex; width: 100%; }
+    .input-group {
+      display: flex;
+      width: 100%;
+      position: relative;
+    }
     .input-group input {
       flex: 1;
       border-radius: 6px 0 0 6px;
@@ -49,15 +53,17 @@
       cursor: pointer;
     }
 
-    /* Autocomplete */
+    /* Autocomplete dropdown */
     .autocomplete-suggestions {
-      border: 1px solid #ccc;
-      background: #fff;
       position: absolute;
+      top: 100%;
+      left: 0;
+      right: 40px; /* chừa chỗ cho icon 📍 */
+      background: #fff;
+      border: 1px solid #ccc;
       z-index: 10000;
-      max-height: 150px;
+      max-height: 200px;
       overflow-y: auto;
-      width: calc(100% - 40px);
     }
     .autocomplete-suggestions div {
       padding: 8px;
@@ -273,45 +279,42 @@
     }
 
     // =========================
-    // Autocomplete
+    // Autocomplete (sửa)
     // =========================
     function enableAutocomplete(fieldId) {
-  const input = document.getElementById(fieldId);
+      const input = document.getElementById(fieldId);
 
-  // tạo box suggestion
-  let suggestionBox = document.createElement("div");
-  suggestionBox.className = "autocomplete-suggestions";
-  input.parentNode.style.position = "relative";
-  input.parentNode.appendChild(suggestionBox);
+      // tạo box suggestion nếu chưa có
+      let suggestionBox = document.createElement("div");
+      suggestionBox.className = "autocomplete-suggestions";
+      input.parentNode.appendChild(suggestionBox);
 
-  input.addEventListener("input", async function() {
-    const q = this.value.trim();
-    if (q.length < 3) {
-      suggestionBox.innerHTML = "";
-      return;
-    }
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&addressdetails=1&limit=5&countrycodes=vn`;
-    const res = await fetch(url);
-    const data = await res.json();
-    suggestionBox.innerHTML = "";
-    data.forEach(place => {
-      let div = document.createElement("div");
-      div.innerText = place.display_name;
-      div.onclick = () => {
-        input.value = place.display_name; // chỉ điền khi click
-        document.getElementById(fieldId + "_latlon").value = place.lat + "," + place.lon;
+      input.addEventListener("input", async function() {
+        const q = this.value.trim();
+        if (q.length < 3) {
+          suggestionBox.innerHTML = "";
+          return;
+        }
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&addressdetails=1&limit=5&countrycodes=vn`;
+        const res = await fetch(url);
+        const data = await res.json();
         suggestionBox.innerHTML = "";
-      };
-      suggestionBox.appendChild(div);
-    });
-  });
+        data.forEach(place => {
+          let div = document.createElement("div");
+          div.innerText = place.display_name;
+          div.onclick = () => {
+            input.value = place.display_name;
+            document.getElementById(fieldId + "_latlon").value = place.lat + "," + place.lon;
+            suggestionBox.innerHTML = "";
+          };
+          suggestionBox.appendChild(div);
+        });
+      });
 
-  // xóa suggestion khi mất focus
-  input.addEventListener("blur", () => {
-    setTimeout(()=> suggestionBox.innerHTML="", 200);
-  });
-}
-
+      input.addEventListener("blur", () => {
+        setTimeout(()=> suggestionBox.innerHTML="", 200);
+      });
+    }
 
     // =========================
     // Tạo form động
@@ -381,5 +384,3 @@
   </script>
 </body>
 </html>
-
-
