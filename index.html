@@ -37,7 +37,9 @@
   </div>
 
   <script>
-    // ⚡ Cấu hình dịch vụ & trường
+    // =========================
+    // Cấu hình dịch vụ
+    // =========================
     const serviceConfig = {
       "Taxi": {
         "Sân bay": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"],
@@ -55,6 +57,7 @@
         "Khác": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
       },
       "Đặt tiệc": {
+        "Tiệc tại nhà": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"],
         "Tiệc tại nhà hàng": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"]
       },
       "Vệ sinh": {
@@ -62,17 +65,19 @@
         "Vệ sinh công nghiệp": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"]
       },
       "Giao hàng / Vận chuyển": {
-        "Chuyển nhà trọn gói": ["diem_don", "diem_den", "mo_ta", "yeu_cau", "dien_thoai"],
-        "Chở đồ": ["diem_don", "diem_den", "mo_ta", "yeu_cau", "dien_thoai"]
+        "Chuyển nhà trọn gói": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"],
+        "Chở đồ": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"]
       },
       "Khẩn cấp": {
         "Cứu hộ ô tô": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
         "Cứu hộ xe máy": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Phòng khám": ["dia_diem", "tinh_trang", "yeu_cau", "dien_thoai"]
+        "Phòng khám": ["dia_diem", "tinh_trang", "thoi_diem_can", "yeu_cau", "dien_thoai"]
       }
     };
 
-    // ⚡ Label hiển thị
+    // =========================
+    // Nhãn hiển thị tiếng Việt
+    // =========================
     const fieldLabels = {
       ten: "Họ tên",
       dien_thoai: "Số điện thoại",
@@ -83,13 +88,15 @@
       thoi_gian: "Thời gian",
       thoi_gian_don: "Thời gian đón",
       thoi_diem_can: "Thời điểm cần",
+      khu_vuc: "Khu vực muốn đặt",
       mo_ta: "Mô tả",
       yeu_cau: "Yêu cầu",
-      yeu_cau_taxi: "Yêu cầu (loại xe, số chỗ...)",
-      khu_vuc: "Khu vực muốn đặt"
+      yeu_cau_taxi: "Yêu cầu (Loại xe, số chỗ...)"
     };
 
-    // ⚡ Load dịch vụ chính
+    // =========================
+    // Load dịch vụ chính
+    // =========================
     window.onload = () => {
       const mainSel = document.getElementById("mainService");
       for (let main in serviceConfig) {
@@ -97,7 +104,9 @@
       }
     };
 
-    // ⚡ Load dịch vụ con
+    // =========================
+    // Load dịch vụ con
+    // =========================
     function loadSubService() {
       const main = document.getElementById("mainService").value;
       const subSel = document.getElementById("subService");
@@ -110,7 +119,9 @@
       document.getElementById("dynamicForm").innerHTML = "";
     }
 
-    // ⚡ Tạo form động
+    // =========================
+    // Tạo form động
+    // =========================
     function buildForm() {
       const main = document.getElementById("mainService").value;
       const sub = document.getElementById("subService").value;
@@ -118,18 +129,22 @@
       form.innerHTML = "";
       if (!main || !sub) return;
 
-      // Luôn có tên
+      // luôn có tên
       form.innerHTML += `<label>${fieldLabels["ten"]}</label><input type="text" name="ten" required>`;
       const fields = serviceConfig[main][sub];
       fields.forEach(f => {
         let type = "text";
-        if (f.includes("thoi")) type = "datetime-local";
+        if (f === "thoi_gian" || f === "thoi_gian_don" || f === "thoi_diem_can") {
+          type = "datetime-local";
+        }
         form.innerHTML += `<label>${fieldLabels[f]}</label><input type="${type}" name="${f}" required>`;
       });
       form.innerHTML += `<button type="submit">Gửi yêu cầu</button>`;
     }
 
-    // ⚡ Gửi dữ liệu
+    // =========================
+    // Gửi dữ liệu về Webhook
+    // =========================
     function submitForm(e) {
       e.preventDefault();
       const main = document.getElementById("mainService").value;
@@ -143,7 +158,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       })
-      .then(() => {
+      .then(res => {
         document.getElementById("messageBox").className = "message success";
         document.getElementById("messageBox").innerText = "✅ Đã gửi yêu cầu thành công!";
         document.getElementById("messageBox").style.display = "block";
