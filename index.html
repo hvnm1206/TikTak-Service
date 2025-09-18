@@ -1,27 +1,28 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dịch Vụ Online với Bản Đồ Chọn Vị Trí</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dịch Vụ Online</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
   <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; margin:0; padding:20px; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
     h2 { text-align: center; color: #333; }
     .container { max-width: 600px; margin: auto; }
     select, input, textarea, button {
-      width: 100%; 
-      padding: 14px; 
+      width: 100%;
+      padding: 14px;
       margin: 10px 0;
-      border-radius: 6px; 
+      border-radius: 6px;
       border: 1px solid #ccc;
       font-size: 16px;
     }
     #mainService, #subService {
       font-size: 18px;
       font-weight: 500;
-      padding: 16px;
     }
     button { background: #28a745; color: white; font-weight: bold; cursor: pointer; }
     button:hover { background: #218838; }
@@ -29,7 +30,7 @@
     .success { background: #d4edda; color: #155724; }
     .error { background: #f8d7da; color: #721c24; }
 
-    /* Phần bản đồ popup/modal */
+    /* Bản đồ */
     #mapModal {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -37,6 +38,7 @@
       display: none;
       justify-content: center;
       align-items: center;
+      z-index: 9999;
     }
     #mapContainer {
       width: 90%;
@@ -45,17 +47,16 @@
       background: white;
       border-radius: 8px;
       overflow: hidden;
-      position: relative;
+      display: flex;
+      flex-direction: column;
     }
-    #map { height: 100%; }
+    #map { flex: 1; min-height: 300px; }
     #mapFooter {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      background: rgba(255,255,255,0.9);
       padding: 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background: #fff;
     }
   </style>
 </head>
@@ -72,18 +73,16 @@
       <option value="">-- Chọn dịch vụ con --</option>
     </select>
 
-    <form id="dynamicForm" onsubmit="submitForm(event)">
-      <!-- các field + input được tạo động ở đây -->
-    </form>
+    <form id="dynamicForm" onsubmit="submitForm(event)"></form>
     <div id="messageBox" class="message"></div>
   </div>
 
-  <!-- Modal bản đồ để chọn vị trí -->
+  <!-- Bản đồ chọn vị trí -->
   <div id="mapModal">
     <div id="mapContainer">
       <div id="map"></div>
       <div id="mapFooter">
-        <span id="addressDisplay">Chưa chọn vị trí</span>
+        <span id="addressDisplay">📍 Chưa chọn vị trí</span>
         <div>
           <button onclick="confirmLocation()">Xác nhận</button>
           <button onclick="closeMapModal()">Huỷ</button>
@@ -92,45 +91,19 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-          crossorigin=""></script>
+  <!-- Script Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
   <script>
-    // =========================
-    // Cấu hình dịch vụ (giống bạn)
-    // =========================
     const serviceConfig = {
       "Taxi": {
         "Sân bay": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"],
         "Thông thường": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"]
       },
-      "Sửa chữa điện nước": {
-        "Sửa điện": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Sửa nước": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
-      },
-      "Sửa chữa điện lạnh": {
-        "Điều hòa": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Máy giặt": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Tủ lạnh": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "TV": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Khác": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
-      },
-      "Đặt tiệc": {
-        "Tiệc tại nhà": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"],
-        "Tiệc tại nhà hàng": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"]
-      },
-      "Vệ sinh": {
-        "Dọn nhà theo giờ": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"],
-        "Vệ sinh công nghiệp": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"]
-      },
       "Giao hàng / Vận chuyển": {
         "Chuyển nhà trọn gói": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"],
         "Chở đồ": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"]
-      },
-      "Khẩn cấp": {
-        "Cứu hộ ô tô": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Cứu hộ xe máy": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Phòng khám": ["dia_diem", "tinh_trang", "thoi_diem_can", "yeu_cau", "dien_thoai"]
       }
     };
 
@@ -150,27 +123,11 @@
       yeu_cau_taxi: "Yêu cầu (Loại xe, số chỗ...)"
     };
 
-    // ===== biến dùng chung cho bản đồ =====
-    let map, marker;
-    let selectedLatLng = null;
-    let selectedAddress = "";
-
-    // =========================
-    // Khởi tạo dropdown
-    // =========================
     window.onload = () => {
       const mainSel = document.getElementById("mainService");
       for (let main in serviceConfig) {
         mainSel.innerHTML += `<option value="${main}">${main}</option>`;
       }
-
-      // Tuỳ chọn: tự chọn dịch vụ đầu tiên
-      // mainSel.selectedIndex = 1;
-      // loadSubService();
-      // setTimeout(() => {
-      //   document.getElementById("subService").selectedIndex = 1;
-      //   buildForm();
-      // }, 100);
     };
 
     function loadSubService() {
@@ -192,25 +149,23 @@
       form.innerHTML = "";
       if (!main || !sub) return;
 
-      // Họ tên
       form.innerHTML += `<label>${fieldLabels["ten"]}</label><input type="text" name="ten" required>`;
 
       const fields = serviceConfig[main][sub];
       fields.forEach(f => {
         let type = "text";
-        if (f === "thoi_gian" || f === "thoi_gian_don" || f === "thoi_diem_can") {
+        if (["thoi_gian", "thoi_gian_don", "thoi_diem_can"].includes(f)) {
           type = "datetime-local";
         }
-        // Nếu là trường địa điểm hoặc điểm đón/điểm đến
         if (["diem_don", "diem_den", "dia_diem"].includes(f)) {
-          form.innerHTML += `<label>${fieldLabels[f]}</label>
-            <div style="display: flex;">
+          form.innerHTML += `
+            <label>${fieldLabels[f]}</label>
+            <div style="display:flex;">
               <input type="text" name="${f}" id="${f}_input" required readonly style="flex:1;">
               <button type="button" onclick="openMapModal('${f}_input')">📍</button>
-            </div>`;
-          // thêm trường ẩn lat lng
-          form.innerHTML += `<input type="hidden" name="${f}_lat" id="${f}_lat">
-                            <input type="hidden" name="${f}_lng" id="${f}_lng">`;
+            </div>
+            <input type="hidden" name="${f}_lat" id="${f}_input_lat">
+            <input type="hidden" name="${f}_lng" id="${f}_input_lng">`;
         } else {
           form.innerHTML += `<label>${fieldLabels[f]}</label><input type="${type}" name="${f}" required>`;
         }
@@ -219,82 +174,6 @@
       form.innerHTML += `<button type="submit">Gửi yêu cầu</button>`;
     }
 
-    // ======================
-    // Mở modal bản đồ để chọn vị trí
-    // ======================
-    function openMapModal(inputId) {
-      const modal = document.getElementById("mapModal");
-      modal.style.display = "flex";
-
-      setTimeout(() => {
-        if (!map) {
-          initMap(inputId);
-        } else {
-          // khi modal mở lại với input khác, reset marker & address
-          selectedLatLng = null;
-          selectedAddress = "";
-          if (marker) { map.removeLayer(marker); marker = null; }
-          document.getElementById("addressDisplay").innerText = "Chưa chọn vị trí";
-        }
-      }, 0);
-
-      // ghi inputId đang chọn để sau xác nhận biết trả dữ liệu về input nào
-      mapModalOpenFor = inputId;
-    }
-
-    let mapModalOpenFor = null; 
-
-    function initMap(inputId) {
-      map = L.map('map').setView([21.0285, 105.8542], 13); // Hà Nội làm mặc định
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(map);
-
-      map.on('click', async function(e) {
-        selectedLatLng = e.latlng;
-        if (marker) map.removeLayer(marker);
-        marker = L.marker(e.latlng).addTo(map);
-
-        // reverse geocoding
-        try {
-          const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`;
-          const res = await fetch(url, {
-            headers: {
-              "Accept-Language": "vi",  // nếu muốn tiếng Việt
-              "User-Agent": "BạnTênỨngDụng/1.0"
-            }
-          });
-          const data = await res.json();
-          selectedAddress = data.display_name || "Không tìm thấy địa chỉ";
-        } catch (err) {
-          console.error("Lỗi reverse geocoding:", err);
-          selectedAddress = "Lỗi lấy địa chỉ";
-        }
-        document.getElementById("addressDisplay").innerText = selectedAddress;
-      });
-    }
-
-    function confirmLocation() {
-      if (!selectedLatLng || !mapModalOpenFor) {
-        alert("Chưa chọn vị trí!");
-        return;
-      }
-      // điền vào input chính
-      document.getElementById(mapModalOpenFor).value = selectedAddress;
-      // điền lat lng ẩn
-      document.getElementById(mapModalOpenFor + "_lat").value = selectedLatLng.lat;
-      document.getElementById(mapModalOpenFor + "_lng").value = selectedLatLng.lng;
-
-      closeMapModal();
-    }
-
-    function closeMapModal() {
-      document.getElementById("mapModal").style.display = "none";
-    }
-
-    // =====================
-    // Gửi form như trước
-    // =====================
     function submitForm(e) {
       e.preventDefault();
       const main = document.getElementById("mainService").value;
@@ -308,7 +187,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       })
-      .then(res => {
+      .then(() => {
         document.getElementById("messageBox").className = "message success";
         document.getElementById("messageBox").innerText = "✅ Đã gửi yêu cầu thành công!";
         document.getElementById("messageBox").style.display = "block";
@@ -319,6 +198,85 @@
         document.getElementById("messageBox").innerText = "❌ Lỗi gửi dữ liệu!";
         document.getElementById("messageBox").style.display = "block";
       });
+    }
+
+    // ====== MAP ======
+    let map, marker;
+    let selectedLatLng = null;
+    let selectedAddress = "";
+    let mapModalOpenFor = null;
+
+    function openMapModal(inputId) {
+      document.getElementById("mapModal").style.display = "flex";
+      selectedLatLng = null;
+      selectedAddress = "";
+      document.getElementById("addressDisplay").innerText = "📍 Chưa chọn vị trí";
+      mapModalOpenFor = inputId;
+
+      setTimeout(() => {
+        if (!map) initMap();
+        else if (marker) map.removeLayer(marker);
+      }, 0);
+    }
+
+    function initMap() {
+      map = L.map('map').setView([21.0285, 105.8542], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      map.locate({ setView: true, maxZoom: 16 });
+      map.on('locationfound', e => {
+        L.circle(e.latlng, { radius: 100 }).addTo(map);
+      });
+
+      map.on('click', async function(e) {
+        selectedLatLng = e.latlng;
+        if (marker) map.removeLayer(marker);
+        marker = L.marker(e.latlng).addTo(map);
+
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`, {
+            headers: {
+              "Accept-Language": "vi",
+              "User-Agent": "Tiktak-Service/1.0"
+            }
+          });
+          const data = await res.json();
+          selectedAddress = data.display_name || "Không tìm thấy địa chỉ";
+        } catch {
+          selectedAddress = "⚠️ Lỗi lấy địa chỉ";
+        }
+
+        document.getElementById("addressDisplay").innerText = selectedAddress;
+      });
+
+      L.Control.geocoder({
+        defaultMarkGeocode: true
+      }).on('markgeocode', function(e) {
+        const latlng = e.geocode.center;
+        map.setView(latlng, 16);
+        if (marker) map.removeLayer(marker);
+        marker = L.marker(latlng).addTo(map);
+        selectedLatLng = latlng;
+        selectedAddress = e.geocode.name;
+        document.getElementById("addressDisplay").innerText = selectedAddress;
+      }).addTo(map);
+    }
+
+    function confirmLocation() {
+      if (!selectedLatLng || !selectedAddress || !mapModalOpenFor) {
+        alert("⚠️ Vui lòng chọn vị trí hợp lệ!");
+        return;
+      }
+      document.getElementById(mapModalOpenFor).value = selectedAddress;
+      document.getElementById(mapModalOpenFor + "_lat").value = selectedLatLng.lat;
+      document.getElementById(mapModalOpenFor + "_lng").value = selectedLatLng.lng;
+      closeMapModal();
+    }
+
+    function closeMapModal() {
+      document.getElementById("mapModal").style.display = "none";
     }
   </script>
 </body>
