@@ -196,7 +196,7 @@
           type = "datetime-local";
         }
 
-        if (["dia_diem","diem_don","diem_den"].includes(f)) {
+        if (["dia_diem","diem_don","diem_den","khu_vuc"].includes(f)) {
           hasAddress = true;
           form.innerHTML += `
             <label>${fieldLabels[f]}</label>
@@ -250,3 +250,4 @@
   </script>
 </body>
 </html>
+
