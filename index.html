@@ -135,7 +135,7 @@
 
   <script>
     // =========================
-    // Cấu hình dịch vụ
+    // Config dịch vụ
     // =========================
     const serviceConfig = {
       "Taxi": {
@@ -146,25 +146,6 @@
         "Sửa điện": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
         "Sửa nước": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
       },
-      "Sửa chữa điện lạnh": {
-        "Điều hòa": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Máy giặt": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Tủ lạnh": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "TV": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Khác": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
-      },
-      "Đặt tiệc": {
-        "Tiệc tại nhà": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"],
-        "Tiệc tại nhà hàng": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"]
-      },
-      "Vệ sinh": {
-        "Dọn nhà theo giờ": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"],
-        "Vệ sinh công nghiệp": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"]
-      },
-      "Giao hàng / Vận chuyển": {
-        "Chuyển nhà trọn gói": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"],
-        "Chở đồ": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"]
-      },
       "Khẩn cấp": {
         "Cứu hộ ô tô": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
         "Cứu hộ xe máy": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
@@ -172,9 +153,6 @@
       }
     };
 
-    // =========================
-    // Nhãn hiển thị
-    // =========================
     const fieldLabels = {
       ten: "Họ tên",
       dien_thoai: "Số điện thoại",
@@ -279,7 +257,7 @@
     }
 
     // =========================
-    // Autocomplete (sửa)
+    // Autocomplete fix
     // =========================
     function enableAutocomplete(fieldId) {
       const input = document.getElementById(fieldId);
@@ -305,6 +283,14 @@
           div.onclick = () => {
             input.value = place.display_name;
             document.getElementById(fieldId + "_latlon").value = place.lat + "," + place.lon;
+
+            // zoom map nếu có
+            if (popupMap) {
+              popupMap.setView([place.lat, place.lon], 16);
+              if (popupMarker) popupMarker.setLatLng([place.lat, place.lon]);
+              else popupMarker = L.marker([place.lat, place.lon]).addTo(popupMap);
+            }
+
             suggestionBox.innerHTML = "";
           };
           suggestionBox.appendChild(div);
@@ -354,7 +340,7 @@
     }
 
     // =========================
-    // Gửi dữ liệu
+    // Submit form
     // =========================
     function submitForm(e) {
       e.preventDefault();
