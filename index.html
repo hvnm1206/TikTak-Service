@@ -54,7 +54,7 @@
 
   <script>
     // =========================
-    // Cấu hình dịch vụ
+    // Cấu hình dịch vụ (đầy đủ như bạn ban đầu)
     // =========================
     const serviceConfig = {
       "Taxi": {
@@ -65,9 +65,29 @@
         "Sửa điện": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
         "Sửa nước": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
       },
+      "Sửa chữa điện lạnh": {
+        "Điều hòa": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Máy giặt": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Tủ lạnh": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "TV": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Khác": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
+      },
+      "Đặt tiệc": {
+        "Tiệc tại nhà": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"],
+        "Tiệc tại nhà hàng": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"]
+      },
+      "Vệ sinh": {
+        "Dọn nhà theo giờ": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"],
+        "Vệ sinh công nghiệp": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"]
+      },
+      "Giao hàng / Vận chuyển": {
+        "Chuyển nhà trọn gói": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"],
+        "Chở đồ": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"]
+      },
       "Khẩn cấp": {
         "Cứu hộ ô tô": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
-        "Cứu hộ xe máy": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
+        "Cứu hộ xe máy": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Phòng khám": ["dia_diem", "tinh_trang", "thoi_diem_can", "yeu_cau", "dien_thoai"]
       }
     };
 
@@ -112,7 +132,7 @@
     }
 
     // =========================
-    // Map setup (1 bản đồ, nhiều marker)
+    // Map setup (1 bản đồ, nhiều marker, lưu cả địa danh + latlon)
     // =========================
     let map, markers = {}, currentField = null;
 
@@ -123,19 +143,37 @@
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
 
-      map.on("click", function(e) {
+      map.on("click", async function(e) {
         if (!currentField) return;
+
+        const lat = e.latlng.lat, lon = e.latlng.lng;
+        const address = await reverseGeocode(lat, lon);
+
+        // Tạo marker cho field
         if (markers[currentField]) {
           markers[currentField].setLatLng(e.latlng);
         } else {
           markers[currentField] = L.marker(e.latlng, {draggable:true}).addTo(map);
-          markers[currentField].on("dragend", ev => {
+          markers[currentField].on("dragend", async ev => {
             const pos = ev.target.getLatLng();
-            document.getElementById(currentField).value = `${pos.lat},${pos.lng}`;
+            const addr = await reverseGeocode(pos.lat, pos.lng);
+            document.getElementById(currentField).value = addr;
+            document.getElementById(currentField + "_latlon").value = `${pos.lat},${pos.lng}`;
           });
         }
-        document.getElementById(currentField).value = `${e.latlng.lat},${e.latlng.lng}`;
+
+        // Cập nhật input
+        document.getElementById(currentField).value = address;
+        document.getElementById(currentField + "_latlon").value = `${lat},${lon}`;
       });
+    }
+
+    // Reverse geocode (lat/lon -> địa chỉ)
+    async function reverseGeocode(lat, lon) {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return data.display_name || (lat + "," + lon);
     }
 
     // =========================
@@ -163,7 +201,8 @@
           form.innerHTML += `
             <label>${fieldLabels[f]}</label>
             <input type="text" id="${f}" name="${f}" placeholder="Nhập hoặc chọn trên bản đồ" 
-              onfocus="currentField='${f}'">
+              onfocus="currentField='${f}'" required>
+            <input type="hidden" id="${f}_latlon" name="${f}_latlon">
           `;
         } else {
           form.innerHTML += `<label>${fieldLabels[f]}</label><input type="${type}" name="${f}" required>`;
