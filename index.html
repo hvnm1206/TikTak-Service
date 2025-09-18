@@ -9,7 +9,6 @@
     h2 { text-align: center; color: #333; }
     .container { max-width: 600px; margin: auto; }
 
-    /* Style chung cho input, select, textarea */
     select, input, textarea, button {
       width: 100%; 
       padding: 14px; 
@@ -19,26 +18,21 @@
       font-size: 16px;
     }
 
-    /* Dịch vụ chính + con chữ to hơn */
-    #mainService, #subService {
-      font-size: 18px;
-      font-weight: 500;
-      padding: 16px;
-    }
-
-    /* Các option trong dropdown */
-    #mainService option, 
-    #subService option {
-      font-size: 18px;
-      padding: 8px;
-    }
+    #mainService, #subService { font-size: 18px; font-weight: 500; padding: 16px; }
+    #mainService option, #subService option { font-size: 18px; padding: 8px; }
 
     button { background: #28a745; color: white; font-weight: bold; cursor: pointer; }
     button:hover { background: #218838; }
     .message { margin-top: 15px; padding: 10px; border-radius: 5px; display: none; }
     .success { background: #d4edda; color: #155724; }
     .error { background: #f8d7da; color: #721c24; }
+
+    .map-container { height: 250px; margin: 10px 0; }
   </style>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
   <div class="container">
@@ -136,7 +130,7 @@
       document.getElementById("dynamicForm").innerHTML = "";
     }
 
-    // Tạo form động
+    // Tạo form động + bản đồ cho địa chỉ
     function buildForm() {
       const main = document.getElementById("mainService").value;
       const sub = document.getElementById("subService").value;
@@ -151,9 +145,37 @@
         if (f === "thoi_gian" || f === "thoi_gian_don" || f === "thoi_diem_can") {
           type = "datetime-local";
         }
-        form.innerHTML += `<label>${fieldLabels[f]}</label><input type="${type}" name="${f}" required>`;
+
+        if (["dia_diem","diem_don","diem_den"].includes(f)) {
+          form.innerHTML += `
+            <label>${fieldLabels[f]}</label>
+            <input type="text" id="${f}" name="${f}" placeholder="Nhập hoặc chọn trên bản đồ" required>
+            <div id="map_${f}" class="map-container"></div>
+          `;
+          setTimeout(() => initMap(f), 100);
+        } else {
+          form.innerHTML += `<label>${fieldLabels[f]}</label><input type="${type}" name="${f}" required>`;
+        }
       });
       form.innerHTML += `<button type="submit">Gửi yêu cầu</button>`;
+    }
+
+    // Khởi tạo bản đồ cho field địa chỉ
+    function initMap(fieldId) {
+      const mapDiv = document.getElementById("map_" + fieldId);
+      if (!mapDiv) return;
+
+      const map = L.map(mapDiv).setView([21.0285, 105.8542], 13); // Default: Hà Nội
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      let marker;
+      map.on('click', function(e) {
+        if (marker) marker.remove();
+        marker = L.marker(e.latlng).addTo(map);
+        document.getElementById(fieldId).value = e.latlng.lat + "," + e.latlng.lng;
+      });
     }
 
     // Gửi dữ liệu
@@ -170,7 +192,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       })
-      .then(res => {
+      .then(() => {
         document.getElementById("messageBox").className = "message success";
         document.getElementById("messageBox").innerText = "✅ Đã gửi yêu cầu thành công!";
         document.getElementById("messageBox").style.display = "block";
