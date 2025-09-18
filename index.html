@@ -1,73 +1,43 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dịch Vụ Online</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      margin: 0;
-      padding: 20px;
-    }
-    h2 {
-      text-align: center;
-      color: #333;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-    }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; margin:0; padding:20px; }
+    h2 { text-align: center; color: #333; }
+    .container { max-width: 600px; margin: auto; }
+
+    /* Style chung cho input, select, textarea */
     select, input, textarea, button {
-      width: 100%;
-      padding: 14px;
+      width: 100%; 
+      padding: 14px; 
       margin: 10px 0;
-      border-radius: 6px;
+      border-radius: 6px; 
       border: 1px solid #ccc;
       font-size: 16px;
     }
+
+    /* Dịch vụ chính + con chữ to hơn */
     #mainService, #subService {
       font-size: 18px;
       font-weight: 500;
+      padding: 16px;
     }
-    #mainService option, #subService option {
+
+    /* Các option trong dropdown */
+    #mainService option, 
+    #subService option {
       font-size: 18px;
+      padding: 8px;
     }
-    button {
-      background: #28a745;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #218838;
-    }
-    .message {
-      margin-top: 15px;
-      padding: 10px;
-      border-radius: 5px;
-      display: none;
-    }
-    .success {
-      background: #d4edda;
-      color: #155724;
-    }
-    .error {
-      background: #f8d7da;
-      color: #721c24;
-    }
-    input[readonly] {
-      background: #fff !important;
-      color: #000;
-      cursor: pointer;
-    }
-    .row {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
+
+    button { background: #28a745; color: white; font-weight: bold; cursor: pointer; }
+    button:hover { background: #218838; }
+    .message { margin-top: 15px; padding: 10px; border-radius: 5px; display: none; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
   </style>
 </head>
 <body>
@@ -87,29 +57,48 @@
     <div id="messageBox" class="message"></div>
   </div>
 
-  <!-- Modal bản đồ -->
-  <div id="mapModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;">
-    <div style="width:90%; max-width:600px; background:#fff; margin:40px auto; padding:10px; border-radius:6px;">
-      <div id="map" style="height:400px;"></div>
-      <p id="addressDisplay" style="padding:10px; font-weight:bold;"></p>
-      <div style="text-align:right; margin-top:10px;">
-        <button onclick="confirmLocation()">Xác nhận</button>
-        <button onclick="closeMapModal()" style="background:#ccc; color:#000;">Hủy</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    // =========================
+    // Cấu hình dịch vụ
+    // =========================
     const serviceConfig = {
       "Taxi": {
-        "Sân bay": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"]
+        "Sân bay": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"],
+        "Thông thường": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"]
+      },
+      "Sửa chữa điện nước": {
+        "Sửa điện": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Sửa nước": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
+      },
+      "Sửa chữa điện lạnh": {
+        "Điều hòa": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Máy giặt": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Tủ lạnh": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "TV": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Khác": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
+      },
+      "Đặt tiệc": {
+        "Tiệc tại nhà": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"],
+        "Tiệc tại nhà hàng": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"]
+      },
+      "Vệ sinh": {
+        "Dọn nhà theo giờ": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"],
+        "Vệ sinh công nghiệp": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"]
       },
       "Giao hàng / Vận chuyển": {
-        "Chuyển nhà trọn gói": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"]
+        "Chuyển nhà trọn gói": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"],
+        "Chở đồ": ["diem_don", "diem_den", "thoi_gian", "mo_ta", "yeu_cau", "dien_thoai"]
+      },
+      "Khẩn cấp": {
+        "Cứu hộ ô tô": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Cứu hộ xe máy": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Phòng khám": ["dia_diem", "tinh_trang", "thoi_diem_can", "yeu_cau", "dien_thoai"]
       }
     };
 
+    // =========================
+    // Nhãn hiển thị tiếng Việt
+    // =========================
     const fieldLabels = {
       ten: "Họ tên",
       dien_thoai: "Số điện thoại",
@@ -126,6 +115,7 @@
       yeu_cau_taxi: "Yêu cầu (Loại xe, số chỗ...)"
     };
 
+    // Load dịch vụ chính
     window.onload = () => {
       const mainSel = document.getElementById("mainService");
       for (let main in serviceConfig) {
@@ -133,6 +123,7 @@
       }
     };
 
+    // Load dịch vụ con
     function loadSubService() {
       const main = document.getElementById("mainService").value;
       const subSel = document.getElementById("subService");
@@ -145,43 +136,27 @@
       document.getElementById("dynamicForm").innerHTML = "";
     }
 
+    // Tạo form động
     function buildForm() {
       const main = document.getElementById("mainService").value;
       const sub = document.getElementById("subService").value;
       const form = document.getElementById("dynamicForm");
       form.innerHTML = "";
-
       if (!main || !sub) return;
 
-      form.innerHTML += `
-        <label>${fieldLabels["ten"]}</label>
-        <input type="text" name="ten" required>
-      `;
-
+      form.innerHTML += `<label>${fieldLabels["ten"]}</label><input type="text" name="ten" required>`;
       const fields = serviceConfig[main][sub];
       fields.forEach(f => {
-        let label = `<label>${fieldLabels[f]}</label>`;
-        let inputHTML = "";
-
-        if (["thoi_gian", "thoi_gian_don", "thoi_diem_can"].includes(f)) {
-          inputHTML = `<input type="datetime-local" name="${f}" required>`;
-        } else if (["diem_don", "diem_den", "dia_diem"].includes(f)) {
-          inputHTML = `
-            <div class="row">
-              <input type="text" name="${f}" id="${f}_input" required readonly>
-              <button type="button" onclick="openMapModal('${f}_input')" style="width:44px; height:44px;">📍</button>
-            </div>
-          `;
-        } else {
-          inputHTML = `<input type="text" name="${f}" placeholder="${fieldLabels[f]}" required>`;
+        let type = "text";
+        if (f === "thoi_gian" || f === "thoi_gian_don" || f === "thoi_diem_can") {
+          type = "datetime-local";
         }
-
-        form.innerHTML += label + inputHTML;
+        form.innerHTML += `<label>${fieldLabels[f]}</label><input type="${type}" name="${f}" required>`;
       });
-
       form.innerHTML += `<button type="submit">Gửi yêu cầu</button>`;
     }
 
+    // Gửi dữ liệu
     function submitForm(e) {
       e.preventDefault();
       const main = document.getElementById("mainService").value;
@@ -206,45 +181,6 @@
         document.getElementById("messageBox").innerText = "❌ Lỗi gửi dữ liệu!";
         document.getElementById("messageBox").style.display = "block";
       });
-    }
-
-    // ======================
-    // Bản đồ Leaflet modal
-    // ======================
-    let map, marker, currentInput;
-    function openMapModal(inputId) {
-      currentInput = inputId;
-      document.getElementById("mapModal").style.display = "block";
-
-      if (!map) {
-        map = L.map("map").setView([21.0285, 105.8542], 13);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
-        map.on("click", function (e) {
-          const { lat, lng } = e.latlng;
-          if (marker) marker.setLatLng([lat, lng]);
-          else marker = L.marker([lat, lng]).addTo(map);
-          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
-            .then(res => res.json())
-            .then(data => {
-              const address = data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-              document.getElementById("addressDisplay").innerText = address;
-              document.getElementById(currentInput).value = address;
-            })
-            .catch(() => {
-              document.getElementById("addressDisplay").innerText = "Không thể lấy địa chỉ";
-            });
-        });
-      }
-    }
-
-    function closeMapModal() {
-      document.getElementById("mapModal").style.display = "none";
-    }
-
-    function confirmLocation() {
-      closeMapModal();
     }
   </script>
 </body>
