@@ -37,22 +37,22 @@
   </div>
 
   <script>
-    // Cấu hình dịch vụ
+    // ⚡ Cấu hình dịch vụ & trường
     const serviceConfig = {
       "Taxi": {
-        "Sân bay": ["diem_don", "diem_den", "thoi_gian", "dien_thoai", "yeu_cau"],
-        "Thông thường": ["diem_don", "diem_den", "thoi_gian", "dien_thoai", "yeu_cau"]
+        "Sân bay": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"],
+        "Thông thường": ["diem_don", "diem_den", "thoi_gian_don", "dien_thoai", "yeu_cau_taxi"]
       },
       "Sửa chữa điện nước": {
-        "Sửa điện": ["dia_diem", "tinh_trang", "thoi_gian", "dien_thoai"],
-        "Sửa nước": ["dia_diem", "tinh_trang", "thoi_gian", "dien_thoai"]
+        "Sửa điện": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Sửa nước": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
       },
       "Sửa chữa điện lạnh": {
-        "Điều hòa": ["dia_diem", "tinh_trang", "thoi_gian", "dien_thoai"],
-        "Máy giặt": ["dia_diem", "tinh_trang", "thoi_gian", "dien_thoai"],
-        "Tủ lạnh": ["dia_diem", "tinh_trang", "thoi_gian", "dien_thoai"],
-        "TV": ["dia_diem", "tinh_trang", "thoi_gian", "dien_thoai"],
-        "Khác": ["dia_diem", "tinh_trang", "thoi_gian", "dien_thoai"]
+        "Điều hòa": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Máy giặt": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Tủ lạnh": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "TV": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Khác": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"]
       },
       "Đặt tiệc": {
         "Tiệc tại nhà hàng": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"]
@@ -66,13 +66,13 @@
         "Chở đồ": ["diem_don", "diem_den", "mo_ta", "yeu_cau", "dien_thoai"]
       },
       "Khẩn cấp": {
-        "Cứu hộ ô tô": ["dia_diem", "tinh_trang", "thoi_gian", "dien_thoai"],
-        "Cứu hộ xe máy": ["dia_diem", "tinh_trang", "thoi_gian", "dien_thoai"],
+        "Cứu hộ ô tô": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
+        "Cứu hộ xe máy": ["dia_diem", "tinh_trang", "thoi_diem_can", "dien_thoai"],
         "Phòng khám": ["dia_diem", "tinh_trang", "yeu_cau", "dien_thoai"]
       }
     };
 
-    // Label cho các trường
+    // ⚡ Label hiển thị
     const fieldLabels = {
       ten: "Họ tên",
       dien_thoai: "Số điện thoại",
@@ -80,13 +80,16 @@
       diem_don: "Điểm đón",
       diem_den: "Điểm đến",
       tinh_trang: "Tình trạng",
-      thoi_gian: "Thời điểm cần / Thời gian đón",
+      thoi_gian: "Thời gian",
+      thoi_gian_don: "Thời gian đón",
+      thoi_diem_can: "Thời điểm cần",
       mo_ta: "Mô tả",
-      yeu_cau: "Yêu cầu (loại xe, số chỗ...)",
+      yeu_cau: "Yêu cầu",
+      yeu_cau_taxi: "Yêu cầu (loại xe, số chỗ...)",
       khu_vuc: "Khu vực muốn đặt"
     };
 
-    // Load dịch vụ chính
+    // ⚡ Load dịch vụ chính
     window.onload = () => {
       const mainSel = document.getElementById("mainService");
       for (let main in serviceConfig) {
@@ -94,7 +97,7 @@
       }
     };
 
-    // Load dịch vụ con
+    // ⚡ Load dịch vụ con
     function loadSubService() {
       const main = document.getElementById("mainService").value;
       const subSel = document.getElementById("subService");
@@ -107,7 +110,7 @@
       document.getElementById("dynamicForm").innerHTML = "";
     }
 
-    // Tạo form động
+    // ⚡ Tạo form động
     function buildForm() {
       const main = document.getElementById("mainService").value;
       const sub = document.getElementById("subService").value;
@@ -115,18 +118,18 @@
       form.innerHTML = "";
       if (!main || !sub) return;
 
-      // luôn có tên
+      // Luôn có tên
       form.innerHTML += `<label>${fieldLabels["ten"]}</label><input type="text" name="ten" required>`;
       const fields = serviceConfig[main][sub];
       fields.forEach(f => {
         let type = "text";
-        if (f === "thoi_gian") type = "datetime-local";
+        if (f.includes("thoi")) type = "datetime-local";
         form.innerHTML += `<label>${fieldLabels[f]}</label><input type="${type}" name="${f}" required>`;
       });
       form.innerHTML += `<button type="submit">Gửi yêu cầu</button>`;
     }
 
-    // Gửi dữ liệu
+    // ⚡ Gửi dữ liệu
     function submitForm(e) {
       e.preventDefault();
       const main = document.getElementById("mainService").value;
@@ -140,7 +143,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
       })
-      .then(res => {
+      .then(() => {
         document.getElementById("messageBox").className = "message success";
         document.getElementById("messageBox").innerText = "✅ Đã gửi yêu cầu thành công!";
         document.getElementById("messageBox").style.display = "block";
