@@ -8,10 +8,31 @@
     body { font-family: Arial, sans-serif; background: #f5f5f5; margin:0; padding:20px; }
     h2 { text-align: center; color: #333; }
     .container { max-width: 600px; margin: auto; }
+
+    /* Style chung cho input, select, textarea */
     select, input, textarea, button {
-      width: 100%; padding: 10px; margin: 8px 0;
-      border-radius: 5px; border: 1px solid #ccc;
+      width: 100%; 
+      padding: 14px; 
+      margin: 10px 0;
+      border-radius: 6px; 
+      border: 1px solid #ccc;
+      font-size: 16px;
     }
+
+    /* Dịch vụ chính + con chữ to hơn */
+    #mainService, #subService {
+      font-size: 18px;
+      font-weight: 500;
+      padding: 16px;
+    }
+
+    /* Các option trong dropdown */
+    #mainService option, 
+    #subService option {
+      font-size: 18px;
+      padding: 8px;
+    }
+
     button { background: #28a745; color: white; font-weight: bold; cursor: pointer; }
     button:hover { background: #218838; }
     .message { margin-top: 15px; padding: 10px; border-radius: 5px; display: none; }
@@ -94,9 +115,7 @@
       yeu_cau_taxi: "Yêu cầu (Loại xe, số chỗ...)"
     };
 
-    // =========================
     // Load dịch vụ chính
-    // =========================
     window.onload = () => {
       const mainSel = document.getElementById("mainService");
       for (let main in serviceConfig) {
@@ -104,9 +123,7 @@
       }
     };
 
-    // =========================
     // Load dịch vụ con
-    // =========================
     function loadSubService() {
       const main = document.getElementById("mainService").value;
       const subSel = document.getElementById("subService");
@@ -119,9 +136,7 @@
       document.getElementById("dynamicForm").innerHTML = "";
     }
 
-    // =========================
     // Tạo form động
-    // =========================
     function buildForm() {
       const main = document.getElementById("mainService").value;
       const sub = document.getElementById("subService").value;
@@ -129,7 +144,6 @@
       form.innerHTML = "";
       if (!main || !sub) return;
 
-      // luôn có tên
       form.innerHTML += `<label>${fieldLabels["ten"]}</label><input type="text" name="ten" required>`;
       const fields = serviceConfig[main][sub];
       fields.forEach(f => {
@@ -142,9 +156,7 @@
       form.innerHTML += `<button type="submit">Gửi yêu cầu</button>`;
     }
 
-    // =========================
-    // Gửi dữ liệu về Webhook
-    // =========================
+    // Gửi dữ liệu
     function submitForm(e) {
       e.preventDefault();
       const main = document.getElementById("mainService").value;
