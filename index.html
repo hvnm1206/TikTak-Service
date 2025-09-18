@@ -55,7 +55,7 @@
         "Khác": ["dia_diem", "tinh_trang", "thoi_gian", "dien_thoai"]
       },
       "Đặt tiệc": {
-        "Tiệc tại nhà": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"]
+        "Tiệc tại nhà hàng": ["khu_vuc", "thoi_gian", "yeu_cau", "dien_thoai"]
       },
       "Vệ sinh": {
         "Dọn nhà theo giờ": ["dia_diem", "thoi_gian", "yeu_cau", "dien_thoai"],
@@ -72,6 +72,7 @@
       }
     };
 
+    // Label cho các trường
     const fieldLabels = {
       ten: "Họ tên",
       dien_thoai: "Số điện thoại",
@@ -79,9 +80,10 @@
       diem_don: "Điểm đón",
       diem_den: "Điểm đến",
       tinh_trang: "Tình trạng",
-      thoi_gian: "Thời gian",
+      thoi_gian: "Thời điểm cần / Thời gian đón",
       mo_ta: "Mô tả",
-      yeu_cau: "Yêu cầu"
+      yeu_cau: "Yêu cầu (loại xe, số chỗ...)",
+      khu_vuc: "Khu vực muốn đặt"
     };
 
     // Load dịch vụ chính
@@ -105,7 +107,7 @@
       document.getElementById("dynamicForm").innerHTML = "";
     }
 
-    // Tạo form
+    // Tạo form động
     function buildForm() {
       const main = document.getElementById("mainService").value;
       const sub = document.getElementById("subService").value;
