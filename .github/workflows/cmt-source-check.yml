@@ -46,3 +46,13 @@ jobs:
 
       - name: Validate build artifact
         run: npm run validate:artifact
+
+      - name: Export static preview
+        run: rm -rf static-preview && bash tools/export-static-cmt.sh static-preview
+
+      - name: Upload static preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmt-static-preview
+          path: cmt-source/static-preview
+          if-no-files-found: error
