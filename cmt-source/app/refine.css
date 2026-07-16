@@ -21,6 +21,10 @@ body {
   background: var(--cream);
 }
 
+body {
+  overscroll-behavior-y: none;
+}
+
 .app-shell {
   max-width: none;
   min-height: 100dvh;
@@ -38,7 +42,7 @@ body {
 
 /* Home: less presentation, faster access to the two core actions. */
 .home-hero {
-  padding: 30px 18px 24px;
+  padding: 28px 18px 22px;
 }
 
 .home-hero h1 {
@@ -49,7 +53,7 @@ body {
 
 .lead {
   max-width: 390px;
-  margin: 13px auto 20px;
+  margin: 12px auto 18px;
   font-size: 14px;
 }
 
@@ -64,17 +68,22 @@ body {
   border-radius: 18px;
 }
 
+.home-search input,
+.big-search input {
+  font-size: 16px;
+}
+
 .query-chips {
   margin-top: 10px;
 }
 
 .query-chips button {
-  min-height: 34px;
+  min-height: 36px;
   font-size: 10px;
 }
 
 .simple-principle {
-  padding: 25px 18px 28px;
+  padding: 24px 18px 27px;
 }
 
 .principle-copy h2 {
@@ -136,13 +145,13 @@ body {
 
 .form-card input,
 .form-card textarea {
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .data-rule {
   margin-top: 14px;
   padding: 12px 13px;
-  opacity: .86;
+  opacity: .82;
 }
 
 .data-rule p {
@@ -226,9 +235,6 @@ body {
   max-width: 360px;
   margin-left: auto;
   margin-right: auto;
-}
-
-.success-body > p:not(.kicker) {
   font-size: 0;
 }
 
@@ -248,6 +254,10 @@ body {
 .big-search {
   margin-inline: 14px;
   border-radius: 18px;
+  position: sticky;
+  top: 72px;
+  z-index: 12;
+  box-shadow: 0 10px 24px rgba(25,72,62,.08);
 }
 
 .search-screen .results {
@@ -269,13 +279,22 @@ body {
 }
 
 .result-card {
+  grid-template-columns: 1fr 20px;
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 10px 28px rgba(27, 67, 58, .07);
 }
 
+.result-visual {
+  display: none;
+}
+
+.result-copy {
+  padding-left: 2px;
+}
+
 .result-copy h3 {
-  font-size: 18px;
+  font-size: 19px;
 }
 
 .result-copy blockquote {
@@ -294,6 +313,16 @@ body {
 }
 
 /* ENTITY should read as an evidence page, not a business profile. */
+.entity-cover {
+  min-height: 132px;
+}
+
+.entity-letter {
+  width: 64px;
+  height: 64px;
+  font-size: 28px;
+}
+
 .entity-content {
   padding-left: 18px;
   padding-right: 18px;
@@ -305,6 +334,10 @@ body {
 
 .entity-content > h1 {
   letter-spacing: -1px;
+}
+
+.entity-actions a {
+  min-height: 48px;
 }
 
 .good-at,
@@ -352,10 +385,16 @@ body {
   overflow: hidden;
 }
 
-/* Bottom navigation: strong touch targets, safe area, less tiny typography. */
+/* Bottom navigation: always reachable, strong touch targets, safe area. */
 .bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
   min-height: 70px;
   padding-bottom: max(8px, env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 28px rgba(20,58,51,.08);
 }
 
 .bottom-nav button {
@@ -365,6 +404,11 @@ body {
 .bottom-nav button span:last-child {
   font-size: 8px;
   letter-spacing: .6px;
+}
+
+/* Prevent fixed nav from covering content. */
+.screen {
+  padding-bottom: calc(92px + env(safe-area-inset-bottom));
 }
 
 /* Small phones: avoid cramped hero and oversized capture area. */
@@ -401,5 +445,12 @@ body {
     max-width: 540px;
     margin: 0 auto;
     box-shadow: 0 0 60px rgba(20,58,51,.12);
+  }
+
+  .bottom-nav {
+    left: 50%;
+    right: auto;
+    width: 540px;
+    transform: translateX(-50%);
   }
 }
