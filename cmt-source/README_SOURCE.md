@@ -35,6 +35,16 @@ npm test
 
 Build output được sinh trong `dist/`. Thư mục `/cmt/` hiện tại là bản static đã được xuất từ cùng source này và không bị thay đổi khi thêm `/cmt-source/`.
 
+## Tạo lại thư mục static tương đương `/cmt/`
+
+Sau khi `npm ci`, chạy:
+
+```bash
+bash tools/export-static-cmt.sh
+```
+
+Script sẽ build source, chạy Vinext tạm thời, xuất HTML cùng toàn bộ CSS/JS/font vào `static-export/`, đồng thời sửa đường dẫn dynamic import thành tương đối để hoạt động khi đặt trong thư mục con trên GitHub Pages. Script không tự ghi đè `/cmt/`.
+
 ## Mốc nguồn
 
 Source được lấy nguyên trạng từ commit gốc của Sites: `03c4b40` — `Build public TikTak CMT prototype`.
