@@ -23,9 +23,10 @@ export type SearchMatch = {
 };
 
 const STOP_WORDS = new Set([
-  "co", "nao", "cho", "o", "gan", "day", "duoc", "khong", "gi", "mot",
+  "co", "nao", "cho", "o", "tai", "gan", "quanh", "day", "duoc", "khong", "gi", "mot",
   "toi", "minh", "can", "tim", "hay", "la", "voi", "va", "cua", "nhung",
   "noi", "quan", "khu", "vuc", "moi", "nguoi", "khen", "muon", "xin",
+  "lam", "dich", "vu", "trai", "nghiem",
 ]);
 
 const QUALITY_HINTS = [
@@ -62,7 +63,7 @@ function queryTokens(query: string) {
 function stripLocationPrefix(value: string) {
   return value
     .replace(/^\d+\s+/, "")
-    .replace(/^(tp|tp\.|thanh pho|quan|q|q\.|huyen|tinh|phuong|p|p\.)\s+/, "")
+    .replace(/^(tp|thanh pho|quan|q|huyen|tinh|phuong|p)\s+/, "")
     .trim();
 }
 
