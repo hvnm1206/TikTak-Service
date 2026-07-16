@@ -38,16 +38,18 @@ body {
 
 /* Home: less presentation, faster access to the two core actions. */
 .home-hero {
-  padding: 34px 18px 28px;
+  padding: 30px 18px 24px;
 }
 
 .home-hero h1 {
+  max-width: 470px;
+  margin-inline: auto;
   font-size: clamp(29px, 9vw, 42px);
 }
 
 .lead {
   max-width: 390px;
-  margin: 14px auto 22px;
+  margin: 13px auto 20px;
   font-size: 14px;
 }
 
@@ -66,21 +68,38 @@ body {
   margin-top: 10px;
 }
 
+.query-chips button {
+  min-height: 34px;
+  font-size: 10px;
+}
+
 .simple-principle {
-  padding: 28px 18px 30px;
+  padding: 25px 18px 28px;
 }
 
 .principle-copy h2 {
-  font-size: 28px;
+  font-size: 27px;
 }
 
 .principle-copy p {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
-/* Share flow: make the photo action primary and the form feel lighter. */
+.flow-card {
+  padding-block: 16px;
+}
+
+/* Share flow: photo first, verification second, contribution third. */
 .share-body {
   padding: 18px 16px 108px;
+}
+
+.screen-heading {
+  padding: 18px 16px 15px;
+}
+
+.screen-heading h1 {
+  font-size: 21px;
 }
 
 .capture-card {
@@ -101,6 +120,11 @@ body {
   font-size: 13px;
 }
 
+.camera-action {
+  min-height: 58px;
+  font-size: 14px;
+}
+
 .manual-link {
   margin-top: 14px;
 }
@@ -110,54 +134,144 @@ body {
   border-radius: 18px;
 }
 
+.form-card input,
+.form-card textarea {
+  font-size: 15px;
+}
+
 .data-rule {
   margin-top: 14px;
+  padding: 12px 13px;
+  opacity: .86;
+}
+
+.data-rule p {
+  line-height: 1.5;
+}
+
+/* Hide technical product terms from normal users. */
+.confidence > span,
+.understood-head span,
+.result-visual small,
+.entity-cover > span {
+  font-size: 0 !important;
+}
+
+.confidence > span::after {
+  content: "ĐÃ NHẬN DIỆN";
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.understood-head span::after {
+  content: "TỰ ĐỘNG";
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.result-visual small::after,
+.entity-cover > span::after {
+  content: "TRẢI NGHIỆM CỘNG ĐỒNG";
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .8px;
 }
 
 /* The contribution itself is the core of CMT. */
+.place-confirmed {
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(25, 72, 62, .06);
+}
+
 .feeling-box {
   border-radius: 20px;
+  border-width: 2px;
+  border-color: #c8ddd0;
+  box-shadow: 0 12px 30px rgba(20, 72, 61, .07);
 }
 
 .feeling-box > span {
+  color: var(--green);
   font-size: 11px;
   letter-spacing: .7px;
 }
 
 .feeling-box textarea {
-  min-height: 150px;
+  min-height: 160px;
   font-size: 16px;
-  line-height: 1.55;
+  line-height: 1.58;
 }
 
-.place-confirmed {
-  border-radius: 18px;
+.feeling-box textarea::placeholder {
+  color: #90a19c;
 }
 
 .understood {
   border-radius: 18px;
+  background: #fffdf8;
+}
+
+.understood dl {
+  gap: 8px;
 }
 
 /* Success: emphasize contribution value, not implementation terms. */
+.success-body {
+  padding-inline: 20px;
+}
+
 .success-body > p:not(.kicker) {
   max-width: 360px;
   margin-left: auto;
   margin-right: auto;
 }
 
-.reward-card {
-  border-radius: 20px;
+.success-body > p:not(.kicker) {
+  font-size: 0;
 }
 
-/* Search results: evidence-first, clean scan. */
+.success-body > p:not(.kicker)::after {
+  content: "Trải nghiệm của bạn đã được thêm vào kho CMT để cộng đồng có thể tìm lại khi cần.";
+  font-size: 12px;
+  line-height: 1.65;
+  color: #6d817d;
+}
+
+.reward-card {
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(15,107,85,.09);
+}
+
+/* Search: answer the question first, then show evidence. */
+.big-search {
+  margin-inline: 14px;
+  border-radius: 18px;
+}
+
 .search-screen .results {
   padding-left: 14px;
   padding-right: 14px;
 }
 
+.result-summary {
+  border-radius: 18px;
+}
+
+.result-title {
+  align-items: flex-end;
+}
+
+.result-title p {
+  font-size: 15px;
+  font-weight: 900;
+}
+
 .result-card {
   border-radius: 20px;
   overflow: hidden;
+  box-shadow: 0 10px 28px rgba(27, 67, 58, .07);
 }
 
 .result-copy h3 {
@@ -166,6 +280,13 @@ body {
 
 .result-copy blockquote {
   line-height: 1.55;
+  background: #f7f5ef;
+  border-radius: 12px;
+  padding: 10px 11px;
+}
+
+.praise {
+  line-height: 1.7;
 }
 
 .praise span {
@@ -178,6 +299,14 @@ body {
   padding-right: 18px;
 }
 
+.entity-type {
+  color: #6f8a82;
+}
+
+.entity-content > h1 {
+  letter-spacing: -1px;
+}
+
 .good-at,
 .signals-list article,
 .entity-rule {
@@ -186,11 +315,26 @@ body {
 
 .evidence-strip {
   border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(25, 72, 62, .05);
 }
 
-/* Turns: keep the value visible and practical. */
+.good-at {
+  background: #f0f8f2;
+}
+
+.signals-list article blockquote {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Turns: make contribution and available value immediately visible. */
 .turn-balance {
-  padding-top: 32px;
+  padding-top: 30px;
+  padding-bottom: 27px;
+}
+
+.turn-balance > strong {
+  font-size: clamp(48px, 15vw, 70px);
 }
 
 .turn-stats,
@@ -199,9 +343,52 @@ body {
   margin-right: 16px;
 }
 
-/* Bottom navigation with safer mobile spacing. */
+.turn-stats {
+  border-radius: 18px;
+}
+
+.my-contributions {
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+/* Bottom navigation: strong touch targets, safe area, less tiny typography. */
 .bottom-nav {
+  min-height: 70px;
   padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+
+.bottom-nav button {
+  min-height: 58px;
+}
+
+.bottom-nav button span:last-child {
+  font-size: 8px;
+  letter-spacing: .6px;
+}
+
+/* Small phones: avoid cramped hero and oversized capture area. */
+@media (max-width: 380px) {
+  .home-hero {
+    padding-inline: 14px;
+  }
+
+  .home-hero h1 {
+    font-size: 28px;
+  }
+
+  .share-body,
+  .entity-content {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .capture-card,
+  .capture-card img,
+  .demo-sign {
+    min-height: 255px;
+    height: 255px;
+  }
 }
 
 @media (min-width: 720px) {
