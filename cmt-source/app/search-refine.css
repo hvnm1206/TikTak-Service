@@ -1,0 +1,83 @@
+/* Search states introduced when strict CMT retrieval is enabled. */
+
+.match-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 4px;
+}
+
+.match-reasons > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: #e8f5ec;
+  color: var(--green);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.match-reasons .icon {
+  font-size: 9px;
+}
+
+.empty-search {
+  margin-top: 14px;
+  padding: 30px 20px 24px;
+  border: 1px solid #dce7df;
+  border-radius: 20px;
+  background: #fffdf8;
+  text-align: center;
+  box-shadow: 0 10px 28px rgba(27, 67, 58, .06);
+}
+
+.empty-search > span {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 16px;
+  border-radius: 18px;
+  background: #e8f5ec;
+  color: var(--green);
+  font-size: 25px;
+}
+
+.empty-search h3 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -.4px;
+}
+
+.empty-search p {
+  max-width: 360px;
+  margin: 10px auto 0;
+  color: #6d817d;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.empty-search .secondary-action {
+  margin-top: 18px;
+}
+
+/* Search evidence should stay readable without turning cards into rankings. */
+.result-card {
+  text-align: left;
+}
+
+.result-card .result-meta b {
+  white-space: nowrap;
+}
+
+@media (max-width: 380px) {
+  .empty-search {
+    padding-inline: 16px;
+  }
+
+  .match-reasons > span {
+    font-size: 8px;
+  }
+}
