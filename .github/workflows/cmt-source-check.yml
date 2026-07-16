@@ -1,9 +1,6 @@
 name: CMT Source Check
 
 on:
-  push:
-    branches:
-      - agent/cmt-ui-refine
   pull_request:
     paths:
       - "cmt-source/**"
