@@ -1,0 +1,218 @@
+/* TikTak CMT UI refinement — layered over globals.css.
+   Keeps prototype logic intact while moving the experience closer to the real CMT product. */
+
+/* Remove demo/prototype chrome from the product-facing experience. */
+.prototype-pill,
+.demo-disclaimer,
+.ai-note,
+.saved-id {
+  display: none !important;
+}
+
+/* Business type is internal extraction data; users only verify place + address. */
+.form-card label:nth-child(3) {
+  display: none;
+}
+
+/* True mobile-first shell: full screen on phones, framed only on wider screens. */
+html,
+body {
+  min-height: 100%;
+  background: var(--cream);
+}
+
+.app-shell {
+  max-width: none;
+  min-height: 100dvh;
+  box-shadow: none;
+}
+
+.topbar {
+  height: 62px;
+  padding: 0 16px;
+}
+
+.screen {
+  min-height: calc(100dvh - 62px);
+}
+
+/* Home: less presentation, faster access to the two core actions. */
+.home-hero {
+  padding: 34px 18px 28px;
+}
+
+.home-hero h1 {
+  font-size: clamp(29px, 9vw, 42px);
+}
+
+.lead {
+  max-width: 390px;
+  margin: 14px auto 22px;
+  font-size: 14px;
+}
+
+.share-cta {
+  min-height: 74px;
+  border-radius: 20px;
+}
+
+.home-search {
+  margin-top: 12px;
+  min-height: 54px;
+  border-radius: 18px;
+}
+
+.query-chips {
+  margin-top: 10px;
+}
+
+.simple-principle {
+  padding: 28px 18px 30px;
+}
+
+.principle-copy h2 {
+  font-size: 28px;
+}
+
+.principle-copy p {
+  margin-bottom: 20px;
+}
+
+/* Share flow: make the photo action primary and the form feel lighter. */
+.share-body {
+  padding: 18px 16px 108px;
+}
+
+.capture-card {
+  min-height: 285px;
+  border-radius: 20px;
+}
+
+.capture-card img,
+.demo-sign {
+  height: 285px;
+}
+
+.main-action,
+.secondary-action,
+.camera-action {
+  min-height: 54px;
+  border-radius: 17px;
+  font-size: 13px;
+}
+
+.manual-link {
+  margin-top: 14px;
+}
+
+.form-card {
+  padding: 2px 15px;
+  border-radius: 18px;
+}
+
+.data-rule {
+  margin-top: 14px;
+}
+
+/* The contribution itself is the core of CMT. */
+.feeling-box {
+  border-radius: 20px;
+}
+
+.feeling-box > span {
+  font-size: 11px;
+  letter-spacing: .7px;
+}
+
+.feeling-box textarea {
+  min-height: 150px;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.place-confirmed {
+  border-radius: 18px;
+}
+
+.understood {
+  border-radius: 18px;
+}
+
+/* Success: emphasize contribution value, not implementation terms. */
+.success-body > p:not(.kicker) {
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.reward-card {
+  border-radius: 20px;
+}
+
+/* Search results: evidence-first, clean scan. */
+.search-screen .results {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+.result-card {
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.result-copy h3 {
+  font-size: 18px;
+}
+
+.result-copy blockquote {
+  line-height: 1.55;
+}
+
+.praise span {
+  margin-top: 5px;
+}
+
+/* ENTITY should read as an evidence page, not a business profile. */
+.entity-content {
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+.good-at,
+.signals-list article,
+.entity-rule {
+  border-radius: 18px;
+}
+
+.evidence-strip {
+  border-radius: 18px;
+}
+
+/* Turns: keep the value visible and practical. */
+.turn-balance {
+  padding-top: 32px;
+}
+
+.turn-stats,
+.my-contributions {
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+/* Bottom navigation with safer mobile spacing. */
+.bottom-nav {
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 720px) {
+  html,
+  body {
+    background: #e8eee9;
+  }
+
+  .app-shell {
+    max-width: 540px;
+    margin: 0 auto;
+    box-shadow: 0 0 60px rgba(20,58,51,.12);
+  }
+}
