@@ -45,8 +45,9 @@ curl -fsS "http://127.0.0.1:$PORT/" >"$OUTPUT_DIR/index.html"
 cp -R "$ROOT_DIR/dist/client/assets/." "$OUTPUT_DIR/assets/"
 cp "$ROOT_DIR/dist/client/favicon.svg" "$OUTPUT_DIR/favicon.svg"
 
-# GitHub Pages serves the prototype from a subfolder. Dynamic imports must be
-# explicitly relative so mobile Safari and Chromium resolve the same assets.
-perl -pi -e 's/import\("assets\//import(".\/assets\//g' "$OUTPUT_DIR/index.html"
+# Static exports are served from a subfolder such as /cmt/ or /cmt-preview/.
+# Convert root-absolute asset/favicon references to document-relative paths,
+# then make dynamic imports explicitly relative for mobile Safari and Chromium.
+perl -pi -e 's#/assets/#assets/#g; s#/favicon\.svg#favicon.svg#g; s#import\("assets/#import("./assets/#g' "$OUTPUT_DIR/index.html"
 
 echo "Static TikTak CMT export created at: $OUTPUT_DIR"
