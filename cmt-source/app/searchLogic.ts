@@ -22,6 +22,12 @@ export type SearchMatch = {
   reasons: string[];
 };
 
+type ItemCandidate = {
+  raw: string;
+  normalized: string;
+  accent: string;
+};
+
 const STOP_WORDS = new Set([
   "co", "nao", "cho", "o", "tai", "gan", "quanh", "day", "duoc", "khong", "gi", "mot",
   "toi", "minh", "can", "tim", "hay", "la", "voi", "va", "cua", "nhung",
@@ -35,6 +41,7 @@ const QUALITY_HINTS = [
   "chuyen nghiep", "nhiet tinh", "thoai mai", "tu nhien", "de chiu",
 ];
 
+const AMBIGUOUS_UNACCENTED_TOKENS = new Set(["sua", "may", "bo", "ca", "ga"]);
 const GENERIC_LOCATION_WORDS = new Set(["day", "gan day", "quanh day", "khu vuc nay"]);
 
 export const normalizeSearchText = (value: string) =>
@@ -48,12 +55,29 @@ export const normalizeSearchText = (value: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+function normalizeAccentText(value: string) {
+  return value
+    .toLocaleLowerCase("vi")
+    .normalize("NFC")
+    .replace(/[^a-z0-9à-ỹđ\s]/giu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hasVietnameseDiacritics(value: string) {
+  return normalizeAccentText(value) !== normalizeSearchText(value);
+}
+
 function unique(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
 function tokensOf(value: string) {
   return normalizeSearchText(value).split(" ").filter(Boolean);
+}
+
+function accentTokensOf(value: string) {
+  return normalizeAccentText(value).split(" ").filter(Boolean);
 }
 
 function queryTokens(query: string) {
@@ -82,11 +106,20 @@ function buildLocationCandidates(entities: SearchableEntity[]) {
     .sort((a, b) => b.length - a.length);
 }
 
-function buildItemCandidates(entities: SearchableEntity[], signals: SearchableSignal[]) {
-  return unique([
+function buildItemCandidates(entities: SearchableEntity[], signals: SearchableSignal[]): ItemCandidate[] {
+  const rawValues = unique([
     ...entities.flatMap((entity) => [...entity.categories_seen, ...entity.items_seen]),
     ...signals.flatMap((signal) => [signal.category, signal.item_mentioned]),
-  ].map(normalizeSearchText)).filter((value) => value.length >= 3);
+  ]);
+
+  const byAccent = new Map<string, ItemCandidate>();
+  rawValues.forEach((raw) => {
+    const accent = normalizeAccentText(raw);
+    const normalized = normalizeSearchText(raw);
+    if (normalized.length < 3 || byAccent.has(accent)) return;
+    byAccent.set(accent, { raw, normalized, accent });
+  });
+  return Array.from(byAccent.values());
 }
 
 function extractKnownLocationHints(query: string, candidates: string[]) {
@@ -107,11 +140,20 @@ function extractFallbackLocation(query: string) {
   return "";
 }
 
-function itemCandidateMatchesQuery(query: string, candidate: string) {
-  if (query.includes(candidate)) return true;
-  const queryTokenSet = new Set(queryTokens(query));
-  const candidateTokens = tokensOf(candidate).filter((token) => token.length >= 3 && !STOP_WORDS.has(token));
-  return candidateTokens.some((token) => queryTokenSet.has(token));
+function itemCandidateMatchesQuery(rawQuery: string, normalizedQuery: string, candidate: ItemCandidate) {
+  const accentQuery = normalizeAccentText(rawQuery);
+  if (accentQuery.includes(candidate.accent)) return true;
+
+  const accentQueryTokens = new Set(accentTokensOf(rawQuery));
+  const accentCandidateTokens = accentTokensOf(candidate.raw).filter((token) => token.length >= 3);
+  if (accentCandidateTokens.some((token) => accentQueryTokens.has(token))) return true;
+
+  if (hasVietnameseDiacritics(rawQuery)) return false;
+  if (normalizedQuery.includes(candidate.normalized)) return true;
+
+  const normalizedQueryTokens = new Set(queryTokens(normalizedQuery));
+  const candidateTokens = tokensOf(candidate.normalized).filter((token) => token.length >= 3 && !STOP_WORDS.has(token) && !AMBIGUOUS_UNACCENTED_TOKENS.has(token));
+  return candidateTokens.some((token) => normalizedQueryTokens.has(token));
 }
 
 function removePhraseTokens(tokens: string[], phrases: string[]) {
@@ -126,6 +168,7 @@ function removePhraseTokens(tokens: string[], phrases: string[]) {
  * - Never returns all entities just because no match was found.
  * - Location candidates come from current ENTITY data, not a hard-coded city list.
  * - Item/service candidates come from ENTITY + SIGNAL data, not a hard-coded catalog.
+ * - Vietnamese accents are preserved for intent matching to avoid collisions such as sữa/sửa.
  * - An explicitly requested location, item/service or quality must be supported by evidence.
  * - Remaining meaningful query terms must also occur in the entity or its SIGNAL evidence.
  */
@@ -143,7 +186,7 @@ export function searchCmtEntities(
   const requestedLocations = knownLocationHints.length > 0 ? knownLocationHints : fallbackLocation ? [fallbackLocation] : [];
 
   const itemCandidates = buildItemCandidates(entities, signals);
-  const itemHints = itemCandidates.filter((candidate) => itemCandidateMatchesQuery(query, candidate));
+  const itemHints = itemCandidates.filter((candidate) => itemCandidateMatchesQuery(rawQuery, query, candidate));
   const qualityHints = QUALITY_HINTS.filter((phrase) => query.includes(phrase));
 
   const baseTokens = queryTokens(query);
@@ -171,7 +214,7 @@ export function searchCmtEntities(
       ].join(" "));
 
       const locationOk = requestedLocations.length === 0 || requestedLocations.every((phrase) => locationText.includes(phrase));
-      const matchedItemHints = itemHints.filter((hint) => itemText.includes(hint) || evidenceText.includes(hint) || tokensOf(hint).some((token) => token.length >= 3 && itemText.includes(token)));
+      const matchedItemHints = itemHints.filter((hint) => itemText.includes(hint.normalized) || evidenceText.includes(hint.normalized) || tokensOf(hint.normalized).some((token) => token.length >= 3 && itemText.includes(token)));
       const itemOk = itemHints.length === 0 || matchedItemHints.length > 0;
       const qualityOk = qualityHints.length === 0 || qualityHints.every((phrase) => evidenceText.includes(phrase));
       const requiredTokensOk = requiredTokens.length === 0 || requiredTokens.every((token) => allText.includes(token));
