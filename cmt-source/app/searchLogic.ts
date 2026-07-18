@@ -22,11 +22,6 @@ export type SearchMatch = {
   reasons: string[];
 };
 
-/**
- * Optional structured understanding supplied by an external NLU/LLM layer.
- * Retrieval remains deterministic: the parser may explain the query, but it
- * never chooses records or invents evidence.
- */
 export type SearchQueryUnderstanding = {
   intent?: "find_place" | "browse" | "unknown";
   target_raw?: string | null;
@@ -90,6 +85,10 @@ function tokensOf(value: string) {
   return normalizeSearchText(value).split(" ").filter(Boolean);
 }
 
+function tokenSetOf(value: string) {
+  return new Set(tokensOf(value));
+}
+
 function accentTokensOf(value: string) {
   return normalizeAccentText(value).split(" ").filter(Boolean);
 }
@@ -105,12 +104,6 @@ function stripLocationPrefix(value: string) {
     .trim();
 }
 
-/**
- * Build a location vocabulary dynamically from current entity data.
- * Every administrative component is indexed independently, so a query may use
- * a short locality (for example a district) without having to repeat its parent.
- * No city/district mapping is hard-coded here.
- */
 function buildLocationCandidates(entities: SearchableEntity[]) {
   const values = entities.flatMap((entity) => {
     const parts = [entity.location, ...entity.address.split(",")];
@@ -198,12 +191,14 @@ function signalText(signal: SearchableSignal) {
 function signalMatchesItem(signal: SearchableSignal, hints: ItemCandidate[]) {
   if (hints.length === 0) return true;
   const text = signalText(signal);
+  const textTokens = tokenSetOf(text);
+
   return hints.some((hint) => {
     if (text.includes(hint.normalized)) return true;
     const meaningfulTokens = tokensOf(hint.normalized).filter(
       (token) => token.length >= 3 && !STOP_WORDS.has(token) && !AMBIGUOUS_UNACCENTED_TOKENS.has(token),
     );
-    return meaningfulTokens.length > 0 && meaningfulTokens.some((token) => text.includes(token));
+    return meaningfulTokens.length > 0 && meaningfulTokens.some((token) => textTokens.has(token));
   });
 }
 
@@ -214,8 +209,8 @@ function signalMatchesItem(signal: SearchableSignal, hints: ItemCandidate[]) {
  * - The optional GPT/NLU result only structures intent; it never selects data.
  * - Locations are resolved from current ENTITY geography, never a one-by-one map.
  * - A requested item/service must be evidenced by at least one individual SIGNAL.
- * - ENTITY aggregation happens only after SIGNAL qualification, preventing one
- *   unrelated item at the same place from leaking into another query.
+ * - ENTITY aggregation happens only after SIGNAL qualification.
+ * - Token evidence uses exact normalized tokens, never substring collisions.
  * - No-match stays no-match; unrelated entities are never used as filler.
  */
 export function searchCmtEntities(
@@ -269,14 +264,14 @@ export function searchCmtEntities(
 
       const qualifyingSignals = related.filter((signal) => {
         const evidence = signalText(signal);
+        const evidenceTokens = tokenSetOf(evidence);
         const itemOk = signalMatchesItem(signal, itemHints);
         const qualityOk = qualityHints.length === 0 || qualityHints.every((phrase) => evidence.includes(phrase));
         const requiredTokensOk = requiredTokens.length === 0
-          || requiredTokens.every((token) => evidence.includes(token));
+          || requiredTokens.every((token) => evidenceTokens.has(token));
         return itemOk && qualityOk && requiredTokensOk;
       });
 
-      // Specific item/service intent requires direct SIGNAL evidence.
       if (itemHints.length > 0 && qualifyingSignals.length === 0) return null;
 
       const entityText = normalizeSearchText([
@@ -293,7 +288,8 @@ export function searchCmtEntities(
         entityText,
         ...evidencePool.map(signalText),
       ].join(" "));
-      const tokenHits = baseTokens.filter((token) => allEvidenceText.includes(token));
+      const allEvidenceTokens = tokenSetOf(allEvidenceText);
+      const tokenHits = baseTokens.filter((token) => allEvidenceTokens.has(token));
       if (tokenHits.length === 0) return null;
 
       const reasons: string[] = [];
