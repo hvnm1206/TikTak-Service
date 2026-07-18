@@ -39,6 +39,24 @@ const entities = [
     items_seen: ["Makeup tự nhiên", "Trang điểm cô dâu"],
     good_points: ["Lớp nền tự nhiên", "Lên ảnh đẹp", "Tư vấn kỹ"],
   },
+  {
+    entity_id: "entity_005",
+    entity_name: "Nhà Mình Mê Linh",
+    address: "12 Đại Thịnh, Mê Linh, Hà Nội",
+    location: "Mê Linh, Hà Nội",
+    categories_seen: ["Ăn uống", "Cafe"],
+    items_seen: ["Phở bò", "Cafe"],
+    good_points: ["Nước dùng đậm vị", "Không gian thoáng"],
+  },
+  {
+    entity_id: "entity_006",
+    entity_name: "Cafe Đồng Quê",
+    address: "20 Đại Thịnh, Mê Linh, Hà Nội",
+    location: "Mê Linh, Hà Nội",
+    categories_seen: ["Cafe"],
+    items_seen: ["Cafe"],
+    good_points: ["Yên tĩnh"],
+  },
 ];
 
 const signals = [
@@ -70,9 +88,31 @@ const signals = [
     item_mentioned: "Makeup tự nhiên",
     good_points: ["Tự nhiên", "Lên ảnh đẹp", "Tư vấn kỹ"],
   },
+  {
+    entity_id: "entity_005",
+    raw_text: "Phở bò nước dùng đậm vị, thịt mềm.",
+    category: "Ăn uống",
+    item_mentioned: "Phở bò",
+    good_points: ["Nước dùng đậm vị", "Thịt mềm"],
+  },
+  {
+    entity_id: "entity_005",
+    raw_text: "Cafe có không gian thoáng, ngồi buổi chiều dễ chịu.",
+    category: "Cafe",
+    item_mentioned: "Cafe",
+    good_points: ["Không gian thoáng", "Dễ chịu"],
+  },
+  {
+    entity_id: "entity_006",
+    raw_text: "Cafe yên tĩnh và thoáng.",
+    category: "Cafe",
+    item_mentioned: "Cafe",
+    good_points: ["Yên tĩnh", "Thoáng"],
+  },
 ];
 
-const ids = (query) => searchCmtEntities(query, entities, signals).map((item) => item.id);
+const ids = (query, understanding) =>
+  searchCmtEntities(query, entities, signals, understanding).map((item) => item.id);
 
 test("requires location + item + positive evidence together", () => {
   assert.deepEqual(ids("Ở Hải Phòng có quán phở nào ngon?"), ["entity_001"]);
@@ -83,7 +123,8 @@ test("requires location + item + positive evidence together", () => {
 
 test("never fills a no-match query with unrelated entities", () => {
   assert.deepEqual(ids("Ở Hải Phòng có cafe nào yên tĩnh?"), []);
-  assert.deepEqual(ids("Ở Hà Nội có phở ngon không?"), []);
+  assert.deepEqual(ids("Ở Hà Nội có phở ngon không?").includes("entity_002"), false);
+  assert.deepEqual(ids("Ở Hà Nội có phở ngon không?").includes("entity_006"), false);
 });
 
 test("does not confuse Vietnamese accent collisions such as sữa and sửa", () => {
@@ -93,4 +134,39 @@ test("does not confuse Vietnamese accent collisions such as sữa and sửa", ()
 
 test("still accepts unaccented Vietnamese input when the intent is clear", () => {
   assert.deepEqual(ids("sua dieu hoa can than"), ["entity_003"]);
+});
+
+test("understands a short locality from entity geography without hard-coded parent mapping", () => {
+  assert.deepEqual(ids("phở Mê Linh"), ["entity_005"]);
+  assert.deepEqual(ids("phở Mê Linh Hà Nội"), ["entity_005"]);
+});
+
+test("specific item retrieval is signal-first and does not leak cafe-only entities", () => {
+  const results = ids("phở Mê Linh");
+  assert.deepEqual(results, ["entity_005"]);
+  assert.equal(results.includes("entity_006"), false);
+});
+
+test("accepts structured GPT/NLU understanding without giving it authority over evidence", () => {
+  assert.deepEqual(
+    ids("Tìm giúp tôi", {
+      intent: "find_place",
+      target_raw: "phở",
+      target_type: "item",
+      location_raw: "Mê Linh",
+      qualifiers: [],
+    }),
+    ["entity_005"],
+  );
+
+  assert.deepEqual(
+    ids("Tìm giúp tôi", {
+      intent: "find_place",
+      target_raw: "phở",
+      target_type: "item",
+      location_raw: "Mê Linh",
+      qualifiers: ["yên tĩnh"],
+    }),
+    [],
+  );
 });
