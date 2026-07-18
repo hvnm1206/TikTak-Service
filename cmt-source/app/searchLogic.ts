@@ -221,13 +221,12 @@ export function searchCmtEntities(
   signals: SearchableSignal[],
   understanding?: SearchQueryUnderstanding,
 ): SearchMatch[] {
-  const queryInput = [
-    rawQuery,
+  const structuredQueryInput = [
     understanding?.target_raw ?? "",
     understanding?.location_raw ?? "",
     ...(understanding?.qualifiers ?? []),
-  ].join(" ");
-  const query = normalizeSearchText(queryInput);
+  ].join(" ").trim();
+  const query = normalizeSearchText(structuredQueryInput || rawQuery);
   if (!query) return [];
 
   const locationCandidates = buildLocationCandidates(entities);
