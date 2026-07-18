@@ -165,7 +165,10 @@ function itemCandidateMatchesQuery(rawQuery: string, normalizedQuery: string, ca
   if (accentQuery.includes(candidate.accent)) return true;
 
   const accentQueryTokens = new Set(accentTokensOf(rawQuery));
-  const accentCandidateTokens = accentTokensOf(candidate.raw).filter((token) => token.length >= 3);
+  const accentCandidateTokens = accentTokensOf(candidate.raw).filter((token) => {
+    const normalizedToken = normalizeSearchText(token);
+    return token.length >= 3 && !STOP_WORDS.has(normalizedToken);
+  });
   if (accentCandidateTokens.some((token) => accentQueryTokens.has(token))) return true;
 
   if (hasVietnameseDiacritics(rawQuery)) return false;
