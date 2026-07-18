@@ -22,6 +22,15 @@ export type SearchMatch = {
   reasons: string[];
 };
 
+export type SearchQueryUnderstanding = {
+  intent?: "find_place" | "browse" | "unknown";
+  target_raw?: string | null;
+  target_type?: "item" | "service" | "category" | "unknown";
+  location_raw?: string | null;
+  location_scope_hint?: string | null;
+  qualifiers?: string[];
+};
+
 type ItemCandidate = {
   raw: string;
   normalized: string;
@@ -76,6 +85,10 @@ function tokensOf(value: string) {
   return normalizeSearchText(value).split(" ").filter(Boolean);
 }
 
+function tokenSetOf(value: string) {
+  return new Set(tokensOf(value));
+}
+
 function accentTokensOf(value: string) {
   return normalizeAccentText(value).split(" ").filter(Boolean);
 }
@@ -87,7 +100,7 @@ function queryTokens(query: string) {
 function stripLocationPrefix(value: string) {
   return value
     .replace(/^\d+\s+/, "")
-    .replace(/^(tp|thanh pho|quan|q|huyen|tinh|phuong|p)\s+/, "")
+    .replace(/^(tp|thanh pho|quan|q|huyen|tinh|phuong|p|xa|thi tran|tt)\s+/, "")
     .trim();
 }
 
@@ -145,14 +158,19 @@ function itemCandidateMatchesQuery(rawQuery: string, normalizedQuery: string, ca
   if (accentQuery.includes(candidate.accent)) return true;
 
   const accentQueryTokens = new Set(accentTokensOf(rawQuery));
-  const accentCandidateTokens = accentTokensOf(candidate.raw).filter((token) => token.length >= 3);
+  const accentCandidateTokens = accentTokensOf(candidate.raw).filter((token) => {
+    const normalizedToken = normalizeSearchText(token);
+    return token.length >= 3 && !STOP_WORDS.has(normalizedToken);
+  });
   if (accentCandidateTokens.some((token) => accentQueryTokens.has(token))) return true;
 
   if (hasVietnameseDiacritics(rawQuery)) return false;
   if (normalizedQuery.includes(candidate.normalized)) return true;
 
   const normalizedQueryTokens = new Set(queryTokens(normalizedQuery));
-  const candidateTokens = tokensOf(candidate.normalized).filter((token) => token.length >= 3 && !STOP_WORDS.has(token) && !AMBIGUOUS_UNACCENTED_TOKENS.has(token));
+  const candidateTokens = tokensOf(candidate.normalized).filter(
+    (token) => token.length >= 3 && !STOP_WORDS.has(token) && !AMBIGUOUS_UNACCENTED_TOKENS.has(token),
+  );
   return candidateTokens.some((token) => normalizedQueryTokens.has(token));
 }
 
@@ -161,80 +179,130 @@ function removePhraseTokens(tokens: string[], phrases: string[]) {
   return tokens.filter((token) => !ignored.has(token));
 }
 
+function signalText(signal: SearchableSignal) {
+  return normalizeSearchText([
+    signal.category,
+    signal.item_mentioned,
+    signal.raw_text,
+    ...signal.good_points,
+  ].join(" "));
+}
+
+function signalMatchesItem(signal: SearchableSignal, hints: ItemCandidate[]) {
+  if (hints.length === 0) return true;
+  const text = signalText(signal);
+  const textTokens = tokenSetOf(text);
+
+  return hints.some((hint) => {
+    if (text.includes(hint.normalized)) return true;
+    const meaningfulTokens = tokensOf(hint.normalized).filter(
+      (token) => token.length >= 3 && !STOP_WORDS.has(token) && !AMBIGUOUS_UNACCENTED_TOKENS.has(token),
+    );
+    return meaningfulTokens.length > 0 && meaningfulTokens.some((token) => textTokens.has(token));
+  });
+}
+
 /**
- * Retrieval used by the standalone CMT prototype.
+ * Evidence-first CMT retrieval.
  *
- * Principles:
- * - Never returns all entities just because no match was found.
- * - Location candidates come from current ENTITY data, not a hard-coded city list.
- * - Item/service candidates come from ENTITY + SIGNAL data, not a hard-coded catalog.
- * - Vietnamese accents are preserved for intent matching to avoid collisions such as sữa/sửa.
- * - An explicitly requested location, item/service or quality must be supported by evidence.
- * - Remaining meaningful query terms must also occur in the entity or its SIGNAL evidence.
+ * Safety principles:
+ * - The optional GPT/NLU result only structures intent; it never selects data.
+ * - Locations are resolved from current ENTITY geography, never a one-by-one map.
+ * - A requested item/service must be evidenced by at least one individual SIGNAL.
+ * - ENTITY aggregation happens only after SIGNAL qualification.
+ * - Token evidence uses exact normalized tokens, never substring collisions.
+ * - No-match stays no-match; unrelated entities are never used as filler.
  */
 export function searchCmtEntities(
   rawQuery: string,
   entities: SearchableEntity[],
   signals: SearchableSignal[],
+  understanding?: SearchQueryUnderstanding,
 ): SearchMatch[] {
-  const query = normalizeSearchText(rawQuery);
+  const structuredQueryInput = [
+    understanding?.target_raw ?? "",
+    understanding?.location_raw ?? "",
+    ...(understanding?.qualifiers ?? []),
+  ].join(" ").trim();
+  const query = normalizeSearchText(structuredQueryInput || rawQuery);
   if (!query) return [];
 
   const locationCandidates = buildLocationCandidates(entities);
-  const knownLocationHints = extractKnownLocationHints(query, locationCandidates);
-  const fallbackLocation = knownLocationHints.length === 0 ? extractFallbackLocation(query) : "";
-  const requestedLocations = knownLocationHints.length > 0 ? knownLocationHints : fallbackLocation ? [fallbackLocation] : [];
+  const explicitLocation = normalizeSearchText(understanding?.location_raw ?? "");
+  const knownLocationHints = explicitLocation
+    ? extractKnownLocationHints(explicitLocation, locationCandidates)
+    : extractKnownLocationHints(query, locationCandidates);
+  const fallbackLocation = knownLocationHints.length === 0
+    ? (explicitLocation || extractFallbackLocation(query))
+    : "";
+  const requestedLocations = knownLocationHints.length > 0
+    ? knownLocationHints
+    : fallbackLocation
+      ? [fallbackLocation]
+      : [];
 
   const itemCandidates = buildItemCandidates(entities, signals);
-  const itemHints = itemCandidates.filter((candidate) => itemCandidateMatchesQuery(rawQuery, query, candidate));
+  const targetQuery = understanding?.target_raw?.trim() || rawQuery;
+  const normalizedTargetQuery = normalizeSearchText(targetQuery);
+  const itemHints = itemCandidates.filter((candidate) =>
+    itemCandidateMatchesQuery(targetQuery, normalizedTargetQuery, candidate),
+  );
   const qualityHints = QUALITY_HINTS.filter((phrase) => query.includes(phrase));
 
   const baseTokens = queryTokens(query);
   const nonLocationTokens = removePhraseTokens(baseTokens, requestedLocations);
-  const requiredTokens = removePhraseTokens(nonLocationTokens, qualityHints);
+  const nonQualityTokens = removePhraseTokens(nonLocationTokens, qualityHints);
+  const requiredTokens = removePhraseTokens(nonQualityTokens, itemHints.map((hint) => hint.normalized));
 
   return entities
     .map((entity) => {
       const related = signals.filter((signal) => signal.entity_id === entity.entity_id);
       const locationText = normalizeSearchText([entity.address, entity.location].join(" "));
-      const itemText = normalizeSearchText([
+      const locationOk = requestedLocations.length === 0
+        || requestedLocations.every((phrase) => locationText.includes(phrase));
+      if (!locationOk) return null;
+
+      const qualifyingSignals = related.filter((signal) => {
+        const evidence = signalText(signal);
+        const evidenceTokens = tokenSetOf(evidence);
+        const itemOk = signalMatchesItem(signal, itemHints);
+        const qualityOk = qualityHints.length === 0 || qualityHints.every((phrase) => evidence.includes(phrase));
+        const requiredTokensOk = requiredTokens.length === 0
+          || requiredTokens.every((token) => evidenceTokens.has(token));
+        return itemOk && qualityOk && requiredTokensOk;
+      });
+
+      if (itemHints.length > 0 && qualifyingSignals.length === 0) return null;
+
+      const entityText = normalizeSearchText([
+        entity.entity_name,
+        entity.address,
+        entity.location,
         ...entity.categories_seen,
         ...entity.items_seen,
-        ...related.flatMap((signal) => [signal.category, signal.item_mentioned]),
-      ].join(" "));
-      const evidenceText = normalizeSearchText([
         ...entity.good_points,
-        ...related.flatMap((signal) => [signal.raw_text, ...signal.good_points]),
-      ].join(" "));
-      const allText = normalizeSearchText([
-        entity.entity_name,
-        locationText,
-        itemText,
-        evidenceText,
       ].join(" "));
 
-      const locationOk = requestedLocations.length === 0 || requestedLocations.every((phrase) => locationText.includes(phrase));
-      const matchedItemHints = itemHints.filter((hint) => itemText.includes(hint.normalized) || evidenceText.includes(hint.normalized) || tokensOf(hint.normalized).some((token) => token.length >= 3 && itemText.includes(token)));
-      const itemOk = itemHints.length === 0 || matchedItemHints.length > 0;
-      const qualityOk = qualityHints.length === 0 || qualityHints.every((phrase) => evidenceText.includes(phrase));
-      const requiredTokensOk = requiredTokens.length === 0 || requiredTokens.every((token) => allText.includes(token));
-
-      if (!locationOk || !itemOk || !qualityOk || !requiredTokensOk) return null;
-
-      const tokenHits = baseTokens.filter((token) => allText.includes(token));
+      const evidencePool = qualifyingSignals.length > 0 ? qualifyingSignals : related;
+      const allEvidenceText = normalizeSearchText([
+        entityText,
+        ...evidencePool.map(signalText),
+      ].join(" "));
+      const allEvidenceTokens = tokenSetOf(allEvidenceText);
+      const tokenHits = baseTokens.filter((token) => allEvidenceTokens.has(token));
       if (tokenHits.length === 0) return null;
 
       const reasons: string[] = [];
       if (requestedLocations.length > 0) reasons.push("Đúng khu vực");
-      if (itemHints.length > 0) reasons.push("Đúng món / dịch vụ");
+      if (itemHints.length > 0) reasons.push("Có SIGNAL đúng món / dịch vụ");
       if (qualityHints.length > 0) reasons.push("Có trải nghiệm phù hợp");
 
       const score =
-        tokenHits.length +
-        requestedLocations.length * 6 +
-        matchedItemHints.length * 4 +
-        qualityHints.length * 3 +
-        Math.min(related.length, 3);
+        tokenHits.length
+        + requestedLocations.length * 6
+        + qualifyingSignals.length * 5
+        + itemHints.length * 4
+        + qualityHints.length * 3;
 
       return { id: entity.entity_id, score, reasons };
     })
