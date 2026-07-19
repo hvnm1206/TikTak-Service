@@ -6,20 +6,21 @@
   <meta name="theme-color" content="#c65f3d" />
   <title>Hai Chi Tiêu</title>
   <style>
-    :root{--bg:#f6f3ed;--card:#fff;--text:#26231f;--muted:#746f68;--line:#e6e0d8;--primary:#c65f3d;--primary2:#a8472a;--ok:#23865f;--warn:#b87716}
-    *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+    :root{--bg:#f6f3ed;--card:#fff;--text:#26231f;--muted:#746f68;--line:#e6e0d8;--primary:#c65f3d;--primary2:#a8472a;--ok:#23865f;--warn:#b87716;--danger:#a4362b}
+    *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
     body{min-height:100vh;padding-bottom:calc(82px + env(safe-area-inset-bottom))}.app{max-width:520px;margin:auto;padding:18px 16px 28px}
     .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.title{font-weight:800;font-size:21px}.date{font-size:13px;color:var(--muted)}
     .hero{background:linear-gradient(145deg,var(--primary),var(--primary2));color:#fff;border-radius:22px;padding:20px;box-shadow:0 8px 24px rgba(120,55,30,.16)}
     .hero small{opacity:.82;text-transform:uppercase;letter-spacing:.06em;font-weight:700}.total{font-size:34px;font-weight:900;margin:6px 0 2px}.count{opacity:.85;font-size:13px}
     .panel{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}.panel h3{margin:0 0 12px;font-size:16px}
     input{width:100%;font-size:18px;padding:16px;border:1px solid var(--line);border-radius:14px;outline:none;background:#fff;color:var(--text)}input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(198,95,61,.12)}
-    button{border:0;cursor:pointer;font:inherit}.primary{width:100%;margin-top:10px;padding:15px;border-radius:14px;background:var(--primary);color:#fff;font-weight:800;font-size:16px}.primary:active{transform:scale(.99)}
-    .preview,.notice{margin-top:10px;padding:11px 13px;border-radius:12px;font-size:14px;background:#f2eee8;color:var(--muted)}.notice.ok{background:#e8f4ef;color:#176749}.notice.err{background:#fdeceb;color:#a4362b}
+    button{border:0;cursor:pointer;font:inherit}.primary{width:100%;margin-top:10px;padding:15px;border-radius:14px;background:var(--primary);color:#fff;font-weight:800;font-size:16px}.primary:disabled{opacity:.55;cursor:default}.primary:active{transform:scale(.99)}
+    .preview,.notice{margin-top:10px;padding:11px 13px;border-radius:12px;font-size:14px;background:#f2eee8;color:var(--muted)}.notice.ok{background:#e8f4ef;color:#176749}.notice.err{background:#fdeceb;color:var(--danger)}
     .quick{display:grid;grid-template-columns:1fr 1fr;gap:10px}.quick button{padding:14px 10px;border-radius:13px;background:#fff;border:1px solid var(--line);font-weight:700;color:var(--text)}
     .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px}.stat.full{grid-column:1/-1}.label{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase}.value{font-size:22px;font-weight:900;margin-top:5px}.sub{font-size:12px;color:var(--muted);margin-top:2px}
     .list{margin:10px 0 0;padding:0;list-style:none}.row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line)}.row:first-child{border-top:0}.name{font-weight:700}.meta{font-size:12px;color:var(--muted);margin-top:3px}.money{font-weight:900;white-space:nowrap}.badge{display:inline-block;font-size:10px;padding:2px 6px;border-radius:999px;margin-left:5px;background:#fff3d8;color:#8a5b08}
     .empty{padding:18px 0;text-align:center;color:var(--muted);font-size:14px}.hidden{display:none!important}
+    .sync{margin-top:10px;font-size:12px;color:var(--muted);text-align:center}.sync strong{color:var(--ok)}.sync.offline strong{color:var(--warn)}
     nav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}.navin{max-width:520px;margin:auto;display:grid;grid-template-columns:repeat(3,1fr)}nav button{background:transparent;padding:13px 4px 12px;color:var(--muted);font-size:12px;font-weight:800}.navicon{font-size:20px;display:block;margin-bottom:3px}.active{color:var(--primary)!important}
     .section-title{font-weight:800;margin:4px 0 10px}.search{font-size:16px}.history-day{margin:18px 2px 7px;display:flex;justify-content:space-between;font-size:13px;font-weight:800}.history-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:0 14px}
   </style>
@@ -37,6 +38,7 @@
         <div id="preview" class="preview hidden"></div>
         <button id="addBtn" class="primary">Ghi chi</button>
         <div id="notice" class="notice hidden"></div>
+        <div id="syncState" class="sync">Đang kiểm tra kết nối dữ liệu…</div>
       </div>
       <div class="panel"><div class="quick"><button data-go="check">Check hôm nay</button><button data-go="check">Tháng này</button></div></div>
     </section>
@@ -59,33 +61,72 @@
 <nav><div class="navin"><button class="active" data-tab="add"><span class="navicon">＋</span>Ghi chi</button><button data-tab="check"><span class="navicon">✓</span>Check</button><button data-tab="history"><span class="navicon">☰</span>Lịch sử</button></div></nav>
 
 <script>
+  const API_URL=''; // Dán URL Web App Google Apps Script dạng https://script.google.com/macros/s/.../exec
   const STORE_KEY='hai_chi_tieu_v1';
-  const fmt=n=>new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND',maximumFractionDigits:0}).format(n||0);
+  const CACHE_KEY='hai_chi_tieu_cache_v2';
+  let remoteRows=[];
+  let apiOnline=false;
+
+  const fmt=n=>new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND',maximumFractionDigits:0}).format(Number(n)||0);
   const pad=n=>String(n).padStart(2,'0');
   const dayKey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const dateVN=d=>`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
   const timeVN=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const sum=a=>a.reduce((s,x)=>s+Number(x.amount||0),0);
+
   function parseText(text){const s=text.trim();const matches=[...s.matchAll(/([\d]+(?:[.,]\d{3})*(?:[.,]\d+)?)\s*([kK])?/g)];if(!matches.length)return{note:s,amount:0};const m=matches[matches.length-1];let num=Number(m[1].replace(/[.,]/g,''));if(m[2])num*=1000;const note=(s.slice(0,m.index)+s.slice(m.index+m[0].length)).replace(/\s+/g,' ').trim()||s;return{note,amount:Number.isFinite(num)?num:0}}
-  function load(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'[]')}catch{return[]}}
-  function save(rows){localStorage.setItem(STORE_KEY,JSON.stringify(rows))}
-  function getRows(){return load().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))}
+  function loadLocal(key=STORE_KEY){try{return JSON.parse(localStorage.getItem(key)||'[]')}catch{return[]}}
+  function saveLocal(rows,key=STORE_KEY){localStorage.setItem(key,JSON.stringify(rows))}
+  function validRow(x){return x&&x.createdAt&&Number(x.amount)>0}
+  function normalizeRows(rows){return (Array.isArray(rows)?rows:[]).filter(validRow).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))}
+  function getRows(){return normalizeRows(remoteRows.length?remoteRows:loadLocal(CACHE_KEY).length?loadLocal(CACHE_KEY):loadLocal())}
   function startOfWeek(){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d}
+
+  async function apiGet(action,params={}){
+    if(!API_URL)throw new Error('API chưa cấu hình');
+    const url=new URL(API_URL);url.searchParams.set('action',action);Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
+    const res=await fetch(url.toString(),{method:'GET',cache:'no-store'});if(!res.ok)throw new Error(`HTTP ${res.status}`);const data=await res.json();if(!data.ok)throw new Error(data.error||'API lỗi');return data;
+  }
+  async function apiPost(body){
+    if(!API_URL)throw new Error('API chưa cấu hình');
+    const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});if(!res.ok)throw new Error(`HTTP ${res.status}`);const data=await res.json();if(!data.ok)throw new Error(data.error||'API lỗi');return data;
+  }
+
+  function setSyncState(online,msg){apiOnline=online;syncState.className='sync'+(online?'':' offline');syncState.innerHTML=online?`<strong>Đã nối dữ liệu thật</strong>${msg?' · '+escapeHtml(msg):''}`:`<strong>Chế độ cục bộ</strong>${msg?' · '+escapeHtml(msg):''}`}
+
+  async function refreshFromApi(){
+    try{
+      const data=await apiGet('recent',{limit:200});remoteRows=normalizeRows(data.items);saveLocal(remoteRows,CACHE_KEY);setSyncState(true,`${remoteRows.length} giao dịch`);render();return true;
+    }catch(err){remoteRows=[];setSyncState(false,API_URL?'Không đọc được máy chủ':'Chưa cấu hình API');render();return false}
+  }
+
   function render(){const rows=getRows(),now=new Date(),today=rows.filter(x=>dayKey(new Date(x.createdAt))===dayKey(now)),week=rows.filter(x=>new Date(x.createdAt)>=startOfWeek()),month=rows.filter(x=>{const d=new Date(x.createdAt);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()});
-    const sum=a=>a.reduce((s,x)=>s+x.amount,0); heroTotal.textContent=fmt(sum(today));heroCount.textContent=`${today.length} giao dịch`;todayTotal.textContent=fmt(sum(today));todayCount.textContent=`${today.length} giao dịch`;weekTotal.textContent=fmt(sum(week));weekCount.textContent=`${week.length} giao dịch`;monthTotal.textContent=fmt(sum(month));monthCount.textContent=`${month.length} giao dịch`;
+    heroTotal.textContent=fmt(sum(today));heroCount.textContent=`${today.length} giao dịch`;todayTotal.textContent=fmt(sum(today));todayCount.textContent=`${today.length} giao dịch`;weekTotal.textContent=fmt(sum(week));weekCount.textContent=`${week.length} giao dịch`;monthTotal.textContent=fmt(sum(month));monthCount.textContent=`${month.length} giao dịch`;
     todayList.innerHTML=today.length?today.map(rowHtml).join(''):'<li class="empty">Chưa có giao dịch hôm nay</li>';
-    if(month.length){const x=[...month].sort((a,b)=>b.amount-a.amount)[0];largest.innerHTML=`${x.note}<div class="sub">${fmt(x.amount)} · ${dateVN(new Date(x.createdAt))}</div>`}else largest.textContent='Chưa có dữ liệu';
+    if(month.length){const x=[...month].sort((a,b)=>Number(b.amount)-Number(a.amount))[0];largest.innerHTML=`${escapeHtml(x.note)}<div class="sub">${fmt(x.amount)} · ${dateVN(new Date(x.createdAt))}</div>`}else largest.textContent='Chưa có dữ liệu';
     renderSearch();renderHistory(rows)
   }
-  function rowHtml(x){const d=new Date(x.createdAt);return `<li class="row"><div><div class="name">${escapeHtml(x.note)}${x.status==='raw'?'<span class="badge">mới ghi</span>':''}</div><div class="meta">${dateVN(d)} · ${timeVN(d)}</div></div><div class="money">${fmt(x.amount)}</div></li>`}
-  function escapeHtml(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-  function renderSearch(){const q=(searchInput.value||'').trim().toLowerCase();if(!q){searchSummary.textContent='';searchList.innerHTML='';return}const r=getRows().filter(x=>(x.note+' '+x.rawText).toLowerCase().includes(q));searchSummary.textContent=`${r.length} kết quả · Tổng ${fmt(r.reduce((s,x)=>s+x.amount,0))}`;searchList.innerHTML=r.length?r.map(rowHtml).join(''):'<li class="empty">Không có kết quả</li>'}
-  function renderHistory(rows){if(!rows.length){history.innerHTML='<div class="panel empty">Chưa có giao dịch nào.</div>';return}const groups={};rows.forEach(x=>{const k=dayKey(new Date(x.createdAt));(groups[k]??=[]).push(x)});history.innerHTML=Object.entries(groups).map(([k,a])=>`<div class="history-day"><span>${dateVN(new Date(k+'T00:00:00'))}</span><span>${fmt(a.reduce((s,x)=>s+x.amount,0))}</span></div><div class="history-card"><ul class="list">${a.map(rowHtml).join('')}</ul></div>`).join('')}
-  function showTab(tab){tabAdd.classList.toggle('hidden',tab!=='add');tabCheck.classList.toggle('hidden',tab!=='check');tabHistory.classList.toggle('hidden',tab!=='history');document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));render()}
+  function rowHtml(x){const d=new Date(x.createdAt);return `<li class="row"><div><div class="name">${escapeHtml(x.note||x.rawText||'Chi tiêu')}${x.status==='raw'?'<span class="badge">mới ghi</span>':''}</div><div class="meta">${dateVN(d)} · ${timeVN(d)}</div></div><div class="money">${fmt(x.amount)}</div></li>`}
+  function escapeHtml(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+  function renderSearch(){const q=(searchInput.value||'').trim().toLowerCase();if(!q){searchSummary.textContent='';searchList.innerHTML='';return}const r=getRows().filter(x=>((x.note||'')+' '+(x.rawText||'')+' '+(x.category||'')).toLowerCase().includes(q));searchSummary.textContent=`${r.length} kết quả · Tổng ${fmt(sum(r))}`;searchList.innerHTML=r.length?r.map(rowHtml).join(''):'<li class="empty">Không có kết quả</li>'}
+  function renderHistory(rows){if(!rows.length){history.innerHTML='<div class="panel empty">Chưa có giao dịch nào.</div>';return}const groups={};rows.forEach(x=>{const k=dayKey(new Date(x.createdAt));(groups[k]??=[]).push(x)});history.innerHTML=Object.entries(groups).map(([k,a])=>`<div class="history-day"><span>${dateVN(new Date(k+'T00:00:00'))}</span><span>${fmt(sum(a))}</span></div><div class="history-card"><ul class="list">${a.map(rowHtml).join('')}</ul></div>`).join('')}
+  function showTab(tab){tabAdd.classList.toggle('hidden',tab!=='add');tabCheck.classList.toggle('hidden',tab!=='check');tabHistory.classList.toggle('hidden',tab!=='history');document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));render();if(apiOnline&&tab!=='add')refreshFromApi()}
+
   expenseInput.addEventListener('input',()=>{const p=parseText(expenseInput.value);preview.classList.toggle('hidden',!expenseInput.value.trim());preview.textContent=expenseInput.value.trim()?`Xem trước: ${p.note} · ${fmt(p.amount)}`:''});
   expenseInput.addEventListener('keydown',e=>{if(e.key==='Enter')addBtn.click()});
-  addBtn.addEventListener('click',()=>{const raw=expenseInput.value.trim();const p=parseText(raw);notice.className='notice';if(!raw||!p.amount){notice.textContent='Nhập theo dạng: Taxi 300k';notice.classList.add('err');notice.classList.remove('hidden');return}const rows=load();rows.push({id:'local_'+Date.now(),createdAt:new Date().toISOString(),rawText:raw,note:p.note,amount:p.amount,status:'raw'});save(rows);expenseInput.value='';preview.classList.add('hidden');notice.textContent=`Đã ghi ${p.note}: ${fmt(p.amount)}`;notice.classList.add('ok');notice.classList.remove('hidden');render();setTimeout(()=>notice.classList.add('hidden'),2400)});
+  addBtn.addEventListener('click',async()=>{
+    const raw=expenseInput.value.trim(),p=parseText(raw);notice.className='notice';
+    if(!raw||!p.amount){notice.textContent='Nhập theo dạng: Taxi 300k';notice.classList.add('err');notice.classList.remove('hidden');return}
+    addBtn.disabled=true;addBtn.textContent='Đang ghi…';
+    try{
+      if(API_URL){const data=await apiPost({action:'add',rawText:raw});notice.textContent=`Đã ghi ${data.item?.note||p.note}: ${fmt(data.item?.amount||p.amount)}`;notice.classList.add('ok');setSyncState(true,'Đã đồng bộ');expenseInput.value='';preview.classList.add('hidden');await refreshFromApi()}
+      else{const rows=loadLocal();rows.push({id:'local_'+Date.now(),createdAt:new Date().toISOString(),rawText:raw,note:p.note,amount:p.amount,status:'raw'});saveLocal(rows);notice.textContent=`Đã lưu cục bộ ${p.note}: ${fmt(p.amount)}`;notice.classList.add('ok');expenseInput.value='';preview.classList.add('hidden');render()}
+    }catch(err){notice.textContent=`Không ghi được dữ liệu thật: ${err.message}`;notice.classList.add('err');setSyncState(false,'Lỗi kết nối');}
+    finally{addBtn.disabled=false;addBtn.textContent='Ghi chi';notice.classList.remove('hidden');setTimeout(()=>notice.classList.add('hidden'),3000)}
+  });
+
   searchInput.addEventListener('input',renderSearch);document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.go)));
-  todayLabel.textContent=new Date().toLocaleDateString('vi-VN',{weekday:'short',day:'2-digit',month:'2-digit'});render();
+  todayLabel.textContent=new Date().toLocaleDateString('vi-VN',{weekday:'short',day:'2-digit',month:'2-digit'});render();refreshFromApi();
 </script>
 </body>
 </html>
