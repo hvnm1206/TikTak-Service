@@ -61,9 +61,12 @@
 <nav><div class="navin"><button class="active" data-tab="add"><span class="navicon">＋</span>Ghi chi</button><button data-tab="check"><span class="navicon">✓</span>Check</button><button data-tab="history"><span class="navicon">☰</span>Lịch sử</button></div></nav>
 
 <script>
-  const API_URL=''; // Dán URL Web App Google Apps Script dạng https://script.google.com/macros/s/.../exec
   const STORE_KEY='hai_chi_tieu_v1';
   const CACHE_KEY='hai_chi_tieu_cache_v2';
+  const API_KEY='hai_chi_tieu_api_url_v1';
+  const queryApi=new URLSearchParams(location.search).get('api');
+  if(queryApi){try{localStorage.setItem(API_KEY,queryApi)}catch{}}
+  const API_URL=queryApi||localStorage.getItem(API_KEY)||'';
   let remoteRows=[];
   let apiOnline=false;
 
@@ -73,6 +76,7 @@
   const dateVN=d=>`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
   const timeVN=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const sum=a=>a.reduce((s,x)=>s+Number(x.amount||0),0);
+  const fold=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase();
 
   function parseText(text){const s=text.trim();const matches=[...s.matchAll(/([\d]+(?:[.,]\d{3})*(?:[.,]\d+)?)\s*([kK])?/g)];if(!matches.length)return{note:s,amount:0};const m=matches[matches.length-1];let num=Number(m[1].replace(/[.,]/g,''));if(m[2])num*=1000;const note=(s.slice(0,m.index)+s.slice(m.index+m[0].length)).replace(/\s+/g,' ').trim()||s;return{note,amount:Number.isFinite(num)?num:0}}
   function loadLocal(key=STORE_KEY){try{return JSON.parse(localStorage.getItem(key)||'[]')}catch{return[]}}
@@ -108,7 +112,7 @@
   }
   function rowHtml(x){const d=new Date(x.createdAt);return `<li class="row"><div><div class="name">${escapeHtml(x.note||x.rawText||'Chi tiêu')}${x.status==='raw'?'<span class="badge">mới ghi</span>':''}</div><div class="meta">${dateVN(d)} · ${timeVN(d)}</div></div><div class="money">${fmt(x.amount)}</div></li>`}
   function escapeHtml(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-  function renderSearch(){const q=(searchInput.value||'').trim().toLowerCase();if(!q){searchSummary.textContent='';searchList.innerHTML='';return}const r=getRows().filter(x=>((x.note||'')+' '+(x.rawText||'')+' '+(x.category||'')).toLowerCase().includes(q));searchSummary.textContent=`${r.length} kết quả · Tổng ${fmt(sum(r))}`;searchList.innerHTML=r.length?r.map(rowHtml).join(''):'<li class="empty">Không có kết quả</li>'}
+  function renderSearch(){const q=fold(searchInput.value).trim();if(!q){searchSummary.textContent='';searchList.innerHTML='';return}const r=getRows().filter(x=>fold((x.note||'')+' '+(x.rawText||'')+' '+(x.category||'')).includes(q));searchSummary.textContent=`${r.length} kết quả · Tổng ${fmt(sum(r))}`;searchList.innerHTML=r.length?r.map(rowHtml).join(''):'<li class="empty">Không có kết quả</li>'}
   function renderHistory(rows){if(!rows.length){history.innerHTML='<div class="panel empty">Chưa có giao dịch nào.</div>';return}const groups={};rows.forEach(x=>{const k=dayKey(new Date(x.createdAt));(groups[k]??=[]).push(x)});history.innerHTML=Object.entries(groups).map(([k,a])=>`<div class="history-day"><span>${dateVN(new Date(k+'T00:00:00'))}</span><span>${fmt(sum(a))}</span></div><div class="history-card"><ul class="list">${a.map(rowHtml).join('')}</ul></div>`).join('')}
   function showTab(tab){tabAdd.classList.toggle('hidden',tab!=='add');tabCheck.classList.toggle('hidden',tab!=='check');tabHistory.classList.toggle('hidden',tab!=='history');document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));render();if(apiOnline&&tab!=='add')refreshFromApi()}
 
