@@ -3,36 +3,202 @@
 <head>
   <base target="_top">
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b6f6b">
   <title>MENDO · Quản trị chi phí</title>
   <style>
-    :root{--ink:#142938;--muted:#637786;--line:#dce6eb;--bg:#f3f7f8;--card:#fff;--teal:#0b7a75;--teal2:#10a39b;--blue:#2467d6;--red:#c83b45;--orange:#d97706;--green:#16845b;--shadow:0 10px 30px rgba(24,55,66,.08)}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans-serif;font-size:15px}.shell{max-width:1280px;margin:auto;padding:20px}.hero{display:flex;justify-content:space-between;gap:24px;align-items:flex-end;padding:24px 26px;border-radius:22px;background:linear-gradient(135deg,#083d4b,#0b7a75 58%,#14a49c);color:#fff;box-shadow:var(--shadow)}.brand{font-size:13px;font-weight:900;letter-spacing:.18em;opacity:.85}.hero h1{font-size:30px;line-height:1.2;margin:5px 0}.hero p{margin:0;color:#daf6f2}.readOnly{display:inline-flex;align-items:center;gap:7px;background:#ffffff1f;border:1px solid #ffffff45;border-radius:999px;padding:9px 13px;font-size:13px;font-weight:800;white-space:nowrap}.toolbar{display:grid;grid-template-columns:minmax(180px,1fr) 160px 160px 150px auto;gap:10px;align-items:end;background:#fff;margin:14px 0;padding:14px;border-radius:17px;box-shadow:var(--shadow)}label{display:block;color:var(--muted);font-size:12px;font-weight:800;margin-bottom:6px}input{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#fbfdfd;color:var(--ink);font:inherit;outline:none}input:focus{border-color:var(--teal2);box-shadow:0 0 0 3px #10a39b1f}button{font:inherit}.btn{border:0;border-radius:11px;background:var(--teal);color:#fff;padding:11px 16px;font-weight:850;cursor:pointer}.btn:hover{background:#086c67}.tabs{display:flex;gap:8px;overflow:auto;padding:2px 0 12px}.tab{border:1px solid var(--line);background:#fff;color:#4f6472;border-radius:11px;padding:10px 16px;font-weight:850;white-space:nowrap;cursor:pointer}.tab.active{background:var(--ink);border-color:var(--ink);color:#fff}.panel{display:none}.panel.active{display:block}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.card{background:var(--card);border:1px solid #e4ecef;border-radius:17px;padding:17px;box-shadow:var(--shadow);margin-bottom:12px}.kpiLabel{color:var(--muted);font-size:13px;font-weight:750}.kpiValue{font-size:27px;font-weight:950;margin:8px 0 3px;letter-spacing:-.03em}.kpiMeta{color:var(--muted);font-size:12px}.positive{color:var(--green)}.negative{color:var(--red)}.sectionHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.sectionHead h2{font-size:18px;margin:0}.badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:850;background:#edf4f6;color:#49616f}.badge.loss{background:#fdebed;color:var(--red)}.badge.low{background:#fff3df;color:#a85a00}.badge.good{background:#e9f7f1;color:var(--green)}.badge.unknown{background:#eef1f4;color:#5d6972}.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:13px}table{border-collapse:collapse;width:100%;min-width:820px;background:#fff}th,td{padding:11px 12px;text-align:left;border-bottom:1px solid #edf1f3;vertical-align:top}th{position:sticky;top:0;background:#f7fafb;color:#536975;font-size:12px;text-transform:uppercase;letter-spacing:.03em;z-index:1}tr:last-child td{border-bottom:0}.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.strong{font-weight:850}.muted{color:var(--muted)}.empty{text-align:center;padding:28px;color:var(--muted)}.alert{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:13px;border:1px solid var(--line);border-radius:13px;margin-bottom:9px;background:#fff}.dot{width:10px;height:10px;border-radius:50%;margin-top:5px;background:var(--orange)}.dot.red{background:var(--red)}.dot.gray{background:#8b9aa3}.alertTitle{font-weight:850}.alertMeta{font-size:12px;color:var(--muted);margin-top:4px}.status{display:none;padding:13px 15px;border-radius:12px;margin-bottom:12px;font-weight:800}.status.show{display:block}.status.error{background:#fdebed;color:var(--red)}.loading{position:fixed;inset:0;background:#f3f7f8d6;display:none;align-items:center;justify-content:center;z-index:20}.loading.show{display:flex}.loader{background:#fff;border-radius:16px;padding:20px 24px;box-shadow:var(--shadow);font-weight:850}.footer{color:var(--muted);font-size:12px;text-align:right;padding:8px 3px 20px}
-    @media(max-width:900px){.grid4{grid-template-columns:repeat(2,1fr)}.toolbar{grid-template-columns:repeat(2,1fr)}.toolbar>div:first-child{grid-column:1/-1}.hero{align-items:flex-start}.hero h1{font-size:26px}}
-    @media(max-width:560px){.shell{padding:12px}.hero{padding:20px;display:block}.readOnly{margin-top:14px}.toolbar{grid-template-columns:1fr 1fr}.toolbar>div:first-child,.toolbar .action{grid-column:1/-1}.grid4,.grid2{grid-template-columns:1fr}.kpiValue{font-size:25px}.card{padding:14px}.tabs{margin-right:-12px}.footer{text-align:left}}
+    :root {
+      --ink:#142938; --muted:#637786; --line:#dce6eb; --bg:#f3f7f8;
+      --card:#fff; --teal:#0b7a75; --teal2:#10a39b; --red:#c83b45;
+      --orange:#d97706; --green:#16845b; --shadow:0 10px 30px rgba(24,55,66,.08);
+    }
+    * { box-sizing:border-box }
+    html { -webkit-text-size-adjust:100% }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter,Arial,sans-serif; font-size:15px }
+    button, input, select { font:inherit }
+    button, select { touch-action:manipulation }
+    .shell { max-width:1280px; margin:auto; padding:20px }
+    .hero { display:flex; justify-content:space-between; gap:24px; align-items:flex-end; padding:24px 26px; border-radius:22px; background:linear-gradient(135deg,#083d4b,#0b7a75 58%,#14a49c); color:#fff; box-shadow:var(--shadow) }
+    .brand { font-size:13px; font-weight:900; letter-spacing:.18em; opacity:.85 }
+    .hero h1 { font-size:30px; line-height:1.2; margin:5px 0 }
+    .hero p { margin:0; color:#daf6f2 }
+    .readOnly { display:inline-flex; align-items:center; gap:7px; background:#ffffff1f; border:1px solid #ffffff45; border-radius:999px; padding:9px 13px; font-size:13px; font-weight:800; white-space:nowrap }
+
+    .toolbar { display:grid; grid-template-columns:minmax(260px,1.5fr) minmax(260px,1fr) minmax(390px,1.25fr) auto; gap:12px; align-items:end; background:#fff; margin:14px 0; padding:14px; border-radius:17px; box-shadow:var(--shadow) }
+    label { display:block; color:var(--muted); font-size:12px; font-weight:800; margin-bottom:6px }
+    input, select { width:100%; min-height:44px; border:1px solid var(--line); border-radius:11px; padding:10px 12px; background:#fbfdfd; color:var(--ink); outline:none }
+    input:focus, select:focus { border-color:var(--teal2); box-shadow:0 0 0 3px #10a39b1f }
+    select:disabled { color:var(--muted) }
+    .periodChips { display:grid; grid-template-columns:repeat(4,1fr); gap:6px }
+    .periodChip { min-height:44px; border:1px solid var(--line); border-radius:11px; background:#f7fafb; color:#536975; padding:8px 9px; font-weight:800; cursor:pointer; white-space:nowrap }
+    .periodChip.active { color:var(--teal); background:#e7f6f4; border-color:#9ed7d2 }
+    .advancedToggle { display:none; width:100%; min-height:44px; align-items:center; justify-content:space-between; border:1px solid var(--line); border-radius:11px; background:#f7fafb; color:var(--ink); padding:10px 12px; font-weight:800 }
+    .advancedToggle::after { content:'⌄'; transition:transform .2s ease }
+    .advancedToggle.open::after { transform:rotate(180deg) }
+    .advancedFields { display:grid; grid-template-columns:1fr 1fr .8fr; gap:8px }
+    .btn { min-height:44px; border:0; border-radius:11px; background:var(--teal); color:#fff; padding:11px 16px; font-weight:850; cursor:pointer }
+    .btn:hover { background:#086c67 }
+
+    .tabs { display:flex; gap:8px; overflow:auto; padding:2px 0 12px; scrollbar-width:none }
+    .tabs::-webkit-scrollbar { display:none }
+    .tab { border:1px solid var(--line); background:#fff; color:#4f6472; border-radius:11px; padding:10px 16px; font-weight:850; white-space:nowrap; cursor:pointer }
+    .tab.active { background:var(--ink); border-color:var(--ink); color:#fff }
+    .tabIcon { display:none }
+    .panel { display:none }
+    .panel.active { display:block }
+    .grid4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px }
+    .grid2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px }
+    .card { min-width:0; background:var(--card); border:1px solid #e4ecef; border-radius:17px; padding:17px; box-shadow:var(--shadow); margin-bottom:12px }
+    .kpiLabel { color:var(--muted); font-size:13px; font-weight:750 }
+    .kpiValue { font-size:27px; font-weight:950; margin:8px 0 3px; letter-spacing:-.03em; font-variant-numeric:tabular-nums }
+    .kpiMeta { color:var(--muted); font-size:12px }
+    .positive { color:var(--green) }
+    .negative { color:var(--red) }
+    .sectionHead { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px }
+    .sectionHead h2 { font-size:18px; margin:0 }
+    .badge { display:inline-flex; align-items:center; border-radius:999px; padding:5px 9px; font-size:12px; font-weight:850; background:#edf4f6; color:#49616f }
+    .badge.loss { background:#fdebed; color:var(--red) }
+    .badge.low { background:#fff3df; color:#a85a00 }
+    .badge.good { background:#e9f7f1; color:var(--green) }
+    .badge.unknown { background:#eef1f4; color:#5d6972 }
+    .tableWrap { overflow:auto; border:1px solid var(--line); border-radius:13px }
+    table { border-collapse:collapse; width:100%; min-width:820px; background:#fff }
+    th, td { padding:11px 12px; text-align:left; border-bottom:1px solid #edf1f3; vertical-align:top }
+    th { position:sticky; top:0; background:#f7fafb; color:#536975; font-size:12px; text-transform:uppercase; letter-spacing:.03em; z-index:1 }
+    tr:last-child td { border-bottom:0 }
+    .num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap }
+    .strong { font-weight:850 }
+    .muted { color:var(--muted) }
+    .empty { text-align:center; padding:28px; color:var(--muted) }
+    .alert { display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:start; padding:13px; border:1px solid var(--line); border-radius:13px; margin-bottom:9px; background:#fff }
+    .dot { width:10px; height:10px; border-radius:50%; margin-top:5px; background:var(--orange) }
+    .dot.red { background:var(--red) }
+    .dot.gray { background:#8b9aa3 }
+    .alertTitle { font-weight:850 }
+    .alertMeta { font-size:12px; color:var(--muted); margin-top:4px }
+    .status { display:none; padding:13px 15px; border-radius:12px; margin-bottom:12px; font-weight:800 }
+    .status.show { display:block }
+    .status.error { background:#fdebed; color:var(--red) }
+    .loading { position:fixed; inset:0; background:#f3f7f8d6; display:none; align-items:center; justify-content:center; z-index:30 }
+    .loading.show { display:flex }
+    .loader { background:#fff; border-radius:16px; padding:20px 24px; box-shadow:var(--shadow); font-weight:850 }
+    .footer { color:var(--muted); font-size:12px; text-align:right; padding:8px 3px 20px }
+
+    @media (max-width:1100px) {
+      .toolbar { grid-template-columns:1fr 1fr }
+      .advancedFields { grid-template-columns:1fr 1fr 1fr }
+      .action .btn { width:100% }
+      .grid4 { grid-template-columns:repeat(2,minmax(0,1fr)) }
+    }
+
+    @media (max-width:700px) {
+      body { font-size:14px }
+      .shell { padding:0 12px calc(92px + env(safe-area-inset-bottom)) }
+      .hero { margin:0 -12px; padding:14px 16px 13px; border-radius:0 0 22px 22px; align-items:flex-start; gap:10px; box-shadow:0 8px 24px rgba(24,55,66,.13) }
+      .brand { font-size:10px }
+      .hero h1 { font-size:20px; margin:3px 0; letter-spacing:-.02em }
+      .hero p { font-size:11px }
+      .readOnly { padding:6px 8px; font-size:9px; gap:4px; margin-top:2px }
+      .toolbar { display:grid; grid-template-columns:1fr; gap:10px; margin:10px 0; padding:12px; border-radius:16px; box-shadow:0 5px 18px rgba(24,55,66,.06) }
+      input, select, .periodChip, .btn, .advancedToggle { min-height:48px }
+      .periodChips { gap:5px }
+      .periodChip { padding:7px 4px; font-size:12px }
+      .advancedToggle { display:flex }
+      .advancedFields { display:none; grid-template-columns:1fr 1fr; gap:8px; padding-top:2px }
+      .advancedFields.open { display:grid }
+      .advancedFields > div:last-child { grid-column:1/-1 }
+      .action .btn { width:100%; font-size:15px }
+
+      .tabs { position:fixed; z-index:20; left:0; right:0; bottom:0; display:grid; grid-template-columns:repeat(4,1fr); gap:4px; padding:7px 8px calc(7px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.97); border-top:1px solid var(--line); box-shadow:0 -8px 24px rgba(24,55,66,.10); backdrop-filter:blur(12px) }
+      .tab { min-width:0; min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:0; border-radius:11px; padding:5px 2px; background:transparent; font-size:10px; line-height:1.1; white-space:normal }
+      .tab.active { color:var(--teal); background:#e7f6f4 }
+      .tabIcon { display:block; font-size:17px; line-height:1 }
+
+      .grid4 { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px }
+      .grid2 { grid-template-columns:1fr; gap:0 }
+      .card { padding:12px; border-radius:15px; margin-bottom:8px; box-shadow:0 5px 18px rgba(24,55,66,.05) }
+      .kpiLabel { min-height:28px; font-size:11px; line-height:1.25 }
+      .kpiValue { font-size:clamp(15.5px,4.4vw,20px); line-height:1.12; margin:7px 0 4px; letter-spacing:-.045em; white-space:nowrap }
+      .kpiMeta { font-size:10px; line-height:1.25 }
+      .sectionHead { margin-bottom:10px }
+      .sectionHead h2 { font-size:16px }
+      .badge { font-size:10px; padding:4px 7px }
+
+      .tableWrap { overflow:visible; border:0; border-radius:0 }
+      .tableWrap table { display:block; min-width:0; background:transparent }
+      .tableWrap thead { display:none }
+      .tableWrap tbody { display:grid; gap:9px }
+      .tableWrap tr { display:block; padding:4px 11px; border:1px solid var(--line); border-radius:14px; background:#fff; box-shadow:0 4px 14px rgba(24,55,66,.04) }
+      .tableWrap td { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; width:100%; padding:8px 0; border-bottom:1px solid #edf1f3; text-align:right; white-space:normal }
+      .tableWrap td::before { content:attr(data-label); flex:0 0 38%; color:var(--muted); font-size:11px; font-weight:800; text-align:left }
+      .tableWrap td:last-child { border-bottom:0 }
+      .tableWrap td.empty { display:block; padding:22px 8px; text-align:center }
+      .tableWrap td.empty::before { display:none }
+      .tableWrap td > span, .tableWrap td > div { min-width:0 }
+
+      .alert { grid-template-columns:auto minmax(0,1fr); gap:8px 9px; padding:11px; margin-bottom:8px }
+      .alert > .badge, .alert > b.num { grid-column:2; justify-self:start; text-align:left }
+      .alertTitle { font-size:13px }
+      .alertMeta { font-size:11px; line-height:1.45 }
+      .empty { padding:22px 8px }
+      .footer { text-align:left; padding:8px 2px 0; font-size:10px }
+    }
+
+    @media (max-width:360px) {
+      .shell { padding-left:9px; padding-right:9px }
+      .hero { margin-left:-9px; margin-right:-9px }
+      .readOnly { max-width:96px; white-space:normal; line-height:1.15 }
+      .periodChip { font-size:11px }
+      .card { padding:10px }
+      .kpiValue { font-size:15px }
+    }
   </style>
 </head>
 <body>
   <div id="loading" class="loading show"><div class="loader">Đang đọc dữ liệu chi phí…</div></div>
   <main class="shell">
     <header class="hero">
-      <div><div class="brand">MENDO</div><h1>Quản trị chi phí dự án</h1><p>Doanh thu · Chi phí · Lợi nhuận · Biên lợi nhuận</p></div>
+      <div>
+        <div class="brand">MENDO</div>
+        <h1>Quản trị chi phí dự án</h1>
+        <p>Doanh thu · Chi phí · Lợi nhuận · Biên lợi nhuận</p>
+      </div>
       <div class="readOnly">● CHỈ ĐỌC — không ghi dữ liệu</div>
     </header>
 
-    <section class="toolbar">
-      <div><label>Tìm mã hoặc tên dự án</label><input id="search" placeholder="Ví dụ: Honda, HD-…" oninput="renderProjects()"></div>
-      <div><label>Từ ngày</label><input id="fromDate" type="date"></div>
-      <div><label>Đến ngày</label><input id="toDate" type="date"></div>
-      <div><label>Biên thấp dưới (%)</label><input id="margin" type="number" value="15" min="0" max="100"></div>
+    <section class="toolbar" aria-label="Bộ lọc báo cáo">
+      <div class="projectField">
+        <label for="projectSelect">Chọn mã và tên dự án</label>
+        <select id="projectSelect" onchange="selectProject()" disabled>
+          <option value="">Đang tải danh mục dự án…</option>
+        </select>
+      </div>
+      <div class="periodField">
+        <label>Khoảng thời gian</label>
+        <div class="periodChips" role="group" aria-label="Chọn nhanh khoảng thời gian">
+          <button class="periodChip" data-period="today" onclick="setPeriod('today')">Hôm nay</button>
+          <button class="periodChip" data-period="week" onclick="setPeriod('week')">Tuần</button>
+          <button class="periodChip active" data-period="month" onclick="setPeriod('month')">Tháng</button>
+          <button class="periodChip" data-period="custom" onclick="showAdvanced()">Tuỳ chọn</button>
+        </div>
+      </div>
+      <div class="advancedGroup">
+        <button id="advancedToggle" class="advancedToggle" type="button" aria-expanded="false" onclick="toggleAdvanced()">Bộ lọc nâng cao</button>
+        <div id="advancedFields" class="advancedFields">
+          <div><label for="fromDate">Từ ngày</label><input id="fromDate" type="date" onchange="markCustomPeriod()"></div>
+          <div><label for="toDate">Đến ngày</label><input id="toDate" type="date" onchange="markCustomPeriod()"></div>
+          <div><label for="margin">Biên thấp dưới (%)</label><input id="margin" type="number" value="15" min="0" max="100"></div>
+        </div>
+      </div>
       <div class="action"><button class="btn" onclick="reload()">Truy xuất</button></div>
     </section>
 
     <div id="status" class="status"></div>
-    <nav class="tabs">
-      <button class="tab active" data-tab="overview" onclick="openTab('overview',this)">Tổng quan</button>
-      <button class="tab" data-tab="costs" onclick="openTab('costs',this)">Chi phí phát sinh</button>
-      <button class="tab" data-tab="projects" onclick="openTab('projects',this)">Tài chính dự án</button>
-      <button class="tab" data-tab="alerts" onclick="openTab('alerts',this)">Cảnh báo dữ liệu</button>
+    <nav class="tabs" aria-label="Nội dung báo cáo">
+      <button class="tab active" data-tab="overview" onclick="openTab('overview',this)"><span class="tabIcon">⌂</span><span>Tổng quan</span></button>
+      <button class="tab" data-tab="costs" onclick="openTab('costs',this)"><span class="tabIcon">₫</span><span>Chi phí</span></button>
+      <button class="tab" data-tab="projects" onclick="openTab('projects',this)"><span class="tabIcon">▦</span><span>Dự án</span></button>
+      <button class="tab" data-tab="alerts" onclick="openTab('alerts',this)"><span class="tabIcon">!</span><span>Cảnh báo</span></button>
     </nav>
 
     <section id="overview" class="panel active">
@@ -46,7 +212,7 @@
         <article class="card"><div class="kpiLabel">Tổng doanh thu dự án</div><div id="revenue" class="kpiValue">—</div><div class="kpiMeta">Theo PROJECT_SUMMARY</div></article>
         <article class="card"><div class="kpiLabel">Tổng chi phí dự án</div><div id="portfolioCost" class="kpiValue">—</div><div class="kpiMeta">Trực tiếp + phân bổ</div></article>
         <article class="card"><div class="kpiLabel">Tổng lợi nhuận</div><div id="profit" class="kpiValue">—</div><div class="kpiMeta">Doanh thu − chi phí</div></article>
-        <article class="card"><div class="kpiLabel">Biên lợi nhuận</div><div id="marginValue" class="kpiValue">—</div><div class="kpiMeta">Toàn bộ dự án</div></article>
+        <article class="card"><div class="kpiLabel">Biên lợi nhuận</div><div id="marginValue" class="kpiValue">—</div><div class="kpiMeta">Theo phạm vi đang chọn</div></article>
       </div>
       <div class="grid2">
         <article class="card"><div class="sectionHead"><h2>Cao nhất</h2><span class="badge good">So sánh dự án</span></div><div id="highest"></div></article>

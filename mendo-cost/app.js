@@ -5,6 +5,7 @@ const TIMEZONE = 'Asia/Ho_Chi_Minh';
 let DATA = null;
 let RAW = null;
 let callbackSequence = 0;
+let ACTIVE_PERIOD = 'month';
 
 const $ = id => document.getElementById(id);
 const money = n => Math.round(Number(n || 0)).toLocaleString('vi-VN') + ' đ';
@@ -115,6 +116,21 @@ function parseRevenueRows(rows) {
     amount: numberValue(cell(row, 3)),
     status: String(cell(row, 5) || '').trim()
   })).filter(row => row.project_code);
+}
+
+function parseMasterProjects(rows) {
+  const seen = new Set();
+  return rows.map(row => ({
+    project_name: String(cell(row, 0) || '').trim(),
+    project_code: String(cell(row, 1) || '').trim(),
+    customer: String(cell(row, 2) || '').trim(),
+    owner: String(cell(row, 3) || '').trim(),
+    status: String(cell(row, 4) || '').trim()
+  })).filter(project => {
+    if (!project.project_code || !project.project_name || seen.has(project.project_code)) return false;
+    seen.add(project.project_code);
+    return true;
+  });
 }
 
 function parseProjects(rows, revenues) {
@@ -237,37 +253,52 @@ function buildDashboard(raw, options) {
   let toDate = /^\d{4}-\d{2}-\d{2}$/.test(String(options.to_date || '')) ? options.to_date : today;
   if (fromDate > toDate) [fromDate, toDate] = [toDate, fromDate];
   const threshold = Math.max(0, Math.min(100, numberValue(options.low_margin_percent || 15)));
-  const selected = summarizeCosts(raw.costs, fromDate, toDate);
-  const totals = raw.projects.reduce((sum, project) => {
+  const projectCode = String(options.project_code || '').trim();
+  const selectedMaster = projectCode
+    ? (raw.master_projects || []).find(project => project.project_code === projectCode) || null
+    : null;
+  const scopedCosts = projectCode
+    ? raw.costs.filter(row => row.project_code === projectCode)
+    : raw.costs;
+  const scopedProjects = projectCode
+    ? raw.projects.filter(project => project.project_code === projectCode)
+    : raw.projects;
+  const selected = summarizeCosts(scopedCosts, fromDate, toDate);
+  const totals = scopedProjects.reduce((sum, project) => {
     sum.revenue += project.revenue;
     sum.total_cost += project.total_cost;
     return sum;
   }, { revenue: 0, total_cost: 0 });
   totals.profit = totals.revenue - totals.total_cost;
   totals.margin_percent = totals.revenue ? Math.round(1000 * totals.profit / totals.revenue) / 10 : null;
-  const loss = raw.projects.filter(project => project.revenue > 0 && project.profit < 0);
-  const low = raw.projects.filter(project => project.revenue > 0 && project.profit >= 0 && project.margin_percent < threshold);
-  const missing = raw.projects.filter(project => project.revenue <= 0);
-  const positiveCosts = raw.projects.filter(project => project.total_cost > 0);
+  const loss = scopedProjects.filter(project => project.revenue > 0 && project.profit < 0);
+  const low = scopedProjects.filter(project => project.revenue > 0 && project.profit >= 0 && project.margin_percent < threshold);
+  const missing = scopedProjects.filter(project => project.revenue <= 0);
+  const positiveCosts = scopedProjects.filter(project => project.total_cost > 0);
   return {
     ok: true,
     readonly: true,
     generated_at: new Date().toLocaleString('vi-VN', { timeZone: TIMEZONE }),
+    scope: {
+      project_code: projectCode,
+      project_name: selectedMaster ? selectedMaster.project_name : '',
+      customer: selectedMaster ? selectedMaster.customer : ''
+    },
     period: { today, week_start: weekStart, month_start: monthStart, from_date: fromDate, to_date: toDate },
     cost: {
-      today: summarizeCosts(raw.costs, today, today),
-      week: summarizeCosts(raw.costs, weekStart, today),
-      month: summarizeCosts(raw.costs, monthStart, today),
+      today: summarizeCosts(scopedCosts, today, today),
+      week: summarizeCosts(scopedCosts, weekStart, today),
+      month: summarizeCosts(scopedCosts, monthStart, today),
       selected
     },
     portfolio: {
       totals,
       risk: { threshold_percent: threshold, loss_projects: loss, low_margin_projects: low, missing_revenue_projects: missing },
-      highest_cost: maxBy(raw.projects, 'total_cost'),
+      highest_cost: maxBy(scopedProjects, 'total_cost'),
       lowest_cost_positive: minBy(positiveCosts, 'total_cost'),
-      highest_profit: maxBy(raw.projects, 'profit'),
-      lowest_profit: minBy(raw.projects, 'profit'),
-      projects: raw.projects
+      highest_profit: maxBy(scopedProjects, 'profit'),
+      lowest_profit: minBy(scopedProjects, 'profit'),
+      projects: scopedProjects
     },
     quality: inspectQuality(selected.items)
   };
@@ -293,25 +324,97 @@ function reload() {
   load({
     from_date: $('fromDate').value,
     to_date: $('toDate').value,
-    low_margin_percent: $('margin').value
+    low_margin_percent: $('margin').value,
+    project_code: $('projectSelect').value
   });
+}
+
+function applyFilters() {
+  if (!RAW) return;
+  render(buildDashboard(RAW, {
+    from_date: $('fromDate').value,
+    to_date: $('toDate').value,
+    low_margin_percent: $('margin').value,
+    project_code: $('projectSelect').value
+  }));
+}
+
+function populateProjectOptions(projects, requestedCode) {
+  const select = $('projectSelect');
+  select.replaceChildren();
+  select.add(new Option('Tất cả dự án', ''));
+  projects.forEach(project => {
+    const customer = project.customer ? ' · ' + project.customer : '';
+    select.add(new Option(project.project_code + ' — ' + project.project_name + customer, project.project_code));
+  });
+  select.disabled = false;
+  select.value = projects.some(project => project.project_code === requestedCode) ? requestedCode : '';
+}
+
+function selectProject() {
+  applyFilters();
+}
+
+function periodDates(period) {
+  const today = todayKey();
+  if (period === 'today') return { from: today, to: today };
+  if (period === 'week') return { from: startOfWeekKey(today), to: today };
+  return { from: today.slice(0, 8) + '01', to: today };
+}
+
+function activatePeriod(period) {
+  ACTIVE_PERIOD = period;
+  document.querySelectorAll('.periodChip').forEach(button => {
+    button.classList.toggle('active', button.dataset.period === period);
+  });
+}
+
+function setPeriod(period) {
+  const range = periodDates(period);
+  $('fromDate').value = range.from;
+  $('toDate').value = range.to;
+  activatePeriod(period);
+  applyFilters();
+}
+
+function markCustomPeriod() {
+  activatePeriod('custom');
+}
+
+function toggleAdvanced(forceOpen) {
+  const fields = $('advancedFields');
+  const toggle = $('advancedToggle');
+  const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !fields.classList.contains('open');
+  fields.classList.toggle('open', shouldOpen);
+  toggle.classList.toggle('open', shouldOpen);
+  toggle.setAttribute('aria-expanded', String(shouldOpen));
+}
+
+function showAdvanced() {
+  activatePeriod('custom');
+  toggleAdvanced(true);
+  if (window.matchMedia('(max-width:700px)').matches) $('fromDate').focus();
 }
 
 async function load(options) {
   showLoading(true);
   $('status').className = 'status';
   try {
-    const [costRows, revenueRows, projectRows] = await Promise.all([
+    const requestedProject = String(options && options.project_code || $('projectSelect').value || '').trim();
+    const [costRows, revenueRows, projectRows, masterProjectRows] = await Promise.all([
       fetchGviz('COST_INPUT', 'A2:Q'),
       fetchGviz('REVENUE_INPUT', 'A3:G'),
-      fetchGviz('PROJECT_SUMMARY', 'A3:I')
+      fetchGviz('PROJECT_SUMMARY', 'A3:I'),
+      fetchGviz('PROJECT', 'A2:E')
     ]);
     const revenues = parseRevenueRows(revenueRows);
     RAW = {
       costs: parseCostRows(costRows),
-      projects: parseProjects(projectRows, revenues)
+      projects: parseProjects(projectRows, revenues),
+      master_projects: parseMasterProjects(masterProjectRows)
     };
-    render(buildDashboard(RAW, options || {}));
+    populateProjectOptions(RAW.master_projects, requestedProject);
+    render(buildDashboard(RAW, Object.assign({}, options || {}, { project_code: $('projectSelect').value })));
   } catch (error) {
     showError(error);
   }
@@ -325,6 +428,7 @@ function render(data) {
   const costs = data.cost || {};
   const portfolio = data.portfolio || {};
   const totals = portfolio.totals || {};
+  const scope = data.scope || {};
   if (!$('fromDate').value) $('fromDate').value = periodData.from_date || '';
   if (!$('toDate').value) $('toDate').value = periodData.to_date || '';
   $('todayCost').textContent = money(costs.today.total_cost);
@@ -345,7 +449,10 @@ function render(data) {
   renderCosts(costs.selected.items || []);
   renderProjects();
   renderAlerts();
-  $('footer').textContent = 'Dữ liệu chỉ đọc · Cập nhật lúc ' + (data.generated_at || '');
+  const scopeText = scope.project_code
+    ? scope.project_code + (scope.project_name ? ' — ' + scope.project_name : '')
+    : 'Tất cả dự án';
+  $('footer').textContent = 'Phạm vi: ' + scopeText + ' · Dữ liệu chỉ đọc · Cập nhật lúc ' + (data.generated_at || '');
 }
 
 function formatDate(value) {
@@ -366,7 +473,7 @@ function renderExtremes(portfolio) {
 
 function renderCosts(rows) {
   $('costCount').textContent = rows.length + ' mục';
-  $('costRows').innerHTML = rows.length ? rows.map(row => '<tr><td>' + esc(formatDate(row.date)) + '</td><td><span class="strong">' + esc(row.item) + '</span><div class="muted">' + esc(row.category) + '</div></td><td>' + esc(row.project_code || '—') + '</td><td>' + esc(row.project_name || '—') + '</td><td>' + esc(row.group_code || '—') + '</td><td>' + esc(row.entered_by || '—') + '</td><td class="num strong">' + money(row.amount) + '</td></tr>').join('') : '<tr><td colspan="7" class="empty">Không có chi phí trong kỳ</td></tr>';
+  $('costRows').innerHTML = rows.length ? rows.map(row => '<tr><td data-label="Ngày">' + esc(formatDate(row.date)) + '</td><td data-label="Nội dung"><div><span class="strong">' + esc(row.item) + '</span><div class="muted">' + esc(row.category) + '</div></div></td><td data-label="Mã dự án">' + esc(row.project_code || '—') + '</td><td data-label="Dự án">' + esc(row.project_name || '—') + '</td><td data-label="Mã nhóm">' + esc(row.group_code || '—') + '</td><td data-label="Người nhập">' + esc(row.entered_by || '—') + '</td><td data-label="Thành tiền" class="num strong">' + money(row.amount) + '</td></tr>').join('') : '<tr><td colspan="7" class="empty">Không có chi phí trong kỳ</td></tr>';
 }
 
 function riskOf(project, threshold) {
@@ -379,12 +486,11 @@ function riskOf(project, threshold) {
 function renderProjects() {
   if (!DATA) return;
   const threshold = Number(DATA.portfolio.risk && DATA.portfolio.risk.threshold_percent || 15);
-  const query = norm($('search').value);
-  const rows = (DATA.portfolio.projects || []).filter(project => !query || norm(project.project_code + ' ' + project.project_name).includes(query));
+  const rows = DATA.portfolio.projects || [];
   $('projectCount').textContent = rows.length + ' dự án';
   $('projectRows').innerHTML = rows.length ? rows.map(project => {
     const risk = riskOf(project, threshold);
-    return '<tr><td class="strong">' + esc(project.project_code) + '</td><td>' + esc(project.project_name) + '</td><td>' + esc(project.revenue_basis || '—') + '</td><td class="num">' + money(project.revenue) + '</td><td class="num">' + money(project.total_cost) + '</td><td class="num strong ' + (Number(project.profit) < 0 ? 'negative' : 'positive') + '">' + money(project.profit) + '</td><td class="num">' + percent(project.margin_percent) + '</td><td><span class="badge ' + risk.cls + '">' + risk.label + '</span></td></tr>';
+    return '<tr><td data-label="Mã dự án" class="strong">' + esc(project.project_code) + '</td><td data-label="Tên dự án">' + esc(project.project_name) + '</td><td data-label="Nguồn doanh thu">' + esc(project.revenue_basis || '—') + '</td><td data-label="Doanh thu" class="num">' + money(project.revenue) + '</td><td data-label="Chi phí" class="num">' + money(project.total_cost) + '</td><td data-label="Lợi nhuận" class="num strong ' + (Number(project.profit) < 0 ? 'negative' : 'positive') + '">' + money(project.profit) + '</td><td data-label="Biên" class="num">' + percent(project.margin_percent) + '</td><td data-label="Đánh giá"><span class="badge ' + risk.cls + '">' + risk.label + '</span></td></tr>';
   }).join('') : '<tr><td colspan="8" class="empty">Không tìm thấy dự án</td></tr>';
 }
 
