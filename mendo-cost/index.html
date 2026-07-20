@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    :root{--ink:#142938;--muted:#637786;--line:#dce6eb;--bg:#f3f7f8;--card:#fff;--teal:#0b7a75;--teal2:#10a39b;--blue:#2467d6;--red:#c83b45;--orange:#d97706;--green:#16845b;--shadow:0 10px 30px rgba(24,55,66,.08)}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans-serif;font-size:15px}.shell{max-width:1280px;margin:auto;padding:20px}.hero{display:flex;justify-content:space-between;gap:24px;align-items:flex-end;padding:24px 26px;border-radius:22px;background:linear-gradient(135deg,#083d4b,#0b7a75 58%,#14a49c);color:#fff;box-shadow:var(--shadow)}.brand{font-size:13px;font-weight:900;letter-spacing:.18em;opacity:.85}.hero h1{font-size:30px;line-height:1.2;margin:5px 0}.hero p{margin:0;color:#daf6f2}.readOnly{display:inline-flex;align-items:center;gap:7px;background:#ffffff1f;border:1px solid #ffffff45;border-radius:999px;padding:9px 13px;font-size:13px;font-weight:800;white-space:nowrap}.toolbar{display:grid;grid-template-columns:minmax(180px,1fr) 160px 160px 150px auto;gap:10px;align-items:end;background:#fff;margin:14px 0;padding:14px;border-radius:17px;box-shadow:var(--shadow)}label{display:block;color:var(--muted);font-size:12px;font-weight:800;margin-bottom:6px}input{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#fbfdfd;color:var(--ink);font:inherit;outline:none}input:focus{border-color:var(--teal2);box-shadow:0 0 0 3px #10a39b1f}button{font:inherit}.btn{border:0;border-radius:11px;background:var(--teal);color:#fff;padding:11px 16px;font-weight:850;cursor:pointer}.btn:hover{background:#086c67}.tabs{display:flex;gap:8px;overflow:auto;padding:2px 0 12px}.tab{border:1px solid var(--line);background:#fff;color:#4f6472;border-radius:11px;padding:10px 16px;font-weight:850;white-space:nowrap;cursor:pointer}.tab.active{background:var(--ink);border-color:var(--ink);color:#fff}.panel{display:none}.panel.active{display:block}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.card{background:var(--card);border:1px solid #e4ecef;border-radius:17px;padding:17px;box-shadow:var(--shadow);margin-bottom:12px}.kpiLabel{color:var(--muted);font-size:13px;font-weight:750}.kpiValue{font-size:27px;font-weight:950;margin:8px 0 3px;letter-spacing:-.03em}.kpiMeta{color:var(--muted);font-size:12px}.positive{color:var(--green)}.negative{color:var(--red)}.sectionHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.sectionHead h2{font-size:18px;margin:0}.badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:850;background:#edf4f6;color:#49616f}.badge.loss{background:#fdebed;color:var(--red)}.badge.low{background:#fff3df;color:#a85a00}.badge.good{background:#e9f7f1;color:var(--green)}.badge.unknown{background:#eef1f4;color:#5d6972}.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:13px}table{border-collapse:collapse;width:100%;min-width:820px;background:#fff}th,td{padding:11px 12px;text-align:left;border-bottom:1px solid #edf1f3;vertical-align:top}th{position:sticky;top:0;background:#f7fafb;color:#536975;font-size:12px;text-transform:uppercase;letter-spacing:.03em;z-index:1}tr:last-child td{border-bottom:0}.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.strong{font-weight:850}.muted{color:var(--muted)}.empty{text-align:center;padding:28px;color:var(--muted)}.alert{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:13px;border:1px solid var(--line);border-radius:13px;margin-bottom:9px;background:#fff}.dot{width:10px;height:10px;border-radius:50%;margin-top:5px;background:var(--orange)}.dot.red{background:var(--red)}.dot.gray{background:#8b9aa3}.alertTitle{font-weight:850}.alertMeta{font-size:12px;color:var(--muted);margin-top:4px}.status{display:none;padding:13px 15px;border-radius:12px;margin-bottom:12px;font-weight:800}.status.show{display:block}.status.error{background:#fdebed;color:var(--red)}.loading{position:fixed;inset:0;background:#f3f7f8d6;display:none;align-items:center;justify-content:center;z-index:20}.loading.show{display:flex}.loader{background:#fff;border-radius:16px;padding:20px 24px;box-shadow:var(--shadow);font-weight:850}.footer{color:var(--muted);font-size:12px;text-align:right;padding:8px 3px 20px}
+    @media(max-width:900px){.grid4{grid-template-columns:repeat(2,1fr)}.toolbar{grid-template-columns:repeat(2,1fr)}.toolbar>div:first-child{grid-column:1/-1}.hero{align-items:flex-start}.hero h1{font-size:26px}}
+    @media(max-width:560px){.shell{padding:12px}.hero{padding:20px;display:block}.readOnly{margin-top:14px}.toolbar{grid-template-columns:1fr 1fr}.toolbar>div:first-child,.toolbar .action{grid-column:1/-1}.grid4,.grid2{grid-template-columns:1fr}.kpiValue{font-size:25px}.card{padding:14px}.tabs{margin-right:-12px}.footer{text-align:left}}
+  </style>
+</head>
+<body>
+  <div id="loading" class="loading show"><div class="loader">Đang đọc dữ liệu chi phí…</div></div>
+  <main class="shell">
+    <header class="hero">
+      <div><div class="brand">MENDO</div><h1>Quản trị chi phí dự án</h1><p>Doanh thu · Chi phí · Lợi nhuận · Biên lợi nhuận</p></div>
+      <div class="readOnly">● CHỈ ĐỌC — không ghi dữ liệu</div>
+    </header>
+
+    <section class="toolbar">
+      <div><label>Tìm mã hoặc tên dự án</label><input id="search" placeholder="Ví dụ: Honda, HD-…" oninput="renderProjects()"></div>
+      <div><label>Từ ngày</label><input id="fromDate" type="date"></div>
+      <div><label>Đến ngày</label><input id="toDate" type="date"></div>
+      <div><label>Biên thấp dưới (%)</label><input id="margin" type="number" value="15" min="0" max="100"></div>
+      <div class="action"><button class="btn" onclick="reload()">Truy xuất</button></div>
+    </section>
+
+    <div id="status" class="status"></div>
+    <nav class="tabs">
+      <button class="tab active" data-tab="overview" onclick="openTab('overview',this)">Tổng quan</button>
+      <button class="tab" data-tab="costs" onclick="openTab('costs',this)">Chi phí phát sinh</button>
+      <button class="tab" data-tab="projects" onclick="openTab('projects',this)">Tài chính dự án</button>
+      <button class="tab" data-tab="alerts" onclick="openTab('alerts',this)">Cảnh báo dữ liệu</button>
+    </nav>
+
+    <section id="overview" class="panel active">
+      <div class="grid4">
+        <article class="card"><div class="kpiLabel">Chi phí hôm nay</div><div id="todayCost" class="kpiValue">—</div><div id="todayMeta" class="kpiMeta">—</div></article>
+        <article class="card"><div class="kpiLabel">Chi phí tuần này</div><div id="weekCost" class="kpiValue">—</div><div id="weekMeta" class="kpiMeta">—</div></article>
+        <article class="card"><div class="kpiLabel">Chi phí tháng này</div><div id="monthCost" class="kpiValue">—</div><div id="monthMeta" class="kpiMeta">—</div></article>
+        <article class="card"><div class="kpiLabel">Chi phí kỳ đang chọn</div><div id="selectedCost" class="kpiValue">—</div><div id="selectedMeta" class="kpiMeta">—</div></article>
+      </div>
+      <div class="grid4">
+        <article class="card"><div class="kpiLabel">Tổng doanh thu dự án</div><div id="revenue" class="kpiValue">—</div><div class="kpiMeta">Theo PROJECT_SUMMARY</div></article>
+        <article class="card"><div class="kpiLabel">Tổng chi phí dự án</div><div id="portfolioCost" class="kpiValue">—</div><div class="kpiMeta">Trực tiếp + phân bổ</div></article>
+        <article class="card"><div class="kpiLabel">Tổng lợi nhuận</div><div id="profit" class="kpiValue">—</div><div class="kpiMeta">Doanh thu − chi phí</div></article>
+        <article class="card"><div class="kpiLabel">Biên lợi nhuận</div><div id="marginValue" class="kpiValue">—</div><div class="kpiMeta">Toàn bộ dự án</div></article>
+      </div>
+      <div class="grid2">
+        <article class="card"><div class="sectionHead"><h2>Cao nhất</h2><span class="badge good">So sánh dự án</span></div><div id="highest"></div></article>
+        <article class="card"><div class="sectionHead"><h2>Thấp nhất</h2><span class="badge low">Cần xem xét</span></div><div id="lowest"></div></article>
+      </div>
+    </section>
+
+    <section id="costs" class="panel">
+      <article class="card"><div class="sectionHead"><h2>Chi phí trong kỳ đã chọn</h2><span id="costCount" class="badge">0 mục</span></div><div class="tableWrap"><table><thead><tr><th>Ngày</th><th>Nội dung</th><th>Mã dự án</th><th>Dự án</th><th>Mã nhóm</th><th>Người nhập</th><th class="num">Thành tiền</th></tr></thead><tbody id="costRows"></tbody></table></div></article>
+    </section>
+
+    <section id="projects" class="panel">
+      <article class="card"><div class="sectionHead"><h2>Doanh thu / Chi phí / Lợi nhuận</h2><span id="projectCount" class="badge">0 dự án</span></div><div class="tableWrap"><table><thead><tr><th>Mã dự án</th><th>Tên dự án</th><th>Nguồn doanh thu</th><th class="num">Doanh thu</th><th class="num">Chi phí</th><th class="num">Lợi nhuận</th><th class="num">Biên</th><th>Đánh giá</th></tr></thead><tbody id="projectRows"></tbody></table></div></article>
+    </section>
+
+    <section id="alerts" class="panel">
+      <div class="grid2">
+        <article class="card"><div class="sectionHead"><h2>Nguy cơ tài chính</h2><span id="riskCount" class="badge loss">0 cảnh báo</span></div><div id="riskRows"></div></article>
+        <article class="card"><div class="sectionHead"><h2>Chất lượng dữ liệu</h2><span id="qualityCount" class="badge low">0 mục</span></div><div id="qualityRows"></div></article>
+      </div>
+    </section>
+    <div id="footer" class="footer"></div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
