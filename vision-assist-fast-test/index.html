@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NMH Vision Assist V2 — FAST TEST</title>
-<meta name="nmh-build" content="20260927-1830-fast-ios-audio">
+<meta name="nmh-build" content="20260927-1838-fast-directional-decision">
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#07101c;color:#fff;font-family:Arial,sans-serif}
@@ -193,7 +193,7 @@ button:disabled{opacity:.42}
   </div>
 </div>
 <script>
-const APP_BUILD='20260927-1830-fast-ios-audio';
+const APP_BUILD='20260927-1838-fast-directional-decision';
 const API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-fast-test-v1';
 const TTS_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1';
 const SAMPLE_MS=250;
@@ -208,7 +208,7 @@ const DIRECTION_CONFIRMATIONS=2;
 
 let audioCtx=null,activeAudioSource=null,speechSeq=0;
 const VOICE_CACHE_VERSION='marin-final';
-const STATIC_GUIDANCE_URLS={"Dừng lại":"../vision-assist-v2/audio/marin-final/stop.b64","Dừng lại, quét tìm lối":"../vision-assist-v2/audio/marin-final/stop-scan.b64","Chờ một chút":"../vision-assist-v2/audio/marin-final/wait.b64","Đi thẳng chậm":"../vision-assist-v2/audio/marin-final/forward-slow.b64","Quét lại phía trước":"../vision-assist-v2/audio/marin-final/scan.b64","Đi chậm, quét lại phía trước":"../vision-assist-v2/audio/marin-final/slow-scan.b64","Đi chậm, lối chưa rõ":"../vision-assist-v2/audio/marin-final/slow-unclear.b64","Chờ, lối chưa rõ":"../vision-assist-v2/audio/marin-final/wait-unclear.b64","Đi chậm":"../vision-assist-v2/audio/marin-final/slow.b64","Lệch trái nhẹ":"../vision-assist-v2/audio/marin-final/left.b64","Lệch phải nhẹ":"../vision-assist-v2/audio/marin-final/right.b64"};
+const STATIC_GUIDANCE_URLS={"Dừng lại":"../vision-assist-v2/audio/marin-final/stop.b64","Dừng lại, quét tìm lối":"../vision-assist-v2/audio/marin-final/stop-scan.b64","Chờ một chút":"../vision-assist-v2/audio/marin-final/wait.b64","Đi thẳng chậm":"../vision-assist-v2/audio/marin-final/forward-slow.b64","Giữ giữa":"../vision-assist-v2/audio/marin-final/forward-slow.b64","Quét lại phía trước":"../vision-assist-v2/audio/marin-final/scan.b64","Đi chậm, quét lại phía trước":"../vision-assist-v2/audio/marin-final/slow-scan.b64","Đi chậm, lối chưa rõ":"../vision-assist-v2/audio/marin-final/slow-unclear.b64","Chờ, lối chưa rõ":"../vision-assist-v2/audio/marin-final/wait-unclear.b64","Đi chậm":"../vision-assist-v2/audio/marin-final/slow.b64","Lệch trái nhẹ":"../vision-assist-v2/audio/marin-final/left.b64","Lệch phải nhẹ":"../vision-assist-v2/audio/marin-final/right.b64"};
 const guidanceVoiceBuffers=new Map();
 const guidanceVoiceBase64=new Map();
 const guidanceVoicePending=new Map();
@@ -491,48 +491,53 @@ function confirmDirection(path,confidence){
 }
 function decideGuidance(p,perceptionStable){
   const distance=String(p.distanceBand||'unknown');
-  const motion=String(p.motionRisk||'unknown');
   const confidence=String(p.confidence||'low');
   const freePath=String(p.freePath||'unknown');
+  const obstacle=String(p.obstaclePosition||'unknown');
   const blocked=Boolean(p.pathBlocked);
 
-  if((distance==='immediate'&&blocked)||(distance==='immediate'&&['approaching','crossing'].includes(motion))){
-    resetDirectionConfirm();
-    return {action:'stop',urgency:'danger',voice:'Dừng lại',speak:true};
-  }
-  if(['approaching','crossing'].includes(motion)&&['near','immediate'].includes(distance)){
-    resetDirectionConfirm();
-    return {action:'wait',urgency:'caution',voice:'Chờ một chút',speak:true};
-  }
-  if(!directionInternallyConsistent(p)){
+  // Safety contradictions: never command forward on internally inconsistent geometry.
+  if(blocked&&freePath==='center'){
     resetDirectionConfirm();
     return {action:'scan',urgency:'caution',voice:'Quét lại phía trước',speak:true};
   }
-  if(confidence==='low'||freePath==='unknown'){
+
+  // Immediate blocked center is always a stop.
+  if(distance==='immediate'&&blocked){
     resetDirectionConfirm();
-    if(blocked&&distance==='near'){
-      return {action:'wait',urgency:'caution',voice:'Dừng lại, quét tìm lối',speak:true};
-    }
-    return {action:'scan',urgency:'caution',voice:'Đi chậm, quét lại phía trước',speak:Boolean(p.shouldSpeak)};
-  }
-  if(freePath==='none'){
-    resetDirectionConfirm();
-    return {action:distance==='near'?'wait':'slow',urgency:'caution',voice:distance==='near'?'Chờ, lối chưa rõ':'Đi chậm, lối chưa rõ',speak:true};
+    return {action:'stop',urgency:'danger',voice:'Dừng lại',speak:true};
   }
 
-  const confirmed=perceptionStable||confirmDirection(freePath,confidence);
-  if(!confirmed){
-    return {action:'slow',urgency:'caution',voice:'Đi chậm',speak:true};
+  // If blocked, only a clearly available side path may be used.
+  if(blocked){
+    if(perceptionStable&&freePath==='left'&&confidence!=='low')
+      return {action:'veer_left',urgency:'caution',voice:'Lệch trái nhẹ',speak:true};
+    if(perceptionStable&&freePath==='right'&&confidence!=='low')
+      return {action:'veer_right',urgency:'caution',voice:'Lệch phải nhẹ',speak:true};
+    resetDirectionConfirm();
+    return {action:'wait',urgency:'caution',voice:'Dừng lại, quét tìm lối',speak:true};
   }
 
-  if(distance==='near'){
-    return {action:'slow',urgency:'caution',voice:'Đi chậm',speak:true};
+  // Clear center path: obstacle on one side should not degrade to generic "slow".
+  if(freePath==='center'){
+    if(obstacle==='right'&&['near','mid'].includes(distance)&&confidence!=='low')
+      return {action:'continue',urgency:'caution',voice:'Giữ giữa',speak:true};
+    if(obstacle==='left'&&['near','mid'].includes(distance)&&confidence!=='low')
+      return {action:'continue',urgency:'caution',voice:'Giữ giữa',speak:true};
+    if(obstacle==='none'&&['far','mid'].includes(distance)&&(confidence==='high'||(confidence==='medium'&&perceptionStable)))
+      return {action:'continue',urgency:'normal',voice:'Đi thẳng chậm',speak:true};
+    if(distance==='near'&&confidence!=='low')
+      return {action:'slow',urgency:'caution',voice:'Đi chậm',speak:true};
   }
-  if(freePath==='left')return {action:'veer_left',urgency:'caution',voice:'Lệch trái nhẹ',speak:true};
-  if(freePath==='right')return {action:'veer_right',urgency:'caution',voice:'Lệch phải nhẹ',speak:true};
-  if(freePath==='center'&&!blocked&&['far','mid'].includes(distance)&&(confidence==='high'||(confidence==='medium'&&perceptionStable)))
-    return {action:'continue',urgency:'normal',voice:'Đi thẳng chậm',speak:true};
-  return {action:'slow',urgency:'caution',voice:'Đi chậm',speak:true};
+
+  // Side free paths require stability before directional guidance.
+  if(perceptionStable&&freePath==='left'&&confidence!=='low')
+    return {action:'veer_left',urgency:'caution',voice:'Lệch trái nhẹ',speak:true};
+  if(perceptionStable&&freePath==='right'&&confidence!=='low')
+    return {action:'veer_right',urgency:'caution',voice:'Lệch phải nhẹ',speak:true};
+
+  resetDirectionConfirm();
+  return {action:'scan',urgency:'caution',voice:'Quét lại phía trước',speak:true};
 }
 function maybeDispatch(changed){
   if(!autoMode||inFlight||latestFrames.length<1)return;
