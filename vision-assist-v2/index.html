@@ -8,6 +8,22 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#07101c;color:#fff;font-family:Arial,sans-serif}
 .app{height:100dvh;display:flex;flex-direction:column}
+.tabs{display:flex;gap:8px;padding:8px 10px;background:#07101c;border-bottom:1px solid #26384d}
+.tab{appearance:none;border:1px solid #38516d;background:#142235;color:#c9d7e6;border-radius:12px;min-height:42px;padding:8px 16px;font-size:17px;font-weight:800;width:auto}
+.tab.active{background:#e9d63b;color:#101010;border-color:#e9d63b}
+.view{display:none;min-height:0;flex:1}
+.view.active{display:flex;flex-direction:column}
+.maintenance{overflow:auto;background:#0b1522;padding:14px 14px calc(24px + env(safe-area-inset-bottom));color:#eaf2fb}
+.maintenance h1{font-size:26px;margin:4px 0 4px}
+.maintenance .meta{font-size:14px;color:#9fb0c4;margin-bottom:14px}
+.maint-card{background:#111f30;border:1px solid #2a4058;border-radius:16px;padding:14px;margin:0 0 12px}
+.maint-card h2{font-size:19px;margin:0 0 9px;color:#f1dd4c}
+.maint-card p,.maint-card li{font-size:15px;line-height:1.45}
+.maint-card ul{margin:6px 0 0;padding-left:20px}
+.maint-card code{font-size:13px;word-break:break-all;color:#b9d7ff}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:6px 10px;font-size:14px;line-height:1.4}
+.kv b{color:#9fb0c4}
+.locked{color:#ffcf76}
 .stage{position:relative;flex:1;min-height:0;background:#0d1826;overflow:hidden}
 video{width:100%;height:100%;object-fit:cover;background:#0d1826}
 .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9fb0c4;font-size:26px;font-weight:700;text-align:center;padding:24px;pointer-events:none}
@@ -23,6 +39,11 @@ button:disabled{opacity:.42}
 </head>
 <body>
 <div class="app">
+  <div class="tabs" role="tablist" aria-label="Điều hướng">
+    <button class="tab active" id="useTab" type="button" role="tab" aria-selected="true">SỬ DỤNG</button>
+    <button class="tab" id="maintTab" type="button" role="tab" aria-selected="false">BẢO TRÌ</button>
+  </div>
+  <div class="view active" id="useView">
   <div class="stage">
     <video id="video" autoplay muted playsinline></video>
     <div class="overlay" id="overlay">Đang mở camera...</div>
@@ -33,6 +54,132 @@ button:disabled{opacity:.42}
     <div class="buttons">
       <button id="cameraBtn">BẬT CAMERA</button>
       <button id="describeBtn" disabled>MÔ TẢ BẰNG LỜI</button>
+    </div>
+  </div>
+  </div>
+
+  <div class="view maintenance" id="maintView">
+    <h1>BẢO TRÌ / PROJECT MEMORY — NMH VISION ASSIST V2</h1>
+    <div class="meta">Cập nhật: 27/09/2026 · Nguồn chuẩn: live GitHub Pages + live n8n workflows · Baseline đã chốt</div>
+
+    <div class="maint-card">
+      <h2>A. PROJECT STATE — PHẢI ĐỌC TRƯỚC</h2>
+      <div class="kv">
+        <b>App</b><span>NMH Vision Assist V2</span>
+        <b>Mục tiêu</b><span>Trợ lý thị giác cho người mù/người khiếm thị: camera live → AI hiểu cảnh → mô tả ngắn bằng tiếng Việt.</span>
+        <b>Trạng thái</b><span class="locked">BASELINE ĐÃ CHẠY THỰC TẾ TRÊN IPHONE VÀ ĐÃ ĐƯỢC CHỐT.</span>
+        <b>Frontend</b><span><code>https://hvnm1206.github.io/TikTak-Service/vision-assist-v2/</code></span>
+        <b>Kiến trúc</b><span>GitHub Pages → n8n → OpenAI Vision/TTS.</span>
+      </div>
+    </div>
+
+    <div class="maint-card">
+      <h2>B. LOCKED DECISIONS / CONSTRAINTS</h2>
+      <ul>
+        <li>Không serve frontend camera bằng Apps Script hoặc n8n Webhook iframe.</li>
+        <li>Không dùng file picker / native Camera / gallery làm luồng chính.</li>
+        <li>Không quay lại Lovable hoặc raw.githack nếu chưa có yêu cầu mới.</li>
+        <li>Camera live bằng <code>getUserMedia</code>, camera sau <code>facingMode: environment</code>.</li>
+        <li>Vision hiện dùng 3 frame trong khoảng 0,9 giây, ảnh tối đa khoảng 640 px, JPEG quality 0.58, image detail low.</li>
+        <li>Voice chính dùng backend TTS + WAV + AudioContext; browser speechSynthesis chỉ là fallback.</li>
+        <li>Không tuyên bố app thay thế gậy trắng/chó dẫn đường/kỹ năng định hướng.</li>
+      </ul>
+    </div>
+
+    <div class="maint-card">
+      <h2>C. RESOURCE REGISTRY</h2>
+      <div class="kv">
+        <b>GitHub repo</b><span><code>hvnm1206/TikTak-Service</code></span>
+        <b>Source live</b><span><code>main/vision-assist-v2/index.html</code></span>
+        <b>Pages workflow</b><span><code>.github/workflows/pages.yml</code></span>
+        <b>n8n base</b><span><code>https://zalo.nomahubvn.com</code></span>
+        <b>Vision key</b><span><code>nmh-vision-assist-v1</code></span>
+        <b>Vision ID</b><span><code>D6b6pp28hRzw9NlE</code></span>
+        <b>Vision endpoint</b><span><code>https://zalo.nomahubvn.com/webhook/nmh-vision-assist-analyze-v1</code></span>
+        <b>TTS key</b><span><code>nmh-vision-assist-tts-v1</code></span>
+        <b>TTS ID</b><span><code>JdqIo79FSnp2pbqH</code></span>
+        <b>TTS endpoint</b><span><code>https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1</code></span>
+        <b>OpenAI cred</b><span><code>4BmySN5oOqyScdFF — OpenAi account</code></span>
+      </div>
+    </div>
+
+    <div class="maint-card">
+      <h2>D. WORKFLOW REGISTRY</h2>
+      <p><b>Vision:</b> Analyze Webhook → Prepare Vision Request → OpenAI Vision → Parse Vision Result → Return Vision.</p>
+      <p><b>TTS:</b> TTS Webhook → Prepare TTS → OpenAI TTS → Encode Audio → Return TTS.</p>
+      <p><b>Frontend:</b> mở camera → lấy 3 frame → POST Vision → nhận description + sceneMemory → POST TTS → decode WAV → phát bằng AudioContext.</p>
+    </div>
+
+    <div class="maint-card">
+      <h2>E. DATA / AI RULES</h2>
+      <ul>
+        <li>Vision model: <code>gpt-5.6-luna</code>.</li>
+        <li>Reasoning: <code>none</code>; max output: <code>220</code>.</li>
+        <li>Structured output: <code>{description, sceneMemory}</code>.</li>
+        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li>
+        <li>Ưu tiên hiện tại: nguy hiểm/vật cản → bậc/mép hụt/cửa/lối đi → người/xe/động vật cắt ngang → trái/phải/chính giữa → gần/vừa/xa khi đủ rõ → cảnh chung.</li>
+        <li>TTS model: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>.</li>
+        <li>TTS instruction: nói tiếng Việt tự nhiên, liền câu, ngắt theo dấu câu, không đọc từng từ, không đánh vần, không thêm nội dung.</li>
+      </ul>
+    </div>
+
+    <div class="maint-card">
+      <h2>F. FEATURE STATE</h2>
+      <ul>
+        <li>Camera live: ĐÃ CHẠY.</li>
+        <li>Mô tả bằng lời theo nút bấm: ĐÃ CHẠY.</li>
+        <li>3-frame temporal sampling: ĐÃ CHẠY.</li>
+        <li>Scene memory: ĐÃ CHẠY.</li>
+        <li>Backend TTS + AudioContext: ĐÃ CHẠY.</li>
+        <li>Tự quan sát theo chu kỳ thích ứng: CHƯA TRIỂN KHAI — đây là hướng phát triển tiếp theo.</li>
+        <li>Chỉ nói khi có thay đổi/nguy cơ đáng kể: CHƯA HOÀN THIỆN thành chế độ tự động.</li>
+      </ul>
+    </div>
+
+    <div class="maint-card">
+      <h2>G. TECHNICAL DETAILS — CHỈ ĐỌC KHI CẦN</h2>
+      <ul>
+        <li>Frontend camera: <code>navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false})</code>.</li>
+        <li>Audio unlock xảy ra ngay trong user gesture của nút mô tả.</li>
+        <li>Vision và TTS đều bật CORS cho frontend GitHub Pages.</li>
+        <li>Cache response backend: <code>no-store</code>.</li>
+        <li>n8n HTML Webhook không dùng cho frontend vì sandbox iframe chặn camera live trên iPhone.</li>
+      </ul>
+    </div>
+
+    <div class="maint-card">
+      <h2>H. EXECUTION RULES</h2>
+      <ul>
+        <li>Đọc live source và live workflows trước mọi mutation.</li>
+        <li>Backup/clone trước thay đổi lớn; không phá baseline đang chạy.</li>
+        <li>Khi lỗi: đọc n8n execution → node input/output/error → xác định nguyên nhân → mới sửa.</li>
+        <li>Không đoán lỗi iPhone/cache/TTS khi chưa xem execution.</li>
+        <li>Không đưa link cho test khi deployment chưa success và chưa probe HTTP 200.</li>
+        <li>Không thêm model nặng hơn nếu chưa chứng minh cần thiết.</li>
+        <li>Ưu tiên chất lượng đủ dùng + độ trễ thấp + chi phí thấp.</li>
+      </ul>
+    </div>
+
+    <div class="maint-card">
+      <h2>I. CHANGE / TEST EVIDENCE</h2>
+      <ul>
+        <li><code>87cd9ba3b19504fe7c2a361ad156cf235a2c88f5</code> — tạo Vision Assist V2 cache-clean.</li>
+        <li><code>c31502fc571f9336ef63f4f41f461ffe35c7c6b1</code> — backend TTS + AudioContext cho iPhone.</li>
+        <li><code>c234311c311bc0fc1dc954d3cd9da989029c0a92</code> — tối ưu 3 frame / 0,9 giây.</li>
+        <li>Runtime đã từng probe HTTP 200 trên GitHub Pages.</li>
+        <li>User đã xác nhận camera, Vision và tiếng chạy; sau đó chốt baseline.</li>
+      </ul>
+    </div>
+
+    <div class="maint-card">
+      <h2>J. OPEN ITEMS / NEXT WORK</h2>
+      <ul>
+        <li>Hoàn thiện sản phẩm cho người mù trước khi nhân bản sang tài xế.</li>
+        <li>Thiết kế chế độ tự động theo chu kỳ thích ứng: bình thường khoảng 5 giây/lần; khi có nguy cơ khoảng 2 giây/lần trong thời gian ngắn; sau đó quay lại nhịp bình thường.</li>
+        <li>Giảm nói lặp: cảnh gần như không đổi thì im lặng.</li>
+        <li>Kiểm thử thực tế: vật cản, bậc thang, mép hụt, cửa/lối đi, người/xe cắt ngang, trái/phải, thay đổi nhanh của cảnh.</li>
+        <li>Tiếp tục đo latency và chi phí thực tế trước khi mở rộng.</li>
+      </ul>
     </div>
   </div>
 </div>
@@ -46,7 +193,23 @@ const statusEl=document.getElementById('status');
 const resultEl=document.getElementById('result');
 const cameraBtn=document.getElementById('cameraBtn');
 const describeBtn=document.getElementById('describeBtn');
+const useTab=document.getElementById('useTab');
+const maintTab=document.getElementById('maintTab');
+const useView=document.getElementById('useView');
+const maintView=document.getElementById('maintView');
 let stream=null, starting=false, sceneMemory='';
+
+function showView(name){
+  const use=name==='use';
+  useView.classList.toggle('active',use);
+  maintView.classList.toggle('active',!use);
+  useTab.classList.toggle('active',use);
+  maintTab.classList.toggle('active',!use);
+  useTab.setAttribute('aria-selected',String(use));
+  maintTab.setAttribute('aria-selected',String(!use));
+}
+useTab.onclick=()=>showView('use');
+maintTab.onclick=()=>showView('maint');
 
 function setStatus(t){statusEl.textContent=t}
 function setCameraReady(ready){
