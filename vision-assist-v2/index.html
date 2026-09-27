@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NMH Vision Assist V2</title>
+<meta name="nmh-build" content="20260927-1722-autoversion">
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#07101c;color:#fff;font-family:Arial,sans-serif}
@@ -173,7 +174,7 @@ button:disabled{opacity:.42}
         <li><code>87cd9ba3b19504fe7c2a361ad156cf235a2c88f5</code> — tạo Vision Assist V2 cache-clean.</li>
         <li><code>c31502fc571f9336ef63f4f41f461ffe35c7c6b1</code> — backend TTS + AudioContext cho iPhone.</li>
         <li><code>c234311c311bc0fc1dc954d3cd9da989029c0a92</code> — tối ưu 3 frame / 0,9 giây.</li><li><code>897c6174b8e9589f27609ca838831f0df6951375</code> — adaptive auto-observe + latest-frame-wins + guidance output.</li><li><code>1266e36e2a297a84523a418473298683f3bdfcfe</code> — fast local voice + voiceInstruction để loại bỏ độ trễ backend TTS trong auto guidance.</li><li><code>14ae93a0d98852dd01471c5d92ead68c27f64765</code> — Gate A distance semantics + Gate B one-frame backend alignment.</li><li><code>63638072da8fde6f36f87da74c02682f32e45dda</code> — tách GPT perception khỏi decision, thêm stale-response gate và xác nhận hướng 2 lần.</li>
-        <li>Runtime đã từng probe HTTP 200 trên GitHub Pages.</li>
+        <li>Runtime đã từng probe HTTP 200 trên GitHub Pages.</li><li>Frontend có APP_BUILD self-check mỗi 30 giây và khi quay lại tab; nếu GitHub Pages đã có build mới, app tự reload sang URL version mới để tránh chạy code cũ.</li>
         <li>User đã xác nhận camera, Vision và tiếng chạy; sau đó chốt baseline.</li>
       </ul>
     </div>
@@ -192,6 +193,7 @@ button:disabled{opacity:.42}
   </div>
 </div>
 <script>
+const APP_BUILD='20260927-1722-autoversion';
 const API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-analyze-v1';
 const TTS_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1';
 const SAMPLE_MS=250;
@@ -571,7 +573,31 @@ describeBtn.onclick=async()=>{
     stopActiveAudio();
   }
 };
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&stream)startSampling()});
+async function checkForNewBuild(){
+  try{
+    const u=new URL(location.href);
+    u.searchParams.set('_buildcheck',Date.now());
+    const r=await fetch(u.toString(),{cache:'no-store'});
+    if(!r.ok)return;
+    const t=await r.text();
+    const m=t.match(/const APP_BUILD='([^']+)'/);
+    const remote=m&&m[1];
+    if(remote&&remote!==APP_BUILD){
+      const next=new URL(location.href);
+      next.searchParams.set('v',remote);
+      next.searchParams.delete('_buildcheck');
+      location.replace(next.toString());
+    }
+  }catch(e){console.warn('build-check',e)}
+}
+setInterval(checkForNewBuild,30000);
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){
+    if(stream)startSampling();
+    checkForNewBuild();
+  }
+});
+setTimeout(checkForNewBuild,3000);
 startCamera();
 </script>
 </body>
