@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>NMH Vision Assist V2 — FAST TEST</title>
-<meta name="nmh-build" content="20260927-1918-fast-free-guidance">
+<title>NMH Vision Assist — ĐỌC TÌNH HUỐNG</title>
+<meta name="nmh-build" content="20260927-2252-fast-situation-only">
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#07101c;color:#fff;font-family:Arial,sans-serif}
@@ -57,7 +57,7 @@ button:disabled{opacity:.42}
     <div class="result" id="result"></div>
     <div class="buttons">
       <button id="cameraBtn">BẬT CAMERA</button>
-      <button id="describeBtn" disabled>BẮT ĐẦU DẪN ĐƯỜNG</button>
+      <button id="describeBtn" disabled>BẮT ĐẦU ĐỌC TÌNH HUỐNG</button>
     </div>
   </div>
   </div>
@@ -74,9 +74,9 @@ button:disabled{opacity:.42}
       <h2>A. PROJECT STATE — PHẢI ĐỌC TRƯỚC</h2>
       <div class="kv">
         <b>App</b><span>NMH Vision Assist V2 — FAST TEST</span>
-        <b>Mục tiêu</b><span>Trợ lý thị giác cho người mù/người khiếm thị: camera live → AI hiểu cảnh → chỉ dẫn hành động ngắn, ưu tiên an toàn khi di chuyển.</span>
+        <b>Mục tiêu</b><span>Trợ lý thị giác cho người mù/người khiếm thị: camera live → AI hiểu cảnh → đọc ngắn gọn tình huống quan trọng. Người dùng tự quyết định hành động; app không điều hướng bước chân.</span>
         <b>Trạng thái</b><span class="locked">BASELINE ĐÃ CHẠY THỰC TẾ TRÊN IPHONE VÀ ĐÃ ĐƯỢC CHỐT.</span>
-        <b>Frontend</b><span><code>https://hvnm1206.github.io/TikTak-Service/vision-assist-v2/</code></span>
+        <b>Frontend</b><span><code>https://hvnm1206.github.io/TikTak-Service/vision-assist-fast-test/</code></span>
         <b>Kiến trúc</b><span>GitHub Pages → n8n → OpenAI Vision/TTS.</span>
       </div>
     </div>
@@ -89,7 +89,7 @@ button:disabled{opacity:.42}
         <li>Không quay lại Lovable hoặc raw.githack nếu chưa có yêu cầu mới.</li>
         <li>Camera live bằng <code>getUserMedia</code>, camera sau <code>facingMode: environment</code>.</li>
         <li>Frontend tự lấy mẫu camera mỗi 250 ms; FAST PATH chỉ gửi đúng 1 frame mới nhất, không chờ gom ảnh. Ảnh tối đa khoảng 512 px, JPEG quality 0.50, image detail low.</li>
-        <li>FAST guidance: <code>voiceInstruction</code> do GPT tự viết theo cảnh thực tế, không whitelist câu cố định. Frontend đọc nguyên câu GPT trả về. Scheduler chỉ dùng <code>urgency</code> để danger được quyền ngắt; không dựa vào nội dung câu chữ.</li>
+        <li>FAST situation-only: GPT chỉ trả <code>situation</code> mô tả tình huống. Không trả action, không chỉ đi/rẽ/dừng/chờ. Người dùng tự quyết định.</li>
         <li>Không tuyên bố app thay thế gậy trắng/chó dẫn đường/kỹ năng định hướng.</li>
       </ul>
     </div>
@@ -98,12 +98,12 @@ button:disabled{opacity:.42}
       <h2>C. RESOURCE REGISTRY</h2>
       <div class="kv">
         <b>GitHub repo</b><span><code>hvnm1206/TikTak-Service</code></span>
-        <b>Source live</b><span><code>main/vision-assist-v2/index.html</code></span>
+        <b>Source live</b><span><code>main/vision-assist-fast-test/index.html</code></span>
         <b>Pages workflow</b><span><code>.github/workflows/pages.yml</code></span>
         <b>n8n base</b><span><code>https://zalo.nomahubvn.com</code></span>
         <b>Vision key</b><span><code>nmh-vision-assist-fast-test-v1</code></span>
-        <b>Vision ID</b><span><code>D6b6pp28hRzw9NlE</code></span>
-        <b>Vision endpoint</b><span><code>https://zalo.nomahubvn.com/webhook/nmh-vision-assist-analyze-v1</code></span>
+        <b>Vision ID</b><span><code>hDIwzG7B6nklENGW</code></span>
+        <b>Vision endpoint</b><span><code>https://zalo.nomahubvn.com/webhook/nmh-vision-assist-fast-test-v1</code></span>
         <b>TTS key</b><span><code>nmh-vision-assist-tts-v1</code></span>
         <b>TTS ID</b><span><code>JdqIo79FSnp2pbqH</code></span>
         <b>TTS endpoint</b><span><code>https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1</code></span>
@@ -115,18 +115,19 @@ button:disabled{opacity:.42}
       <h2>D. WORKFLOW REGISTRY</h2>
       <p><b>Vision:</b> Analyze Webhook → Prepare Vision Request → OpenAI Vision → Parse Vision Result → Return Vision.</p>
       <p><b>TTS:</b> TTS Webhook → Prepare TTS → OpenAI TTS → Encode Audio → Return TTS.</p>
-      <p><b>Frontend:</b> mở camera → sampling cục bộ 250 ms → giữ frame mới nhất → one-frame Vision PERCEPTION → stale-response gate → consistency gate → DECISION layer → fast local voice.</p>
+      <p><b>Frontend:</b> mở camera → sampling cục bộ 250 ms → giữ frame mới nhất → one-frame Vision → nhận mô tả tình huống → đọc bằng TTS.</p>
     </div>
 
     <div class="maint-card">
       <h2>E. DATA / AI RULES</h2>
       <ul>
-        <li>Vision model: <code>gpt-5.6-luna</code>.</li>
-        <li>Reasoning: <code>none</code>; max output: <code>160</code>.</li>
-        <li>Vision PERCEPTION output: <code>{description, sceneMemory, shouldSpeak, distanceBand, pathBlocked, obstaclePosition, freePath, motionRisk, confidence}</code>. GPT không còn trả action trái/phải.</li>
-        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>distanceBand</code>: far / mid / near / immediate / unknown. Không ép AI đo mét tuyệt đối.</li><li><code>pathBlocked</code> chỉ true khi vật thực sự nằm trên hướng đi dự kiến.</li><li>FAST TEST: action stop/wait/slow/veer_left/veer_right/continue/scan do chính gpt-5.4-mini suy luận trực tiếp từ ảnh. Frontend không ánh xạ obstaclePosition/freePath thành hướng đi.</li><li><code>stop</code> chỉ hợp lệ khi distanceBand=immediate + pathBlocked, hoặc nguy cơ động immediate. Lệnh trái/phải phải được cùng freePath xác nhận 2 response liên tiếp.</li><li>Safety priority: immediate + pathBlocked luôn đi thẳng vào Decision và phát lệnh Dừng lại, kể cả response bị đánh dấu stale. Stale gate chỉ được chặn lựa chọn hướng trái/phải/đi tiếp. Near + blocked + freePath unknown phát 'Dừng lại, quét tìm lối'.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng; <code>voiceInstruction</code> cực ngắn 3–8 từ để phát ngay.</li>
-        <li>Ưu tiên hiện tại: xác định vật/nguy cơ trên hướng đi → phân loại distanceBand → xác định pathBlocked → chọn action → mới sinh câu nói. Không dùng 'thấy vật cản' đồng nghĩa với 'Dừng lại'.</li>
-        <li>TTS model backend: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>. Các câu chỉ dẫn chuẩn dùng WAV marin tĩnh, không gọi TTS runtime.</li>
+        <li>Vision model FAST TEST: <code>gpt-5.4-mini</code>.</li>
+        <li>Reasoning: <code>none</code>; max output: <code>120</code>.</li>
+        <li>Vision output hiện tại: <code>{situation, urgency, confidence}</code>.</li>
+        <li><code>situation</code>: một câu tiếng Việt ngắn, mô tả điều quan trọng nhất camera đang thấy; có thể nêu trái/phải/phía trước khi rõ.</li>
+        <li>GPT bị cấm ra lệnh di chuyển: không đi thẳng/rẽ trái/rẽ phải/dừng/chờ. Người dùng tự quyết định.</li>
+        <li><code>urgency</code>: normal / caution / danger chỉ dùng để ưu tiên đọc và cho phép tình huống nguy hiểm ngắt câu đang đọc.</li>
+        <li>TTS model backend: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>. Vì nội dung tình huống là động, frontend gọi TTS runtime cho câu mô tả.</li>
         <li>TTS instruction: nói tiếng Việt tự nhiên, liền câu, ngắt theo dấu câu, không đọc từng từ, không đánh vần, không thêm nội dung.</li>
       </ul>
     </div>
@@ -138,9 +139,9 @@ button:disabled{opacity:.42}
         <li>Mô tả bằng lời theo nút bấm: ĐÃ CHẠY.</li>
         <li>FAST PATH 1 frame mới nhất: ĐÃ CHẠY ở frontend và backend. Backend cắt input về đúng frame cuối.</li>
         <li>Scene memory: ĐÃ CHẠY.</li>
-        <li>Backend TTS + AudioContext: ĐÃ CHẠY, giữ làm fallback/voice chất lượng cao.</li><li>Fast voice: các câu chỉ dẫn chuẩn dùng audio marin cache local + AudioContext để phát ngay; dynamic text mới gọi backend TTS.</li>
+        <li>Backend TTS + AudioContext: ĐÃ CHẠY, giữ làm fallback/voice chất lượng cao.</li><li>Voice: câu tình huống động dùng backend TTS marin + AudioContext; scheduler không cắt câu thường, danger được quyền ngắt.</li>
         <li>Tự quan sát theo chu kỳ thích ứng: ĐÃ TRIỂN KHAI — camera sampling 250 ms; gọi AI theo nhịp adaptive, không queue ảnh cũ.</li>
-        <li>Chỉ nói khi có thay đổi/nguy cơ đáng kể: ĐÃ CÓ gate cục bộ + shouldSpeak từ Vision; cần tiếp tục tuning bằng test hiện trường.</li>
+        <li>Đọc tình huống mới hoặc nhắc lại sau khoảng thời gian; response quá cũ không phát thành tiếng.</li>
       </ul>
     </div>
 
@@ -176,13 +177,14 @@ button:disabled{opacity:.42}
         <li><code>c234311c311bc0fc1dc954d3cd9da989029c0a92</code> — tối ưu 3 frame / 0,9 giây.</li><li><code>897c6174b8e9589f27609ca838831f0df6951375</code> — adaptive auto-observe + latest-frame-wins + guidance output.</li><li><code>1266e36e2a297a84523a418473298683f3bdfcfe</code> — fast local voice + voiceInstruction để loại bỏ độ trễ backend TTS trong auto guidance.</li><li><code>14ae93a0d98852dd01471c5d92ead68c27f64765</code> — Gate A distance semantics + Gate B one-frame backend alignment.</li><li><code>63638072da8fde6f36f87da74c02682f32e45dda</code> — tách GPT perception khỏi decision, thêm stale-response gate và xác nhận hướng 2 lần.</li>
         <li>Runtime đã từng probe HTTP 200 trên GitHub Pages.</li><li>Frontend có APP_BUILD self-check mỗi 30 giây và khi quay lại tab; nếu GitHub Pages đã có build mới, app tự reload sang URL version mới để tránh chạy code cũ.</li>
         <li>User đã xác nhận camera, Vision và tiếng chạy; sau đó chốt baseline.</li>
+        <li><code>20260927-2252-fast-situation-only</code> — đổi concept FAST sang situation-only: GPT chỉ mô tả cảnh, không điều hướng.</li>
       </ul>
     </div>
 
     <div class="maint-card">
       <h2>J. OPEN ITEMS / NEXT WORK</h2>
       <ul>
-        <li>Hoàn thiện sản phẩm cho người mù trước khi nhân bản sang tài xế.</li>
+        <li>Định hướng hiện tại: app là “đôi mắt mô tả tình huống”, không phải hệ điều khiển bước chân.</li>
         <li>Tuning ngưỡng adaptive sau test hiện trường: sampling cục bộ 250 ms; FAST PATH gửi 1 frame 512 px/JPEG 0.50. Nhịp thực tế vẫn bị giới hạn bởi latency Vision API vì chỉ cho phép 1 request đang chạy; tiếp tục đo sau thay đổi này.</li>
         <li>Đo và tuning ngưỡng scene-change để giảm nói lặp nhưng không bỏ sót nguy cơ khi người dùng đang di chuyển.</li>
         <li>Kiểm thử thực tế: vật cản, bậc thang, mép hụt, cửa/lối đi, người/xe cắt ngang, trái/phải, thay đổi nhanh của cảnh.</li>
@@ -193,7 +195,7 @@ button:disabled{opacity:.42}
   </div>
 </div>
 <script>
-const APP_BUILD='20260927-1918-fast-free-guidance';
+const APP_BUILD='20260927-2252-fast-situation-only';
 const API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-fast-test-v1';
 const TTS_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1';
 const SAMPLE_MS=250;
@@ -203,27 +205,8 @@ const FORCE_MS={normal:5000,caution:2200,danger:1000};
 const STALE_SCENE_DIFF=22;
 const STALE_SPEAK_COOLDOWN_MS=2500;
 const MAX_RESPONSE_AGE_MS=3200;
-const DIRECTION_CONFIRMATIONS=2;
 
 let audioCtx=null,activeAudioSource=null,speechSeq=0;
-const VOICE_CACHE_VERSION='marin-final';
-const STATIC_GUIDANCE_URLS={"Dừng lại":"../vision-assist-v2/audio/marin-final/stop.b64","Dừng lại, quét tìm lối":"../vision-assist-v2/audio/marin-final/stop-scan.b64","Chờ một chút":"../vision-assist-v2/audio/marin-final/wait.b64","Đi thẳng chậm":"../vision-assist-v2/audio/marin-final/forward-slow.b64","Quét lại phía trước":"../vision-assist-v2/audio/marin-final/scan.b64","Đi chậm, quét lại phía trước":"../vision-assist-v2/audio/marin-final/slow-scan.b64","Đi chậm, lối chưa rõ":"../vision-assist-v2/audio/marin-final/slow-unclear.b64","Chờ, lối chưa rõ":"../vision-assist-v2/audio/marin-final/wait-unclear.b64","Đi chậm":"../vision-assist-v2/audio/marin-final/slow.b64","Lệch trái nhẹ":"../vision-assist-v2/audio/marin-final/left.b64","Lệch phải nhẹ":"../vision-assist-v2/audio/marin-final/right.b64"};
-const guidanceVoiceBuffers=new Map();
-const guidanceVoiceBase64=new Map();
-const guidanceVoicePending=new Map();
-const GUIDANCE_PHRASES=[
-  'Dừng lại',
-  'Dừng lại, quét tìm lối',
-  'Chờ một chút',
-  'Quét lại phía trước',
-  'Đi chậm, quét lại phía trước',
-  'Đi chậm, lối chưa rõ',
-  'Chờ, lối chưa rõ',
-  'Đi chậm',
-  'Lệch trái nhẹ',
-  'Lệch phải nhẹ',
-  'Đi thẳng chậm'
-];
 const video=document.getElementById('video');
 const overlay=document.getElementById('overlay');
 const statusEl=document.getElementById('status');
@@ -242,9 +225,7 @@ let autoMode=false,inFlight=false,sampleTimer=null;
 let latestFrames=[],lastSignature=null,lastRequestAt=0,lastResponseAt=0;
 let urgency='normal',latestDiff=0;
 let requestSeq=0;
-let directionCandidate='unknown',directionCount=0;
-let perceptionCandidate='',perceptionCount=0;
-let lastDecision='scan',lastSpokenVoice='',lastSpokenAt=0;
+let lastSpokenVoice='',lastSpokenAt=0;
 
 function maintenanceText(){
   const lines=[];
@@ -292,7 +273,7 @@ maintTab.onclick=()=>showView('maint');
 
 function setStatus(t){statusEl.textContent=t}
 function updateAutoButton(){
-  describeBtn.textContent=autoMode?'DỪNG DẪN ĐƯỜNG':'BẮT ĐẦU DẪN ĐƯỜNG';
+  describeBtn.textContent=autoMode?'DỪNG ĐỌC TÌNH HUỐNG':'BẮT ĐẦU ĐỌC TÌNH HUỐNG';
 }
 function setCameraReady(ready){
   cameraBtn.disabled=ready;
@@ -401,7 +382,7 @@ async function playVoiceNow(text,priority){
 function speak(text,priority){
   if(!text)return;
 
-  // Danger/stop may interrupt immediately.
+  // Chỉ tình huống nguy hiểm được quyền ngắt câu đang đọc.
   if(priority==='danger'){
     pendingVoice=null;
     try{
@@ -417,7 +398,7 @@ function speak(text,priority){
     return;
   }
 
-  // Normal/caution guidance must never chop the sentence currently being spoken.
+  // Mô tả thường/cảnh báo nhẹ không cắt câu đang đọc.
   if(audioBusy){
     if(text!==activeVoiceText)pendingVoice={text,priority};
     return;
@@ -435,7 +416,7 @@ async function startCamera(){
     video.srcObject=stream;
     try{await video.play()}catch(_){}
     setCameraReady(true);
-    setStatus(autoMode?'Đang dẫn đường tự động.':'Camera đã sẵn sàng.');
+    setStatus(autoMode?'Đang đọc tình huống.':'Camera đã sẵn sàng.');
     startSampling();
   }catch(e){
     stream=null;setCameraReady(false);overlay.textContent='Camera chưa bật';
@@ -481,33 +462,6 @@ function sampleTick(){
 }
 function currentCadence(){return CADENCE_MS[urgency]||CADENCE_MS.normal}
 function currentForce(){return FORCE_MS[urgency]||FORCE_MS.normal}
-function resetDirectionConfirm(){directionCandidate='unknown';directionCount=0}
-function resetPerceptionConfirm(){perceptionCandidate='';perceptionCount=0}
-function updatePerceptionStability(p){
-  const confidence=String(p&&p.confidence||'low');
-  const freePath=String(p&&p.freePath||'unknown');
-  if(confidence==='low'||!['left','center','right','none'].includes(freePath)){
-    resetPerceptionConfirm();return false;
-  }
-  const key=freePath+'|'+String(Boolean(p.pathBlocked));
-  if(perceptionCandidate===key)perceptionCount++;
-  else{perceptionCandidate=key;perceptionCount=1}
-  return perceptionCount>=2;
-}
-function directionInternallyConsistent(p){
-  if(!p||!p.pathBlocked)return true;
-  if(p.freePath==='left'&&p.obstaclePosition==='left')return false;
-  if(p.freePath==='right'&&p.obstaclePosition==='right')return false;
-  if(p.freePath==='center'&&p.obstaclePosition==='center')return false;
-  return true;
-}
-function confirmDirection(path,confidence){
-  if(!['left','center','right'].includes(path)||confidence==='low'){resetDirectionConfirm();return false}
-  if(directionCandidate===path)directionCount++;
-  else{directionCandidate=path;directionCount=1}
-  return directionCount>=DIRECTION_CONFIRMATIONS;
-}
-
 function maybeDispatch(changed){
   if(!autoMode||inFlight||latestFrames.length<1)return;
   const now=Date.now();
@@ -522,44 +476,42 @@ async function dispatchVision(){
   inFlight=true;lastRequestAt=Date.now();
   const seq=++requestSeq;
   const sentAt=Date.now();
-  const sentSignature=lastSignature?new Uint8Array(lastSignature):sceneSignature();
   const frames=[latestFrames[latestFrames.length-1]];
-  setStatus('Đang quan sát tự động...');
+  setStatus('Đang quan sát...');
   try{
     const form=new FormData();
     form.append('frames',JSON.stringify(frames));
-    form.append('sceneMemory',sceneMemory);
     const r=await fetch(API,{method:'POST',body:form});
     const j=await r.json();
     if(!r.ok||!j.ok)throw new Error(j.error||('HTTP '+r.status));
     const responseAt=Date.now();
     const responseAge=responseAt-sentAt;
-    const currentSignature=sceneSignature();
-    const sceneDrift=signatureDiff(sentSignature,currentSignature);
-    const stale=seq!==requestSeq||responseAge>MAX_RESPONSE_AGE_MS;
+    if(seq!==requestSeq)return;
     lastResponseAt=responseAt;
-    sceneMemory='';
-    let decision={
-      action:String(j.action||'scan'),
-      urgency:String(j.urgency||'caution'),
-      voice:String(j.voiceInstruction||'').trim(),
-      speak:true
-    };
-    if(stale&&['continue','veer_left','veer_right'].includes(decision.action)){
-      decision={action:'slow',urgency:'caution',voice:'Đi chậm',speak:true};
+
+    const situation=String(j.situation||'').trim();
+    urgency=String(j.urgency||'normal');
+    const confidence=String(j.confidence||'medium');
+    if(!situation){
+      setStatus('Chưa xác định rõ tình huống.');
+      return;
     }
-    lastDecision=decision.action;
-    urgency=decision.urgency;
-    const perception=String(j.description||'').trim();
-    const text=decision.voice?(perception?perception+' · '+decision.voice:decision.voice):perception;
-    resultEl.textContent=text;
-    setStatus(decision.voice?(urgency==='danger'?'NGUY HIỂM — '+decision.voice:urgency==='caution'?'Cẩn thận — '+decision.voice:'Đang dẫn đường — '+decision.voice):'Đang quan sát...');
+
+    resultEl.textContent=situation;
+    setStatus(
+      urgency==='danger'?'NGUY CƠ — '+situation:
+      urgency==='caution'?'CẦN CHÚ Ý — '+situation:
+      'Đang mô tả — '+situation
+    );
+
     const nowSpeak=Date.now();
-    const speakNow=decision.speak&&(urgency==='danger'||decision.voice!==lastSpokenVoice||nowSpeak-lastSpokenAt>=3500);
+    const freshEnough=responseAge<=MAX_RESPONSE_AGE_MS;
+    const speakNow=freshEnough&&(urgency==='danger'||situation!==lastSpokenVoice||nowSpeak-lastSpokenAt>=5000);
     if(speakNow){
-      lastSpokenVoice=decision.voice;lastSpokenAt=nowSpeak;
-      if(navigator.vibrate){try{navigator.vibrate(urgency==='danger'?[100,60,100]:60)}catch(_){}}
-      speak(decision.voice,urgency);
+      lastSpokenVoice=situation;
+      lastSpokenAt=nowSpeak;
+      if(navigator.vibrate&&urgency==='danger'){try{navigator.vibrate([100,60,100])}catch(_){}}
+      speak(situation,urgency);
     }
   }catch(e){
     console.error(e);
@@ -577,12 +529,12 @@ describeBtn.onclick=async()=>{
   autoMode=!autoMode;
   updateAutoButton();
   if(autoMode){
-    latestFrames=[];lastSignature=null;lastRequestAt=0;lastResponseAt=0;urgency='normal';requestSeq=0;resetDirectionConfirm();resetPerceptionConfirm();lastDecision='scan';lastSpokenVoice='';lastSpokenAt=0;
-    setStatus('Bắt đầu dẫn đường tự động...');
+    latestFrames=[];lastSignature=null;lastRequestAt=0;lastResponseAt=0;urgency='normal';requestSeq=0;lastSpokenVoice='';lastSpokenAt=0;
+    setStatus('Bắt đầu đọc tình huống...');
     sampleTick();
     setTimeout(()=>maybeDispatch(true),100);
   }else{
-    setStatus('Đã dừng dẫn đường tự động.');
+    setStatus('Đã dừng đọc tình huống.');
     stopActiveAudio();
   }
 };
