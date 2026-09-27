@@ -56,7 +56,7 @@ button:disabled{opacity:.42}
     <div class="result" id="result"></div>
     <div class="buttons">
       <button id="cameraBtn">BẬT CAMERA</button>
-      <button id="describeBtn" disabled>MÔ TẢ BẰNG LỜI</button>
+      <button id="describeBtn" disabled>BẮT ĐẦU DẪN ĐƯỜNG</button>
     </div>
   </div>
   </div>
@@ -73,7 +73,7 @@ button:disabled{opacity:.42}
       <h2>A. PROJECT STATE — PHẢI ĐỌC TRƯỚC</h2>
       <div class="kv">
         <b>App</b><span>NMH Vision Assist V2</span>
-        <b>Mục tiêu</b><span>Trợ lý thị giác cho người mù/người khiếm thị: camera live → AI hiểu cảnh → mô tả ngắn bằng tiếng Việt.</span>
+        <b>Mục tiêu</b><span>Trợ lý thị giác cho người mù/người khiếm thị: camera live → AI hiểu cảnh → chỉ dẫn hành động ngắn, ưu tiên an toàn khi di chuyển.</span>
         <b>Trạng thái</b><span class="locked">BASELINE ĐÃ CHẠY THỰC TẾ TRÊN IPHONE VÀ ĐÃ ĐƯỢC CHỐT.</span>
         <b>Frontend</b><span><code>https://hvnm1206.github.io/TikTak-Service/vision-assist-v2/</code></span>
         <b>Kiến trúc</b><span>GitHub Pages → n8n → OpenAI Vision/TTS.</span>
@@ -87,7 +87,7 @@ button:disabled{opacity:.42}
         <li>Không dùng file picker / native Camera / gallery làm luồng chính.</li>
         <li>Không quay lại Lovable hoặc raw.githack nếu chưa có yêu cầu mới.</li>
         <li>Camera live bằng <code>getUserMedia</code>, camera sau <code>facingMode: environment</code>.</li>
-        <li>Vision hiện dùng 3 frame trong khoảng 0,9 giây, ảnh tối đa khoảng 640 px, JPEG quality 0.58, image detail low.</li>
+        <li>Frontend tự lấy mẫu camera mỗi 250 ms, luôn giữ 3 frame mới nhất; Vision lấy ngay rolling buffer hiện thời, không chờ gom 0,9 giây. Ảnh tối đa khoảng 640 px, JPEG quality 0.58, image detail low.</li>
         <li>Voice chính dùng backend TTS + WAV + AudioContext; browser speechSynthesis chỉ là fallback.</li>
         <li>Không tuyên bố app thay thế gậy trắng/chó dẫn đường/kỹ năng định hướng.</li>
       </ul>
@@ -114,7 +114,7 @@ button:disabled{opacity:.42}
       <h2>D. WORKFLOW REGISTRY</h2>
       <p><b>Vision:</b> Analyze Webhook → Prepare Vision Request → OpenAI Vision → Parse Vision Result → Return Vision.</p>
       <p><b>TTS:</b> TTS Webhook → Prepare TTS → OpenAI TTS → Encode Audio → Return TTS.</p>
-      <p><b>Frontend:</b> mở camera → lấy 3 frame → POST Vision → nhận description + sceneMemory → POST TTS → decode WAV → phát bằng AudioContext.</p>
+      <p><b>Frontend:</b> mở camera → sampling cục bộ 250 ms → rolling buffer 3 frame mới nhất → local scene-change gate → latest-frame-wins POST Vision → nhận description + sceneMemory + urgency + shouldSpeak → TTS chỉ khi cần → decode WAV → phát bằng AudioContext.</p>
     </div>
 
     <div class="maint-card">
@@ -122,8 +122,8 @@ button:disabled{opacity:.42}
       <ul>
         <li>Vision model: <code>gpt-5.6-luna</code>.</li>
         <li>Reasoning: <code>none</code>; max output: <code>220</code>.</li>
-        <li>Structured output: <code>{description, sceneMemory}</code>.</li>
-        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li>
+        <li>Structured output: <code>{description, sceneMemory, urgency, shouldSpeak}</code>.</li>
+        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng.</li>
         <li>Ưu tiên hiện tại: nguy hiểm/vật cản → bậc/mép hụt/cửa/lối đi → người/xe/động vật cắt ngang → trái/phải/chính giữa → gần/vừa/xa khi đủ rõ → cảnh chung.</li>
         <li>TTS model: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>.</li>
         <li>TTS instruction: nói tiếng Việt tự nhiên, liền câu, ngắt theo dấu câu, không đọc từng từ, không đánh vần, không thêm nội dung.</li>
@@ -138,8 +138,8 @@ button:disabled{opacity:.42}
         <li>3-frame temporal sampling: ĐÃ CHẠY.</li>
         <li>Scene memory: ĐÃ CHẠY.</li>
         <li>Backend TTS + AudioContext: ĐÃ CHẠY.</li>
-        <li>Tự quan sát theo chu kỳ thích ứng: CHƯA TRIỂN KHAI — đây là hướng phát triển tiếp theo.</li>
-        <li>Chỉ nói khi có thay đổi/nguy cơ đáng kể: CHƯA HOÀN THIỆN thành chế độ tự động.</li>
+        <li>Tự quan sát theo chu kỳ thích ứng: ĐÃ TRIỂN KHAI — camera sampling 250 ms; gọi AI theo nhịp adaptive, không queue ảnh cũ.</li>
+        <li>Chỉ nói khi có thay đổi/nguy cơ đáng kể: ĐÃ CÓ gate cục bộ + shouldSpeak từ Vision; cần tiếp tục tuning bằng test hiện trường.</li>
       </ul>
     </div>
 
@@ -172,7 +172,7 @@ button:disabled{opacity:.42}
       <ul>
         <li><code>87cd9ba3b19504fe7c2a361ad156cf235a2c88f5</code> — tạo Vision Assist V2 cache-clean.</li>
         <li><code>c31502fc571f9336ef63f4f41f461ffe35c7c6b1</code> — backend TTS + AudioContext cho iPhone.</li>
-        <li><code>c234311c311bc0fc1dc954d3cd9da989029c0a92</code> — tối ưu 3 frame / 0,9 giây.</li>
+        <li><code>c234311c311bc0fc1dc954d3cd9da989029c0a92</code> — tối ưu 3 frame / 0,9 giây.</li><li><code>ADAPTIVE_COMMIT_PENDING</code> — adaptive auto-observe + latest-frame-wins + guidance output.</li>
         <li>Runtime đã từng probe HTTP 200 trên GitHub Pages.</li>
         <li>User đã xác nhận camera, Vision và tiếng chạy; sau đó chốt baseline.</li>
       </ul>
@@ -182,8 +182,8 @@ button:disabled{opacity:.42}
       <h2>J. OPEN ITEMS / NEXT WORK</h2>
       <ul>
         <li>Hoàn thiện sản phẩm cho người mù trước khi nhân bản sang tài xế.</li>
-        <li>Thiết kế chế độ tự động theo chu kỳ thích ứng: bình thường khoảng 5 giây/lần; khi có nguy cơ khoảng 2 giây/lần trong thời gian ngắn; sau đó quay lại nhịp bình thường.</li>
-        <li>Giảm nói lặp: cảnh gần như không đổi thì im lặng.</li>
+        <li>Tuning ngưỡng adaptive sau test hiện trường: sampling cục bộ 250 ms; AI normal tối thiểu khoảng 1,8 s, caution khoảng 0,85 s, danger khoảng 0,45 s; thực tế còn bị giới hạn bởi latency API vì chỉ cho phép 1 request Vision đang chạy.</li>
+        <li>Đo và tuning ngưỡng scene-change để giảm nói lặp nhưng không bỏ sót nguy cơ khi người dùng đang di chuyển.</li>
         <li>Kiểm thử thực tế: vật cản, bậc thang, mép hụt, cửa/lối đi, người/xe cắt ngang, trái/phải, thay đổi nhanh của cảnh.</li>
         <li>Tiếp tục đo latency và chi phí thực tế trước khi mở rộng.</li>
       </ul>
@@ -194,7 +194,12 @@ button:disabled{opacity:.42}
 <script>
 const API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-analyze-v1';
 const TTS_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1';
-let audioCtx=null;
+const SAMPLE_MS=250;
+const DIFF_THRESHOLD=7.5;
+const CADENCE_MS={normal:1800,caution:850,danger:450};
+const FORCE_MS={normal:5000,caution:2200,danger:1000};
+
+let audioCtx=null,activeAudioSource=null,speechSeq=0;
 const video=document.getElementById('video');
 const overlay=document.getElementById('overlay');
 const statusEl=document.getElementById('status');
@@ -207,7 +212,11 @@ const useView=document.getElementById('useView');
 const maintView=document.getElementById('maintView');
 const copyMaintBtn=document.getElementById('copyMaintBtn');
 const maintenanceContent=document.getElementById('maintenanceContent');
-let stream=null, starting=false, sceneMemory='';
+
+let stream=null,starting=false,sceneMemory='';
+let autoMode=false,inFlight=false,sampleTimer=null;
+let latestFrames=[],lastSignature=null,lastRequestAt=0,lastResponseAt=0;
+let urgency='normal',latestDiff=0;
 
 function maintenanceText(){
   const lines=[];
@@ -226,9 +235,8 @@ function maintenanceText(){
 }
 async function copyMaintenance(){
   const text=maintenanceText();
-  try{
-    await navigator.clipboard.writeText(text);
-  }catch(e){
+  try{await navigator.clipboard.writeText(text)}
+  catch(e){
     const ta=document.createElement('textarea');
     ta.value=text;ta.setAttribute('readonly','');
     ta.style.position='fixed';ta.style.opacity='0';
@@ -255,10 +263,14 @@ useTab.onclick=()=>showView('use');
 maintTab.onclick=()=>showView('maint');
 
 function setStatus(t){statusEl.textContent=t}
+function updateAutoButton(){
+  describeBtn.textContent=autoMode?'DỪNG DẪN ĐƯỜNG':'BẮT ĐẦU DẪN ĐƯỜNG';
+}
 function setCameraReady(ready){
   cameraBtn.disabled=ready;
   describeBtn.disabled=!ready;
   overlay.style.display=ready?'none':'flex';
+  updateAutoButton();
 }
 function unlockAudio(){
   try{
@@ -270,12 +282,20 @@ function unlockAudio(){
     const s=audioCtx.createBufferSource();s.buffer=b;s.connect(audioCtx.destination);s.start(0);
   }catch(e){console.error('audio-unlock',e)}
 }
-async function speak(text){
+function stopActiveAudio(){
+  try{if(activeAudioSource){activeAudioSource.stop(0);activeAudioSource.disconnect()}}catch(_){}
+  activeAudioSource=null;
+  try{if('speechSynthesis' in window)speechSynthesis.cancel()}catch(_){}
+}
+async function speak(text,priority){
   if(!text)return;
+  const seq=++speechSeq;
+  if(priority==='danger')stopActiveAudio();
   try{
     const form=new FormData();form.append('text',text);
     const r=await fetch(TTS_API,{method:'POST',body:form});
     const j=await r.json();
+    if(seq!==speechSeq)return;
     if(!r.ok||!j.ok||!j.audioBase64)throw new Error(j.error||('HTTP '+r.status));
     const bin=atob(j.audioBase64),bytes=new Uint8Array(bin.length);
     for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
@@ -284,13 +304,18 @@ async function speak(text){
     if(audioCtx){
       if(audioCtx.state==='suspended')await audioCtx.resume();
       const buf=await audioCtx.decodeAudioData(bytes.buffer.slice(0));
-      const node=audioCtx.createBufferSource();node.buffer=buf;node.connect(audioCtx.destination);node.start(0);
-      return;
+      if(seq!==speechSeq)return;
+      stopActiveAudio();
+      const node=audioCtx.createBufferSource();
+      activeAudioSource=node;node.buffer=buf;node.connect(audioCtx.destination);
+      node.onended=()=>{if(activeAudioSource===node)activeAudioSource=null};
+      node.start(0);return;
     }
     const blob=new Blob([bytes],{type:j.mimeType||'audio/mpeg'});
     const a=new Audio(URL.createObjectURL(blob));await a.play();
   }catch(e){
     console.error('tts',e);
+    if(seq!==speechSeq)return;
     try{
       if('speechSynthesis' in window){
         speechSynthesis.cancel();speechSynthesis.resume();
@@ -303,22 +328,18 @@ async function startCamera(){
   if(stream||starting)return;
   starting=true;setStatus('Đang mở camera...');overlay.textContent='Đang mở camera...';
   try{
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw new Error('MEDIA_UNSUPPORTED');
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('MEDIA_UNSUPPORTED');
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
     video.srcObject=stream;
     try{await video.play()}catch(_){}
     setCameraReady(true);
-    setStatus('Camera đã sẵn sàng.');
+    setStatus(autoMode?'Đang dẫn đường tự động.':'Camera đã sẵn sàng.');
+    startSampling();
   }catch(e){
-    stream=null;
-    setCameraReady(false);
-    overlay.textContent='Camera chưa bật';
-    setStatus(e&&e.name==='NotAllowedError'
-      ? 'Cần cho phép camera cho trang này.'
-      : 'Không mở được camera. Bấm BẬT CAMERA để thử lại.');
+    stream=null;setCameraReady(false);overlay.textContent='Camera chưa bật';
+    setStatus(e&&e.name==='NotAllowedError'?'Cần cho phép camera cho trang này.':'Không mở được camera. Bấm BẬT CAMERA để thử lại.');
   }finally{starting=false}
 }
-function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 function grabFrame(){
   const vw=video.videoWidth||640,vh=video.videoHeight||480;
   const scale=Math.min(1,640/Math.max(vw,vh));
@@ -327,39 +348,94 @@ function grabFrame(){
   c.getContext('2d',{alpha:false}).drawImage(video,0,0,c.width,c.height);
   return c.toDataURL('image/jpeg',0.58);
 }
-cameraBtn.onclick=startCamera;
-describeBtn.onclick=async()=>{
-  if(!stream||describeBtn.disabled)return;
-  unlockAudio();
-  describeBtn.disabled=true;
-  describeBtn.textContent='ĐANG QUAN SÁT...';
-  setStatus('Đang quan sát...');
-  resultEl.textContent='';
+function sceneSignature(){
+  const c=document.createElement('canvas');c.width=24;c.height=18;
+  const ctx=c.getContext('2d',{alpha:false,willReadFrequently:true});
+  ctx.drawImage(video,0,0,c.width,c.height);
+  const d=ctx.getImageData(0,0,c.width,c.height).data;
+  const out=new Uint8Array(c.width*c.height);
+  for(let p=0,i=0;p<d.length;p+=4,i++)out[i]=Math.round((d[p]*3+d[p+1]*6+d[p+2])/10);
+  return out;
+}
+function signatureDiff(a,b){
+  if(!a||!b||a.length!==b.length)return 255;
+  let sum=0;for(let i=0;i<a.length;i++)sum+=Math.abs(a[i]-b[i]);
+  return sum/a.length;
+}
+function startSampling(){
+  if(sampleTimer)return;
+  sampleTimer=setInterval(sampleTick,SAMPLE_MS);
+}
+function sampleTick(){
+  if(!stream||!video.videoWidth||document.hidden)return;
   try{
-    if(video.paused){try{await video.play()}catch(_){}}
-    const frames=[grabFrame()];
-    await wait(450);frames.push(grabFrame());
-    await wait(450);frames.push(grabFrame());
+    const sig=sceneSignature();
+    latestDiff=signatureDiff(lastSignature,sig);
+    lastSignature=sig;
+    latestFrames.push(grabFrame());
+    if(latestFrames.length>3)latestFrames.shift();
+    if(autoMode)maybeDispatch(latestDiff>=DIFF_THRESHOLD);
+  }catch(e){console.error('sample',e)}
+}
+function currentCadence(){return CADENCE_MS[urgency]||CADENCE_MS.normal}
+function currentForce(){return FORCE_MS[urgency]||FORCE_MS.normal}
+function maybeDispatch(changed){
+  if(!autoMode||inFlight||latestFrames.length<1)return;
+  const now=Date.now();
+  const sinceRequest=now-lastRequestAt;
+  const sinceResponse=lastResponseAt?now-lastResponseAt:Infinity;
+  if(sinceRequest<currentCadence())return;
+  if(!changed&&sinceResponse<currentForce())return;
+  dispatchVision();
+}
+async function dispatchVision(){
+  if(inFlight||!autoMode||!latestFrames.length)return;
+  inFlight=true;lastRequestAt=Date.now();
+  const frames=latestFrames.slice(-3);
+  setStatus('Đang quan sát tự động...');
+  try{
     const form=new FormData();
     form.append('frames',JSON.stringify(frames));
     form.append('sceneMemory',sceneMemory);
     const r=await fetch(API,{method:'POST',body:form});
     const j=await r.json();
     if(!r.ok||!j.ok)throw new Error(j.error||('HTTP '+r.status));
+    lastResponseAt=Date.now();
     sceneMemory=String(j.sceneMemory||'');
-    resultEl.textContent=j.description||'';
-    setStatus('Đã quan sát.');
-    if(navigator.vibrate){try{navigator.vibrate(60)}catch(_){}}
-    await speak(j.description||'');
+    urgency=['normal','caution','danger'].includes(j.urgency)?j.urgency:'caution';
+    const text=String(j.description||'').trim();
+    if(text)resultEl.textContent=text;
+    setStatus(urgency==='danger'?'NGUY HIỂM — đang quan sát nhanh':urgency==='caution'?'Cẩn thận — đang quan sát nhanh':'Đang dẫn đường tự động.');
+    if(j.shouldSpeak&&text){
+      if(navigator.vibrate){try{navigator.vibrate(urgency==='danger'?[100,60,100]:60)}catch(_){}}
+      speak(text,urgency);
+    }
   }catch(e){
     console.error(e);
-    setStatus('Không mô tả được. Hãy thử lại.');
-    resultEl.textContent='';
+    setStatus('Vision tạm lỗi — camera vẫn tiếp tục quan sát.');
   }finally{
-    describeBtn.textContent='MÔ TẢ BẰNG LỜI';
-    describeBtn.disabled=!stream;
+    inFlight=false;
+    if(autoMode)setTimeout(()=>maybeDispatch(latestDiff>=DIFF_THRESHOLD),0);
+  }
+}
+cameraBtn.onclick=startCamera;
+describeBtn.onclick=async()=>{
+  unlockAudio();
+  if(!stream)await startCamera();
+  if(!stream)return;
+  autoMode=!autoMode;
+  updateAutoButton();
+  if(autoMode){
+    latestFrames=[];lastSignature=null;lastRequestAt=0;lastResponseAt=0;urgency='normal';
+    setStatus('Bắt đầu dẫn đường tự động...');
+    sampleTick();
+    setTimeout(()=>maybeDispatch(true),100);
+  }else{
+    setStatus('Đã dừng dẫn đường tự động.');
+    stopActiveAudio();
   }
 };
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&stream)startSampling()});
 startCamera();
 </script>
 </body>
