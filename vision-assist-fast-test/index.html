@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NMH Vision Assist V2 — FAST TEST</title>
-<meta name="nmh-build" content="20260927-1815-fast-test">
+<meta name="nmh-build" content="20260927-1823-fast-test-fix">
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#07101c;color:#fff;font-family:Arial,sans-serif}
@@ -193,7 +193,7 @@ button:disabled{opacity:.42}
   </div>
 </div>
 <script>
-const APP_BUILD='20260927-1815-fast-test';
+const APP_BUILD='20260927-1823-fast-test-fix';
 const API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-fast-test-v1';
 const TTS_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1';
 const SAMPLE_MS=250;
@@ -203,12 +203,12 @@ const FORCE_MS={normal:5000,caution:2200,danger:1000};
 const STALE_SCENE_DIFF=22;
 const STALE_SPEAK_COOLDOWN_MS=2500;
 const MAX_RESPONSE_AGE_MS=3200;
-const MOVEMENT_MAX_AGE_MS=1000;
+const MOVEMENT_MAX_AGE_MS=1800;
 const DIRECTION_CONFIRMATIONS=2;
 
 let audioCtx=null,activeAudioSource=null,speechSeq=0;
 const VOICE_CACHE_VERSION='marin-final';
-const STATIC_GUIDANCE_URLS={"Dừng lại":"./audio/marin-final/stop.b64","Dừng lại, quét tìm lối":"./audio/marin-final/stop-scan.b64","Chờ một chút":"./audio/marin-final/wait.b64","Đi thẳng chậm":"./audio/marin-final/forward-slow.b64","Quét lại phía trước":"./audio/marin-final/scan.b64","Đi chậm, quét lại phía trước":"./audio/marin-final/slow-scan.b64","Đi chậm, lối chưa rõ":"./audio/marin-final/slow-unclear.b64","Chờ, lối chưa rõ":"./audio/marin-final/wait-unclear.b64","Đi chậm":"./audio/marin-final/slow.b64","Lệch trái nhẹ":"./audio/marin-final/left.b64","Lệch phải nhẹ":"./audio/marin-final/right.b64"};
+const STATIC_GUIDANCE_URLS={"Dừng lại":"../vision-assist-v2/audio/marin-final/stop.b64","Dừng lại, quét tìm lối":"../vision-assist-v2/audio/marin-final/stop-scan.b64","Chờ một chút":"../vision-assist-v2/audio/marin-final/wait.b64","Đi thẳng chậm":"../vision-assist-v2/audio/marin-final/forward-slow.b64","Quét lại phía trước":"../vision-assist-v2/audio/marin-final/scan.b64","Đi chậm, quét lại phía trước":"../vision-assist-v2/audio/marin-final/slow-scan.b64","Đi chậm, lối chưa rõ":"../vision-assist-v2/audio/marin-final/slow-unclear.b64","Chờ, lối chưa rõ":"../vision-assist-v2/audio/marin-final/wait-unclear.b64","Đi chậm":"../vision-assist-v2/audio/marin-final/slow.b64","Lệch trái nhẹ":"../vision-assist-v2/audio/marin-final/left.b64","Lệch phải nhẹ":"../vision-assist-v2/audio/marin-final/right.b64"};
 const guidanceVoiceBuffers=new Map();
 const guidanceVoicePending=new Map();
 const GUIDANCE_PHRASES=[
