@@ -123,7 +123,7 @@ button:disabled{opacity:.42}
         <li>Vision model: <code>gpt-5.6-luna</code>.</li>
         <li>Reasoning: <code>none</code>; max output: <code>160</code>.</li>
         <li>Vision PERCEPTION output: <code>{description, sceneMemory, shouldSpeak, distanceBand, pathBlocked, obstaclePosition, freePath, motionRisk, confidence}</code>. GPT không còn trả action trái/phải.</li>
-        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>distanceBand</code>: far / mid / near / immediate / unknown. Không ép AI đo mét tuyệt đối.</li><li><code>pathBlocked</code> chỉ true khi vật thực sự nằm trên hướng đi dự kiến.</li><li>DECISION layer nằm ở frontend: stop/wait/slow/veer_left/veer_right/continue/scan được suy ra từ perception, không lấy trực tiếp từ GPT.</li><li><code>stop</code> chỉ hợp lệ khi distanceBand=immediate + pathBlocked, hoặc nguy cơ động immediate. Lệnh trái/phải phải được cùng freePath xác nhận 2 response liên tiếp.</li><li>Response bị bỏ nếu quá 3,2 giây hoặc cảnh thay đổi mạnh trong lúc Vision xử lý.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng; <code>voiceInstruction</code> cực ngắn 3–8 từ để phát ngay.</li>
+        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>distanceBand</code>: far / mid / near / immediate / unknown. Không ép AI đo mét tuyệt đối.</li><li><code>pathBlocked</code> chỉ true khi vật thực sự nằm trên hướng đi dự kiến.</li><li>DECISION layer nằm ở frontend: stop/wait/slow/veer_left/veer_right/continue/scan được suy ra từ perception, không lấy trực tiếp từ GPT.</li><li><code>stop</code> chỉ hợp lệ khi distanceBand=immediate + pathBlocked, hoặc nguy cơ động immediate. Lệnh trái/phải phải được cùng freePath xác nhận 2 response liên tiếp.</li><li>Response stale không còn bị vứt hoàn toàn: app vẫn hiển thị perception và phát 'Đi chậm, đang cập nhật'; chỉ khóa quyền dùng response stale để xác nhận trái/phải.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng; <code>voiceInstruction</code> cực ngắn 3–8 từ để phát ngay.</li>
         <li>Ưu tiên hiện tại: xác định vật/nguy cơ trên hướng đi → phân loại distanceBand → xác định pathBlocked → chọn action → mới sinh câu nói. Không dùng 'thấy vật cản' đồng nghĩa với 'Dừng lại'.</li>
         <li>TTS model backend: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>. Auto guidance ưu tiên speechSynthesis nội bộ iPhone để giảm 2–6 giây latency backend.</li>
         <li>TTS instruction: nói tiếng Việt tự nhiên, liền câu, ngắt theo dấu câu, không đọc từng từ, không đánh vần, không thêm nội dung.</li>
@@ -185,7 +185,7 @@ button:disabled{opacity:.42}
         <li>Tuning ngưỡng adaptive sau test hiện trường: sampling cục bộ 250 ms; FAST PATH gửi 1 frame 512 px/JPEG 0.50. Nhịp thực tế vẫn bị giới hạn bởi latency Vision API vì chỉ cho phép 1 request đang chạy; tiếp tục đo sau thay đổi này.</li>
         <li>Đo và tuning ngưỡng scene-change để giảm nói lặp nhưng không bỏ sót nguy cơ khi người dùng đang di chuyển.</li>
         <li>Kiểm thử thực tế: vật cản, bậc thang, mép hụt, cửa/lối đi, người/xe cắt ngang, trái/phải, thay đổi nhanh của cảnh.</li>
-        <li>Gate A/B: ĐÃ TRIỂN KHAI. Perception→Decision safety layer: ĐÃ TRIỂN KHAI; cần test hiện trường về stale rejection và xác nhận hướng 2 lần.</li><li>Tiếp tục đo latency và chi phí thực tế trước khi mở rộng.</li>
+        <li>Gate A/B: ĐÃ TRIỂN KHAI. Perception→Decision safety layer: ĐÃ TRIỂN KHAI. Regression stale-gate gây im tiếng đã sửa: stale chỉ chặn quyết định hướng, không chặn toàn bộ phản hồi.</li><li>Tiếp tục đo latency và chi phí thực tế trước khi mở rộng.</li>
       </ul>
     </div>
     </div>
@@ -199,6 +199,7 @@ const DIFF_THRESHOLD=7.5;
 const CADENCE_MS={normal:1800,caution:850,danger:450};
 const FORCE_MS={normal:5000,caution:2200,danger:1000};
 const STALE_SCENE_DIFF=22;
+const STALE_SPEAK_COOLDOWN_MS=2500;
 const MAX_RESPONSE_AGE_MS=3200;
 const DIRECTION_CONFIRMATIONS=2;
 
@@ -222,7 +223,7 @@ let latestFrames=[],lastSignature=null,lastRequestAt=0,lastResponseAt=0;
 let urgency='normal',latestDiff=0;
 let requestSeq=0;
 let directionCandidate='unknown',directionCount=0;
-let lastDecision='scan';
+let lastDecision='scan',lastStaleSpeakAt=0;
 
 function maintenanceText(){
   const lines=[];
@@ -476,14 +477,22 @@ async function dispatchVision(){
     const responseAge=responseAt-sentAt;
     const currentSignature=sceneSignature();
     const sceneDrift=signatureDiff(sentSignature,currentSignature);
-    if(seq!==requestSeq||responseAge>MAX_RESPONSE_AGE_MS||sceneDrift>STALE_SCENE_DIFF){
+    const stale=seq!==requestSeq||responseAge>MAX_RESPONSE_AGE_MS||sceneDrift>STALE_SCENE_DIFF;
+    lastResponseAt=responseAt;
+    sceneMemory=String(j.sceneMemory||'');
+    if(stale){
       resetDirectionConfirm();
-      setStatus('Cảnh đã đổi — đang cập nhật lại...');
+      urgency='caution';
+      const perception=String(j.description||'').trim();
+      resultEl.textContent=perception?perception+' · Đi chậm, đang cập nhật':'Đi chậm, đang cập nhật';
+      setStatus('Cảnh đang thay đổi — đi chậm');
+      if(Date.now()-lastStaleSpeakAt>=STALE_SPEAK_COOLDOWN_MS){
+        lastStaleSpeakAt=Date.now();
+        if(!speakFast('Đi chậm, đang cập nhật','caution')) speakBackend('Đi chậm, đang cập nhật','caution');
+      }
       return;
     }
 
-    lastResponseAt=responseAt;
-    sceneMemory=String(j.sceneMemory||'');
     const decision=decideGuidance(j);
     lastDecision=decision.action;
     urgency=decision.urgency;
