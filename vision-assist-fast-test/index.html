@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NMH Vision Assist V2 — FAST TEST</title>
-<meta name="nmh-build" content="20260927-1900-fast-single-marin">
+<meta name="nmh-build" content="20260927-1907-fast-stable-marin">
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#07101c;color:#fff;font-family:Arial,sans-serif}
@@ -89,7 +89,7 @@ button:disabled{opacity:.42}
         <li>Không quay lại Lovable hoặc raw.githack nếu chưa có yêu cầu mới.</li>
         <li>Camera live bằng <code>getUserMedia</code>, camera sau <code>facingMode: environment</code>.</li>
         <li>Frontend tự lấy mẫu camera mỗi 250 ms; FAST PATH chỉ gửi đúng 1 frame mới nhất, không chờ gom ảnh. Ảnh tối đa khoảng 512 px, JPEG quality 0.50, image detail low.</li>
-        <li>FAST voice: chỉ một nguồn âm thanh duy nhất. Backend <code>gpt-4o-mini-tts / marin</code> → WAV → AudioContext. Mỗi câu mới dừng câu đang phát và tăng sequence; TTS response cũ trả về muộn bị bỏ, không được phát chồng.</li>
+        <li>FAST voice scheduler: một nguồn Marin duy nhất; normal/caution không cắt ngang câu đang nói, chỉ giữ lệnh mới nhất để phát kế tiếp; danger/Dừng lại được quyền ngắt ngay. WAV của từng câu được cache trong phiên để cùng một câu luôn giữ đúng một giọng/prosody.</li>
         <li>Không tuyên bố app thay thế gậy trắng/chó dẫn đường/kỹ năng định hướng.</li>
       </ul>
     </div>
@@ -193,7 +193,7 @@ button:disabled{opacity:.42}
   </div>
 </div>
 <script>
-const APP_BUILD='20260927-1900-fast-single-marin';
+const APP_BUILD='20260927-1907-fast-stable-marin';
 const API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-fast-test-v1';
 const TTS_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1';
 const SAMPLE_MS=250;
@@ -310,8 +310,14 @@ function unlockAudio(){
     const s=audioCtx.createBufferSource();s.buffer=b;s.connect(audioCtx.destination);s.start(0);
   }catch(e){console.error('audio-unlock',e)}
 }
+const ttsBufferCache=new Map();
+let pendingVoice=null;
+let activeVoiceText='';
+let audioBusy=false;
+
 function stopActiveAudio(){
   speechSeq++;
+  pendingVoice=null;
   try{
     if(activeAudioSource){
       activeAudioSource.stop(0);
@@ -319,54 +325,105 @@ function stopActiveAudio(){
     }
   }catch(_){}
   activeAudioSource=null;
+  activeVoiceText='';
+  audioBusy=false;
 }
 
-async function speak(text){
+async function getTtsBuffer(text){
+  if(ttsBufferCache.has(text))return ttsBufferCache.get(text);
+
+  const form=new FormData();
+  form.append('text',text);
+  const r=await fetch(TTS_API,{method:'POST',body:form});
+  const j=await r.json();
+  if(!r.ok||!j.ok||!j.audioBase64)throw new Error(j.error||('HTTP '+r.status));
+
+  const bin=atob(j.audioBase64);
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!audioCtx&&AC)audioCtx=new AC();
+  if(!audioCtx)throw new Error('AUDIO_CONTEXT_UNAVAILABLE');
+  if(audioCtx.state==='suspended')await audioCtx.resume();
+
+  const buf=await audioCtx.decodeAudioData(bytes.buffer.slice(0));
+  ttsBufferCache.set(text,buf);
+  return buf;
+}
+
+async function playVoiceNow(text,priority){
   if(!text)return;
   const seq=++speechSeq;
+  audioBusy=true;
+  activeVoiceText=text;
 
-  // A newer instruction owns the speaker immediately.
   try{
-    if(activeAudioSource){
-      activeAudioSource.stop(0);
-      activeAudioSource.disconnect();
+    const buf=await getTtsBuffer(text);
+    if(seq!==speechSeq){
+      audioBusy=false;
+      activeVoiceText='';
+      return;
     }
-  }catch(_){}
-  activeAudioSource=null;
-
-  try{
-    const form=new FormData();
-    form.append('text',text);
-    const r=await fetch(TTS_API,{method:'POST',body:form});
-    const j=await r.json();
-
-    // If a newer instruction arrived while this TTS request was running,
-    // this audio is stale and must never be played.
-    if(seq!==speechSeq)return;
-    if(!r.ok||!j.ok||!j.audioBase64)throw new Error(j.error||('HTTP '+r.status));
-
-    const bin=atob(j.audioBase64);
-    const bytes=new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
-
-    const AC=window.AudioContext||window.webkitAudioContext;
-    if(!audioCtx&&AC)audioCtx=new AC();
-    if(!audioCtx)throw new Error('AUDIO_CONTEXT_UNAVAILABLE');
-    if(audioCtx.state==='suspended')await audioCtx.resume();
-
-    const buf=await audioCtx.decodeAudioData(bytes.buffer.slice(0));
-    if(seq!==speechSeq)return;
 
     const node=audioCtx.createBufferSource();
     activeAudioSource=node;
     node.buffer=buf;
     node.connect(audioCtx.destination);
-    node.onended=()=>{if(activeAudioSource===node)activeAudioSource=null};
+
+    node.onended=()=>{
+      if(activeAudioSource===node)activeAudioSource=null;
+      if(seq!==speechSeq)return;
+      audioBusy=false;
+      activeVoiceText='';
+
+      const next=pendingVoice;
+      pendingVoice=null;
+      if(next&&next.text&&next.text!==text){
+        playVoiceNow(next.text,next.priority);
+      }
+    };
+
     node.start(0);
   }catch(e){
     console.error('tts',e);
-    if(seq===speechSeq)setStatus('TTS tạm lỗi.');
+    if(seq===speechSeq){
+      audioBusy=false;
+      activeVoiceText='';
+      setStatus('TTS tạm lỗi.');
+      const next=pendingVoice;
+      pendingVoice=null;
+      if(next&&next.text&&next.text!==text)playVoiceNow(next.text,next.priority);
+    }
   }
+}
+
+function speak(text,priority){
+  if(!text)return;
+
+  // Danger/stop may interrupt immediately.
+  if(priority==='danger'||text==='Dừng lại'){
+    pendingVoice=null;
+    try{
+      if(activeAudioSource){
+        activeAudioSource.stop(0);
+        activeAudioSource.disconnect();
+      }
+    }catch(_){}
+    activeAudioSource=null;
+    audioBusy=false;
+    activeVoiceText='';
+    playVoiceNow(text,'danger');
+    return;
+  }
+
+  // Normal/caution guidance must never chop the sentence currently being spoken.
+  if(audioBusy){
+    if(text!==activeVoiceText)pendingVoice={text,priority};
+    return;
+  }
+
+  playVoiceNow(text,priority);
 }
 
 async function startCamera(){
@@ -502,7 +559,7 @@ async function dispatchVision(){
     if(speakNow){
       lastSpokenVoice=decision.voice;lastSpokenAt=nowSpeak;
       if(navigator.vibrate){try{navigator.vibrate(urgency==='danger'?[100,60,100]:60)}catch(_){}}
-      speak(decision.voice);
+      speak(decision.voice,urgency);
     }
   }catch(e){
     console.error(e);
