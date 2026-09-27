@@ -89,7 +89,7 @@ button:disabled{opacity:.42}
         <li>Không quay lại Lovable hoặc raw.githack nếu chưa có yêu cầu mới.</li>
         <li>Camera live bằng <code>getUserMedia</code>, camera sau <code>facingMode: environment</code>.</li>
         <li>Frontend tự lấy mẫu camera mỗi 250 ms; FAST PATH chỉ gửi đúng 1 frame mới nhất, không chờ gom ảnh. Ảnh tối đa khoảng 512 px, JPEG quality 0.50, image detail low.</li>
-        <li>Auto guidance dùng giọng tự nhiên backend TTS <code>gpt-4o-mini-tts / marin</code>. Bộ câu chỉ dẫn chuẩn được preload + cache local và phát trực tiếp bằng AudioContext; không dùng speechSynthesis làm đường dẫn chính.</li>
+        <li>Auto guidance dùng 10 WAV <code>gpt-4o-mini-tts / marin</code> đã kiểm chứng, lưu thành asset tĩnh và phát trực tiếp bằng AudioContext; không dùng speechSynthesis.</li>
         <li>Không tuyên bố app thay thế gậy trắng/chó dẫn đường/kỹ năng định hướng.</li>
       </ul>
     </div>
@@ -126,7 +126,7 @@ button:disabled{opacity:.42}
         <li>Vision PERCEPTION output: <code>{description, sceneMemory, shouldSpeak, distanceBand, pathBlocked, obstaclePosition, freePath, motionRisk, confidence}</code>. GPT không còn trả action trái/phải.</li>
         <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>distanceBand</code>: far / mid / near / immediate / unknown. Không ép AI đo mét tuyệt đối.</li><li><code>pathBlocked</code> chỉ true khi vật thực sự nằm trên hướng đi dự kiến.</li><li>DECISION layer nằm ở frontend: stop/wait/slow/veer_left/veer_right/continue/scan được suy ra từ perception, không lấy trực tiếp từ GPT.</li><li><code>stop</code> chỉ hợp lệ khi distanceBand=immediate + pathBlocked, hoặc nguy cơ động immediate. Lệnh trái/phải phải được cùng freePath xác nhận 2 response liên tiếp.</li><li>Safety priority: immediate + pathBlocked luôn đi thẳng vào Decision và phát lệnh Dừng lại, kể cả response bị đánh dấu stale. Stale gate chỉ được chặn lựa chọn hướng trái/phải/đi tiếp. Near + blocked + freePath unknown phát 'Dừng lại, quét tìm lối'.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng; <code>voiceInstruction</code> cực ngắn 3–8 từ để phát ngay.</li>
         <li>Ưu tiên hiện tại: xác định vật/nguy cơ trên hướng đi → phân loại distanceBand → xác định pathBlocked → chọn action → mới sinh câu nói. Không dùng 'thấy vật cản' đồng nghĩa với 'Dừng lại'.</li>
-        <li>TTS model backend: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>. Auto guidance ưu tiên speechSynthesis nội bộ iPhone để giảm 2–6 giây latency backend.</li>
+        <li>TTS model backend: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>. Các câu chỉ dẫn chuẩn dùng WAV marin tĩnh, không gọi TTS runtime.</li>
         <li>TTS instruction: nói tiếng Việt tự nhiên, liền câu, ngắt theo dấu câu, không đọc từng từ, không đánh vần, không thêm nội dung.</li>
       </ul>
     </div>
