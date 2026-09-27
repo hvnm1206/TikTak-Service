@@ -88,7 +88,7 @@ button:disabled{opacity:.42}
         <li>Không quay lại Lovable hoặc raw.githack nếu chưa có yêu cầu mới.</li>
         <li>Camera live bằng <code>getUserMedia</code>, camera sau <code>facingMode: environment</code>.</li>
         <li>Frontend tự lấy mẫu camera mỗi 250 ms, luôn giữ 3 frame mới nhất; Vision lấy ngay rolling buffer hiện thời, không chờ gom 0,9 giây. Ảnh tối đa khoảng 640 px, JPEG quality 0.58, image detail low.</li>
-        <li>Voice chính dùng backend TTS + WAV + AudioContext; browser speechSynthesis chỉ là fallback.</li>
+        <li>Trong chế độ dẫn đường tự động, voice chính dùng browser speechSynthesis để giảm latency và luôn hủy câu cũ khi có chỉ dẫn mới; backend TTS + WAV + AudioContext giữ làm fallback/luồng mô tả chất lượng cao.</li>
         <li>Không tuyên bố app thay thế gậy trắng/chó dẫn đường/kỹ năng định hướng.</li>
       </ul>
     </div>
@@ -122,10 +122,10 @@ button:disabled{opacity:.42}
       <ul>
         <li>Vision model: <code>gpt-5.6-luna</code>.</li>
         <li>Reasoning: <code>none</code>; max output: <code>220</code>.</li>
-        <li>Structured output: <code>{description, sceneMemory, urgency, shouldSpeak}</code>.</li>
-        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng.</li>
+        <li>Structured output: <code>{description, sceneMemory, urgency, shouldSpeak, voiceInstruction}</code>.</li>
+        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng; <code>voiceInstruction</code> cực ngắn 3–8 từ để phát ngay.</li>
         <li>Ưu tiên hiện tại: nguy hiểm/vật cản → bậc/mép hụt/cửa/lối đi → người/xe/động vật cắt ngang → trái/phải/chính giữa → gần/vừa/xa khi đủ rõ → cảnh chung.</li>
-        <li>TTS model: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>.</li>
+        <li>TTS model backend: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>. Auto guidance ưu tiên speechSynthesis nội bộ iPhone để giảm 2–6 giây latency backend.</li>
         <li>TTS instruction: nói tiếng Việt tự nhiên, liền câu, ngắt theo dấu câu, không đọc từng từ, không đánh vần, không thêm nội dung.</li>
       </ul>
     </div>
@@ -137,7 +137,7 @@ button:disabled{opacity:.42}
         <li>Mô tả bằng lời theo nút bấm: ĐÃ CHẠY.</li>
         <li>3-frame temporal sampling: ĐÃ CHẠY.</li>
         <li>Scene memory: ĐÃ CHẠY.</li>
-        <li>Backend TTS + AudioContext: ĐÃ CHẠY.</li>
+        <li>Backend TTS + AudioContext: ĐÃ CHẠY, giữ làm fallback/voice chất lượng cao.</li><li>Fast voice bằng speechSynthesis + cancel câu cũ: ĐÃ TRIỂN KHAI cho auto guidance.</li>
         <li>Tự quan sát theo chu kỳ thích ứng: ĐÃ TRIỂN KHAI — camera sampling 250 ms; gọi AI theo nhịp adaptive, không queue ảnh cũ.</li>
         <li>Chỉ nói khi có thay đổi/nguy cơ đáng kể: ĐÃ CÓ gate cục bộ + shouldSpeak từ Vision; cần tiếp tục tuning bằng test hiện trường.</li>
       </ul>
@@ -172,7 +172,7 @@ button:disabled{opacity:.42}
       <ul>
         <li><code>87cd9ba3b19504fe7c2a361ad156cf235a2c88f5</code> — tạo Vision Assist V2 cache-clean.</li>
         <li><code>c31502fc571f9336ef63f4f41f461ffe35c7c6b1</code> — backend TTS + AudioContext cho iPhone.</li>
-        <li><code>c234311c311bc0fc1dc954d3cd9da989029c0a92</code> — tối ưu 3 frame / 0,9 giây.</li><li><code>897c6174b8e9589f27609ca838831f0df6951375</code> — adaptive auto-observe + latest-frame-wins + guidance output.</li>
+        <li><code>c234311c311bc0fc1dc954d3cd9da989029c0a92</code> — tối ưu 3 frame / 0,9 giây.</li><li><code>897c6174b8e9589f27609ca838831f0df6951375</code> — adaptive auto-observe + latest-frame-wins + guidance output.</li><li><code>FAST_VOICE_COMMIT_PENDING</code> — fast local voice + voiceInstruction để loại bỏ độ trễ backend TTS trong auto guidance.</li>
         <li>Runtime đã từng probe HTTP 200 trên GitHub Pages.</li>
         <li>User đã xác nhận camera, Vision và tiếng chạy; sau đó chốt baseline.</li>
       </ul>
@@ -287,7 +287,18 @@ function stopActiveAudio(){
   activeAudioSource=null;
   try{if('speechSynthesis' in window)speechSynthesis.cancel()}catch(_){}
 }
-async function speak(text,priority){
+function speakFast(text,priority){
+  if(!text||!('speechSynthesis' in window))return false;
+  try{
+    speechSynthesis.cancel();
+    speechSynthesis.resume();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='vi-VN';u.rate=priority==='danger'?1.18:1.12;u.pitch=1;u.volume=1;
+    speechSynthesis.speak(u);
+    return true;
+  }catch(e){console.error('speech-fast',e);return false}
+}
+async function speakBackend(text,priority){
   if(!text)return;
   const seq=++speechSeq;
   if(priority==='danger')stopActiveAudio();
@@ -408,7 +419,8 @@ async function dispatchVision(){
     setStatus(urgency==='danger'?'NGUY HIỂM — đang quan sát nhanh':urgency==='caution'?'Cẩn thận — đang quan sát nhanh':'Đang dẫn đường tự động.');
     if(j.shouldSpeak&&text){
       if(navigator.vibrate){try{navigator.vibrate(urgency==='danger'?[100,60,100]:60)}catch(_){}}
-      speak(text,urgency);
+      const voice=String(j.voiceInstruction||text).trim();
+      if(!speakFast(voice,urgency)) speakBackend(voice,urgency);
     }
   }catch(e){
     console.error(e);
