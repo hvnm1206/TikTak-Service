@@ -88,7 +88,7 @@ button:disabled{opacity:.42}
         <li>Không quay lại Lovable hoặc raw.githack nếu chưa có yêu cầu mới.</li>
         <li>Camera live bằng <code>getUserMedia</code>, camera sau <code>facingMode: environment</code>.</li>
         <li>Frontend tự lấy mẫu camera mỗi 250 ms; FAST PATH chỉ gửi đúng 1 frame mới nhất, không chờ gom ảnh. Ảnh tối đa khoảng 512 px, JPEG quality 0.50, image detail low.</li>
-        <li>Trong chế độ dẫn đường tự động, voice chính dùng browser speechSynthesis để giảm latency và luôn hủy câu cũ khi có chỉ dẫn mới; backend TTS + WAV + AudioContext giữ làm fallback/luồng mô tả chất lượng cao.</li>
+        <li>Auto guidance ưu tiên browser speechSynthesis nhưng KHÔNG cancel trước mọi câu. Chỉ danger mới preempt; utterance được giữ reference đến khi kết thúc. Nếu speechSynthesis không phát sự kiện start trong ~0,9 s hoặc báo lỗi, tự fallback sang backend TTS.</li>
         <li>Không tuyên bố app thay thế gậy trắng/chó dẫn đường/kỹ năng định hướng.</li>
       </ul>
     </div>
@@ -137,7 +137,7 @@ button:disabled{opacity:.42}
         <li>Mô tả bằng lời theo nút bấm: ĐÃ CHẠY.</li>
         <li>FAST PATH 1 frame mới nhất: ĐÃ CHẠY ở frontend và backend. Backend cắt input về đúng frame cuối.</li>
         <li>Scene memory: ĐÃ CHẠY.</li>
-        <li>Backend TTS + AudioContext: ĐÃ CHẠY, giữ làm fallback/voice chất lượng cao.</li><li>Fast voice bằng speechSynthesis + cancel câu cũ: ĐÃ TRIỂN KHAI cho auto guidance.</li>
+        <li>Backend TTS + AudioContext: ĐÃ CHẠY, giữ làm fallback/voice chất lượng cao.</li><li>Fast voice: speechSynthesis có start/error watchdog + giữ active utterance + backend TTS fallback; bỏ cancel-before-every-sentence để tránh race trên WebKit.</li>
         <li>Tự quan sát theo chu kỳ thích ứng: ĐÃ TRIỂN KHAI — camera sampling 250 ms; gọi AI theo nhịp adaptive, không queue ảnh cũ.</li>
         <li>Chỉ nói khi có thay đổi/nguy cơ đáng kể: ĐÃ CÓ gate cục bộ + shouldSpeak từ Vision; cần tiếp tục tuning bằng test hiện trường.</li>
       </ul>
@@ -185,7 +185,7 @@ button:disabled{opacity:.42}
         <li>Tuning ngưỡng adaptive sau test hiện trường: sampling cục bộ 250 ms; FAST PATH gửi 1 frame 512 px/JPEG 0.50. Nhịp thực tế vẫn bị giới hạn bởi latency Vision API vì chỉ cho phép 1 request đang chạy; tiếp tục đo sau thay đổi này.</li>
         <li>Đo và tuning ngưỡng scene-change để giảm nói lặp nhưng không bỏ sót nguy cơ khi người dùng đang di chuyển.</li>
         <li>Kiểm thử thực tế: vật cản, bậc thang, mép hụt, cửa/lối đi, người/xe cắt ngang, trái/phải, thay đổi nhanh của cảnh.</li>
-        <li>Gate A/B: ĐÃ TRIỂN KHAI. Perception→Decision safety layer: ĐÃ TRIỂN KHAI. Regression stale-gate gây im tiếng đã sửa: stale chỉ chặn quyết định hướng, không chặn toàn bộ phản hồi.</li><li>Tiếp tục đo latency và chi phí thực tế trước khi mở rộng.</li>
+        <li>Gate A/B + Perception→Decision: ĐÃ TRIỂN KHAI. Voice regression 17:10: execution xác nhận shouldSpeak=true nhưng iPhone không phát; sửa riêng lớp voice bằng no-cancel-normal + utterance retention + onstart watchdog + backend fallback.</li><li>Tiếp tục đo latency và chi phí thực tế trước khi mở rộng.</li>
       </ul>
     </div>
     </div>
@@ -204,6 +204,7 @@ const MAX_RESPONSE_AGE_MS=3200;
 const DIRECTION_CONFIRMATIONS=2;
 
 let audioCtx=null,activeAudioSource=null,speechSeq=0;
+let activeUtterance=null,fastSpeechAttempt=0;
 const video=document.getElementById('video');
 const overlay=document.getElementById('overlay');
 const statusEl=document.getElementById('status');
@@ -293,15 +294,46 @@ function stopActiveAudio(){
   try{if(activeAudioSource){activeAudioSource.stop(0);activeAudioSource.disconnect()}}catch(_){}
   activeAudioSource=null;
   try{if('speechSynthesis' in window)speechSynthesis.cancel()}catch(_){}
+  activeUtterance=null;fastSpeechAttempt++;
 }
 function speakFast(text,priority){
   if(!text||!('speechSynthesis' in window))return false;
   try{
-    speechSynthesis.cancel();
-    speechSynthesis.resume();
+    const attempt=++fastSpeechAttempt;
+    const synth=window.speechSynthesis;
     const u=new SpeechSynthesisUtterance(text);
+    activeUtterance=u;
     u.lang='vi-VN';u.rate=priority==='danger'?1.18:1.12;u.pitch=1;u.volume=1;
-    speechSynthesis.speak(u);
+
+    let started=false,settled=false;
+    const clear=()=>{settled=true;if(activeUtterance===u)activeUtterance=null};
+    const fallbackTimer=setTimeout(()=>{
+      if(attempt!==fastSpeechAttempt||started||settled)return;
+      clear();
+      console.warn('speech-fast-no-start');
+      speakBackend(text,priority);
+    },900);
+
+    u.onstart=()=>{started=true;clearTimeout(fallbackTimer)};
+    u.onend=()=>{clearTimeout(fallbackTimer);clear()};
+    u.onerror=(e)=>{
+      clearTimeout(fallbackTimer);clear();
+      console.error('speech-fast-error',e&&e.error||e);
+      if(attempt===fastSpeechAttempt)speakBackend(text,priority);
+    };
+
+    const doSpeak=()=>{
+      if(attempt!==fastSpeechAttempt)return;
+      try{synth.resume()}catch(_){}
+      synth.speak(u);
+    };
+
+    if(priority==='danger'&&synth.speaking){
+      try{synth.cancel()}catch(_){}
+      setTimeout(doSpeak,140);
+    }else{
+      doSpeak();
+    }
     return true;
   }catch(e){console.error('speech-fast',e);return false}
 }
