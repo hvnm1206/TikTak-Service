@@ -124,7 +124,7 @@ button:disabled{opacity:.42}
         <li>Vision model: <code>gpt-5.6-luna</code>.</li>
         <li>Reasoning: <code>none</code>; max output: <code>160</code>.</li>
         <li>Vision PERCEPTION output: <code>{description, sceneMemory, shouldSpeak, distanceBand, pathBlocked, obstaclePosition, freePath, motionRisk, confidence}</code>. GPT không còn trả action trái/phải.</li>
-        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>distanceBand</code>: far / mid / near / immediate / unknown. Không ép AI đo mét tuyệt đối.</li><li><code>pathBlocked</code> chỉ true khi vật thực sự nằm trên hướng đi dự kiến.</li><li>DECISION layer nằm ở frontend: stop/wait/slow/veer_left/veer_right/continue/scan được suy ra từ perception, không lấy trực tiếp từ GPT.</li><li><code>stop</code> chỉ hợp lệ khi distanceBand=immediate + pathBlocked, hoặc nguy cơ động immediate. Lệnh trái/phải phải được cùng freePath xác nhận 2 response liên tiếp.</li><li>Stale không còn đồng nghĩa vô dụng: app xác nhận perception geometry qua 2 response liên tiếp. Nếu freePath/pathBlocked ổn định với confidence đủ cao, response stale vẫn được dùng cho Decision. Nếu chưa ổn định thì chỉ hiển thị 'Đang xác nhận lối', không phát điệp khúc fallback.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng; <code>voiceInstruction</code> cực ngắn 3–8 từ để phát ngay.</li>
+        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>distanceBand</code>: far / mid / near / immediate / unknown. Không ép AI đo mét tuyệt đối.</li><li><code>pathBlocked</code> chỉ true khi vật thực sự nằm trên hướng đi dự kiến.</li><li>DECISION layer nằm ở frontend: stop/wait/slow/veer_left/veer_right/continue/scan được suy ra từ perception, không lấy trực tiếp từ GPT.</li><li><code>stop</code> chỉ hợp lệ khi distanceBand=immediate + pathBlocked, hoặc nguy cơ động immediate. Lệnh trái/phải phải được cùng freePath xác nhận 2 response liên tiếp.</li><li>Safety priority: immediate + pathBlocked luôn đi thẳng vào Decision và phát lệnh Dừng lại, kể cả response bị đánh dấu stale. Stale gate chỉ được chặn lựa chọn hướng trái/phải/đi tiếp. Near + blocked + freePath unknown phát 'Dừng lại, quét tìm lối'.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng; <code>voiceInstruction</code> cực ngắn 3–8 từ để phát ngay.</li>
         <li>Ưu tiên hiện tại: xác định vật/nguy cơ trên hướng đi → phân loại distanceBand → xác định pathBlocked → chọn action → mới sinh câu nói. Không dùng 'thấy vật cản' đồng nghĩa với 'Dừng lại'.</li>
         <li>TTS model backend: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>. Auto guidance ưu tiên speechSynthesis nội bộ iPhone để giảm 2–6 giây latency backend.</li>
         <li>TTS instruction: nói tiếng Việt tự nhiên, liền câu, ngắt theo dấu câu, không đọc từng từ, không đánh vần, không thêm nội dung.</li>
@@ -479,6 +479,9 @@ function decideGuidance(p,perceptionStable){
   }
   if(confidence==='low'||freePath==='unknown'){
     resetDirectionConfirm();
+    if(blocked&&distance==='near'){
+      return {action:'wait',urgency:'caution',voice:'Dừng lại, quét tìm lối',speak:true};
+    }
     return {action:'scan',urgency:'caution',voice:'Đi chậm, quét lại phía trước',speak:Boolean(p.shouldSpeak)};
   }
   if(freePath==='none'){
@@ -528,7 +531,9 @@ async function dispatchVision(){
     lastResponseAt=responseAt;
     sceneMemory=String(j.sceneMemory||'');
     const perceptionStable=updatePerceptionStability(j);
-    if(stale&&!perceptionStable){
+    const immediateHazard=String(j.distanceBand||'unknown')==='immediate'&&Boolean(j.pathBlocked);
+
+    if(stale&&!perceptionStable&&!immediateHazard){
       resetDirectionConfirm();
       urgency='caution';
       const perception=String(j.description||'').trim();
