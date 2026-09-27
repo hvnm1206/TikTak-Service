@@ -114,7 +114,7 @@ button:disabled{opacity:.42}
       <h2>D. WORKFLOW REGISTRY</h2>
       <p><b>Vision:</b> Analyze Webhook → Prepare Vision Request → OpenAI Vision → Parse Vision Result → Return Vision.</p>
       <p><b>TTS:</b> TTS Webhook → Prepare TTS → OpenAI TTS → Encode Audio → Return TTS.</p>
-      <p><b>Frontend:</b> mở camera → sampling cục bộ 250 ms → giữ frame mới nhất → local scene-change gate → one-frame latest-frame-wins POST Vision → nhận description + sceneMemory + urgency + shouldSpeak → TTS chỉ khi cần → decode WAV → phát bằng AudioContext.</p>
+      <p><b>Frontend:</b> mở camera → sampling cục bộ 250 ms → giữ frame mới nhất → one-frame Vision PERCEPTION → stale-response gate → consistency gate → DECISION layer → fast local voice.</p>
     </div>
 
     <div class="maint-card">
@@ -122,8 +122,8 @@ button:disabled{opacity:.42}
       <ul>
         <li>Vision model: <code>gpt-5.6-luna</code>.</li>
         <li>Reasoning: <code>none</code>; max output: <code>160</code>.</li>
-        <li>Structured output: <code>{description, sceneMemory, urgency, shouldSpeak, voiceInstruction, distanceBand, pathBlocked, action}</code>.</li>
-        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>distanceBand</code>: far / mid / near / immediate / unknown. Không ép AI đo mét tuyệt đối.</li><li><code>pathBlocked</code> chỉ true khi vật thực sự nằm trên hướng đi dự kiến.</li><li><code>action</code>: continue / slow / veer_left / veer_right / wait / stop / scan.</li><li><code>stop</code> chỉ hợp lệ khi distanceBand=immediate hoặc có nguy cơ động cắt ngang tức thời; far/mid không được Dừng chỉ vì thấy vật tĩnh.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng; <code>voiceInstruction</code> cực ngắn 3–8 từ để phát ngay.</li>
+        <li>Vision PERCEPTION output: <code>{description, sceneMemory, shouldSpeak, distanceBand, pathBlocked, obstaclePosition, freePath, motionRisk, confidence}</code>. GPT không còn trả action trái/phải.</li>
+        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>distanceBand</code>: far / mid / near / immediate / unknown. Không ép AI đo mét tuyệt đối.</li><li><code>pathBlocked</code> chỉ true khi vật thực sự nằm trên hướng đi dự kiến.</li><li>DECISION layer nằm ở frontend: stop/wait/slow/veer_left/veer_right/continue/scan được suy ra từ perception, không lấy trực tiếp từ GPT.</li><li><code>stop</code> chỉ hợp lệ khi distanceBand=immediate + pathBlocked, hoặc nguy cơ động immediate. Lệnh trái/phải phải được cùng freePath xác nhận 2 response liên tiếp.</li><li>Response bị bỏ nếu quá 3,2 giây hoặc cảnh thay đổi mạnh trong lúc Vision xử lý.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng; <code>voiceInstruction</code> cực ngắn 3–8 từ để phát ngay.</li>
         <li>Ưu tiên hiện tại: xác định vật/nguy cơ trên hướng đi → phân loại distanceBand → xác định pathBlocked → chọn action → mới sinh câu nói. Không dùng 'thấy vật cản' đồng nghĩa với 'Dừng lại'.</li>
         <li>TTS model backend: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>. Auto guidance ưu tiên speechSynthesis nội bộ iPhone để giảm 2–6 giây latency backend.</li>
         <li>TTS instruction: nói tiếng Việt tự nhiên, liền câu, ngắt theo dấu câu, không đọc từng từ, không đánh vần, không thêm nội dung.</li>
@@ -185,7 +185,7 @@ button:disabled{opacity:.42}
         <li>Tuning ngưỡng adaptive sau test hiện trường: sampling cục bộ 250 ms; FAST PATH gửi 1 frame 512 px/JPEG 0.50. Nhịp thực tế vẫn bị giới hạn bởi latency Vision API vì chỉ cho phép 1 request đang chạy; tiếp tục đo sau thay đổi này.</li>
         <li>Đo và tuning ngưỡng scene-change để giảm nói lặp nhưng không bỏ sót nguy cơ khi người dùng đang di chuyển.</li>
         <li>Kiểm thử thực tế: vật cản, bậc thang, mép hụt, cửa/lối đi, người/xe cắt ngang, trái/phải, thay đổi nhanh của cảnh.</li>
-        <li>Gate A/B: ĐÃ TRIỂN KHAI. Cần test hiện trường mới để xác nhận distanceBand/action và execution imageCount=1 trước khi mở Gate C/D.</li><li>Tiếp tục đo latency và chi phí thực tế trước khi mở rộng.</li>
+        <li>Gate A/B: ĐÃ TRIỂN KHAI. Perception→Decision safety layer: ĐÃ TRIỂN KHAI; cần test hiện trường về stale rejection và xác nhận hướng 2 lần.</li><li>Tiếp tục đo latency và chi phí thực tế trước khi mở rộng.</li>
       </ul>
     </div>
     </div>
@@ -198,6 +198,9 @@ const SAMPLE_MS=250;
 const DIFF_THRESHOLD=7.5;
 const CADENCE_MS={normal:1800,caution:850,danger:450};
 const FORCE_MS={normal:5000,caution:2200,danger:1000};
+const STALE_SCENE_DIFF=22;
+const MAX_RESPONSE_AGE_MS=3200;
+const DIRECTION_CONFIRMATIONS=2;
 
 let audioCtx=null,activeAudioSource=null,speechSeq=0;
 const video=document.getElementById('video');
@@ -217,6 +220,9 @@ let stream=null,starting=false,sceneMemory='';
 let autoMode=false,inFlight=false,sampleTimer=null;
 let latestFrames=[],lastSignature=null,lastRequestAt=0,lastResponseAt=0;
 let urgency='normal',latestDiff=0;
+let requestSeq=0;
+let directionCandidate='unknown',directionCount=0;
+let lastDecision='scan';
 
 function maintenanceText(){
   const lines=[];
@@ -390,6 +396,58 @@ function sampleTick(){
 }
 function currentCadence(){return CADENCE_MS[urgency]||CADENCE_MS.normal}
 function currentForce(){return FORCE_MS[urgency]||FORCE_MS.normal}
+function resetDirectionConfirm(){directionCandidate='unknown';directionCount=0}
+function directionInternallyConsistent(p){
+  if(!p||!p.pathBlocked)return true;
+  if(p.freePath==='left'&&p.obstaclePosition==='left')return false;
+  if(p.freePath==='right'&&p.obstaclePosition==='right')return false;
+  if(p.freePath==='center'&&p.obstaclePosition==='center')return false;
+  return true;
+}
+function confirmDirection(path,confidence){
+  if(!['left','center','right'].includes(path)||confidence==='low'){resetDirectionConfirm();return false}
+  if(directionCandidate===path)directionCount++;
+  else{directionCandidate=path;directionCount=1}
+  return directionCount>=DIRECTION_CONFIRMATIONS;
+}
+function decideGuidance(p){
+  const distance=String(p.distanceBand||'unknown');
+  const motion=String(p.motionRisk||'unknown');
+  const confidence=String(p.confidence||'low');
+  const freePath=String(p.freePath||'unknown');
+  const blocked=Boolean(p.pathBlocked);
+
+  if((distance==='immediate'&&blocked)||(distance==='immediate'&&['approaching','crossing'].includes(motion))){
+    resetDirectionConfirm();
+    return {action:'stop',urgency:'danger',voice:'Dừng lại',speak:true};
+  }
+  if(['approaching','crossing'].includes(motion)&&['near','immediate'].includes(distance)){
+    resetDirectionConfirm();
+    return {action:'wait',urgency:'caution',voice:'Chờ một chút',speak:true};
+  }
+  if(!directionInternallyConsistent(p)){
+    resetDirectionConfirm();
+    return {action:'scan',urgency:'caution',voice:'Quét lại phía trước',speak:true};
+  }
+  if(confidence==='low'||freePath==='unknown'){
+    resetDirectionConfirm();
+    return {action:'scan',urgency:'caution',voice:'Đi chậm, quét lại phía trước',speak:Boolean(p.shouldSpeak)};
+  }
+  if(freePath==='none'){
+    resetDirectionConfirm();
+    return {action:distance==='near'?'wait':'slow',urgency:'caution',voice:distance==='near'?'Chờ, lối chưa rõ':'Đi chậm, lối chưa rõ',speak:true};
+  }
+
+  const confirmed=confirmDirection(freePath,confidence);
+  if(!confirmed){
+    return {action:'slow',urgency:'caution',voice:'Đi chậm, đang xác nhận lối',speak:Boolean(p.shouldSpeak)};
+  }
+
+  if(freePath==='left')return {action:'veer_left',urgency:'caution',voice:'Lệch trái nhẹ',speak:true};
+  if(freePath==='right')return {action:'veer_right',urgency:'caution',voice:'Lệch phải nhẹ',speak:true};
+  if(freePath==='center'&&!blocked)return {action:'continue',urgency:'normal',voice:'Đi thẳng chậm',speak:Boolean(p.shouldSpeak)};
+  return {action:'slow',urgency:'caution',voice:'Đi chậm',speak:Boolean(p.shouldSpeak)};
+}
 function maybeDispatch(changed){
   if(!autoMode||inFlight||latestFrames.length<1)return;
   const now=Date.now();
@@ -402,6 +460,9 @@ function maybeDispatch(changed){
 async function dispatchVision(){
   if(inFlight||!autoMode||!latestFrames.length)return;
   inFlight=true;lastRequestAt=Date.now();
+  const seq=++requestSeq;
+  const sentAt=Date.now();
+  const sentSignature=lastSignature?new Uint8Array(lastSignature):sceneSignature();
   const frames=[latestFrames[latestFrames.length-1]];
   setStatus('Đang quan sát tự động...');
   try{
@@ -411,16 +472,28 @@ async function dispatchVision(){
     const r=await fetch(API,{method:'POST',body:form});
     const j=await r.json();
     if(!r.ok||!j.ok)throw new Error(j.error||('HTTP '+r.status));
-    lastResponseAt=Date.now();
+    const responseAt=Date.now();
+    const responseAge=responseAt-sentAt;
+    const currentSignature=sceneSignature();
+    const sceneDrift=signatureDiff(sentSignature,currentSignature);
+    if(seq!==requestSeq||responseAge>MAX_RESPONSE_AGE_MS||sceneDrift>STALE_SCENE_DIFF){
+      resetDirectionConfirm();
+      setStatus('Cảnh đã đổi — đang cập nhật lại...');
+      return;
+    }
+
+    lastResponseAt=responseAt;
     sceneMemory=String(j.sceneMemory||'');
-    urgency=['normal','caution','danger'].includes(j.urgency)?j.urgency:'caution';
-    const text=String(j.description||'').trim();
-    if(text)resultEl.textContent=text;
-    setStatus(urgency==='danger'?'NGUY HIỂM — đang quan sát nhanh':urgency==='caution'?'Cẩn thận — đang quan sát nhanh':'Đang dẫn đường tự động.');
-    if(j.shouldSpeak&&text){
+    const decision=decideGuidance(j);
+    lastDecision=decision.action;
+    urgency=decision.urgency;
+    const perception=String(j.description||'').trim();
+    const text=perception?perception+' · '+decision.voice:decision.voice;
+    resultEl.textContent=text;
+    setStatus(urgency==='danger'?'NGUY HIỂM — '+decision.voice:urgency==='caution'?'Cẩn thận — '+decision.voice:'Đang dẫn đường — '+decision.voice);
+    if(decision.speak){
       if(navigator.vibrate){try{navigator.vibrate(urgency==='danger'?[100,60,100]:60)}catch(_){}}
-      const voice=String(j.voiceInstruction||text).trim();
-      if(!speakFast(voice,urgency)) speakBackend(voice,urgency);
+      if(!speakFast(decision.voice,urgency)) speakBackend(decision.voice,urgency);
     }
   }catch(e){
     console.error(e);
@@ -438,7 +511,7 @@ describeBtn.onclick=async()=>{
   autoMode=!autoMode;
   updateAutoButton();
   if(autoMode){
-    latestFrames=[];lastSignature=null;lastRequestAt=0;lastResponseAt=0;urgency='normal';
+    latestFrames=[];lastSignature=null;lastRequestAt=0;lastResponseAt=0;urgency='normal';requestSeq=0;resetDirectionConfirm();lastDecision='scan';
     setStatus('Bắt đầu dẫn đường tự động...');
     sampleTick();
     setTimeout(()=>maybeDispatch(true),100);
