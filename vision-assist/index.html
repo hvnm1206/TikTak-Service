@@ -38,6 +38,8 @@ button:disabled{opacity:.42}
 </div>
 <script>
 const API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-analyze-v1';
+const TTS_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1';
+let audioCtx=null;
 const video=document.getElementById('video');
 const overlay=document.getElementById('overlay');
 const statusEl=document.getElementById('status');
@@ -52,15 +54,44 @@ function setCameraReady(ready){
   describeBtn.disabled=!ready;
   overlay.style.display=ready?'none':'flex';
 }
-function speak(text){
-  if(!text||!('speechSynthesis' in window))return;
+function unlockAudio(){
   try{
-    const s=window.speechSynthesis;
-    s.cancel();s.resume();
-    const u=new SpeechSynthesisUtterance(text);
-    u.lang='vi-VN';u.rate=1;u.pitch=1;u.volume=1;
-    s.speak(u);
-  }catch(e){console.error('speech',e)}
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)return;
+    if(!audioCtx)audioCtx=new AC();
+    if(audioCtx.state==='suspended')audioCtx.resume();
+    const b=audioCtx.createBuffer(1,1,22050);
+    const s=audioCtx.createBufferSource();s.buffer=b;s.connect(audioCtx.destination);s.start(0);
+  }catch(e){console.error('audio-unlock',e)}
+}
+async function speak(text){
+  if(!text)return;
+  try{
+    const form=new FormData();form.append('text',text);
+    const r=await fetch(TTS_API,{method:'POST',body:form});
+    const j=await r.json();
+    if(!r.ok||!j.ok||!j.audioBase64)throw new Error(j.error||('HTTP '+r.status));
+    const bin=atob(j.audioBase64),bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!audioCtx&&AC)audioCtx=new AC();
+    if(audioCtx){
+      if(audioCtx.state==='suspended')await audioCtx.resume();
+      const buf=await audioCtx.decodeAudioData(bytes.buffer.slice(0));
+      const node=audioCtx.createBufferSource();node.buffer=buf;node.connect(audioCtx.destination);node.start(0);
+      return;
+    }
+    const blob=new Blob([bytes],{type:j.mimeType||'audio/mpeg'});
+    const a=new Audio(URL.createObjectURL(blob));await a.play();
+  }catch(e){
+    console.error('tts',e);
+    try{
+      if('speechSynthesis' in window){
+        speechSynthesis.cancel();speechSynthesis.resume();
+        const u=new SpeechSynthesisUtterance(text);u.lang='vi-VN';u.rate=1;u.volume=1;speechSynthesis.speak(u);
+      }
+    }catch(_){}
+  }
 }
 async function startCamera(){
   if(stream||starting)return;
@@ -93,6 +124,7 @@ function grabFrame(){
 cameraBtn.onclick=startCamera;
 describeBtn.onclick=async()=>{
   if(!stream||describeBtn.disabled)return;
+  unlockAudio();
   describeBtn.disabled=true;
   describeBtn.textContent='ĐANG QUAN SÁT...';
   setStatus('Đang quan sát...');
@@ -113,7 +145,7 @@ describeBtn.onclick=async()=>{
     resultEl.textContent=j.description||'';
     setStatus('Đã quan sát.');
     if(navigator.vibrate){try{navigator.vibrate(60)}catch(_){}}
-    speak(j.description||'');
+    await speak(j.description||'');
   }catch(e){
     console.error(e);
     setStatus('Không mô tả được. Hãy thử lại.');
