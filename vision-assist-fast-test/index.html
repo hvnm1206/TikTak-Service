@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NMH Vision Assist V2 — FAST TEST</title>
-<meta name="nmh-build" content="20260927-1827-fast-center-medium">
+<meta name="nmh-build" content="20260927-1830-fast-ios-audio">
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#07101c;color:#fff;font-family:Arial,sans-serif}
@@ -193,7 +193,7 @@ button:disabled{opacity:.42}
   </div>
 </div>
 <script>
-const APP_BUILD='20260927-1827-fast-center-medium';
+const APP_BUILD='20260927-1830-fast-ios-audio';
 const API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-fast-test-v1';
 const TTS_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1';
 const SAMPLE_MS=250;
@@ -210,6 +210,7 @@ let audioCtx=null,activeAudioSource=null,speechSeq=0;
 const VOICE_CACHE_VERSION='marin-final';
 const STATIC_GUIDANCE_URLS={"Dừng lại":"../vision-assist-v2/audio/marin-final/stop.b64","Dừng lại, quét tìm lối":"../vision-assist-v2/audio/marin-final/stop-scan.b64","Chờ một chút":"../vision-assist-v2/audio/marin-final/wait.b64","Đi thẳng chậm":"../vision-assist-v2/audio/marin-final/forward-slow.b64","Quét lại phía trước":"../vision-assist-v2/audio/marin-final/scan.b64","Đi chậm, quét lại phía trước":"../vision-assist-v2/audio/marin-final/slow-scan.b64","Đi chậm, lối chưa rõ":"../vision-assist-v2/audio/marin-final/slow-unclear.b64","Chờ, lối chưa rõ":"../vision-assist-v2/audio/marin-final/wait-unclear.b64","Đi chậm":"../vision-assist-v2/audio/marin-final/slow.b64","Lệch trái nhẹ":"../vision-assist-v2/audio/marin-final/left.b64","Lệch phải nhẹ":"../vision-assist-v2/audio/marin-final/right.b64"};
 const guidanceVoiceBuffers=new Map();
+const guidanceVoiceBase64=new Map();
 const guidanceVoicePending=new Map();
 const GUIDANCE_PHRASES=[
   'Dừng lại',
@@ -300,15 +301,19 @@ function setCameraReady(ready){
   overlay.style.display=ready?'none':'flex';
   updateAutoButton();
 }
-function unlockAudio(){
+async function unlockAudio(){
   try{
     const AC=window.AudioContext||window.webkitAudioContext;
-    if(!AC)return;
+    if(!AC)throw new Error('AUDIO_CONTEXT_UNAVAILABLE');
     if(!audioCtx)audioCtx=new AC();
-    if(audioCtx.state==='suspended')audioCtx.resume();
+    if(audioCtx.state==='suspended')await audioCtx.resume();
     const b=audioCtx.createBuffer(1,1,22050);
     const s=audioCtx.createBufferSource();s.buffer=b;s.connect(audioCtx.destination);s.start(0);
-  }catch(e){console.error('audio-unlock',e)}
+    return audioCtx.state==='running';
+  }catch(e){
+    console.error('audio-unlock',e);
+    return false;
+  }
 }
 function stopActiveAudio(){
   try{if(activeAudioSource){activeAudioSource.stop(0);activeAudioSource.disconnect()}}catch(_){}
@@ -327,19 +332,24 @@ async function ensureAudioContext(){
   if(audioCtx&&audioCtx.state==='suspended')await audioCtx.resume();
   return audioCtx;
 }
+async function loadGuidanceBase64(text){
+  if(guidanceVoiceBase64.has(text))return guidanceVoiceBase64.get(text);
+  const url=STATIC_GUIDANCE_URLS[text];
+  if(!url)throw new Error('NO_STATIC_GUIDANCE:'+text);
+  const r=await fetch(url,{cache:'force-cache'});
+  if(!r.ok)throw new Error('GUIDANCE_ASSET_HTTP_'+r.status);
+  const audioBase64=(await r.text()).trim();
+  guidanceVoiceBase64.set(text,audioBase64);
+  return audioBase64;
+}
 async function getGuidanceBuffer(text){
   if(guidanceVoiceBuffers.has(text))return guidanceVoiceBuffers.get(text);
   if(guidanceVoicePending.has(text))return guidanceVoicePending.get(text);
   const p=(async()=>{
-    const url=STATIC_GUIDANCE_URLS[text];
-    if(!url)throw new Error('NO_STATIC_GUIDANCE:'+text);
-    const r=await fetch(url,{cache:'force-cache'});
-    if(!r.ok)throw new Error('GUIDANCE_ASSET_HTTP_'+r.status);
-    const audioBase64=(await r.text()).trim();
-    const ctx=await ensureAudioContext();
-    if(!ctx)throw new Error('AUDIO_CONTEXT_UNAVAILABLE');
+    const audioBase64=await loadGuidanceBase64(text);
+    if(!audioCtx||audioCtx.state!=='running')throw new Error('AUDIO_NOT_UNLOCKED');
     const bytes=base64ToBytes(audioBase64);
-    const buf=await ctx.decodeAudioData(bytes.buffer.slice(0));
+    const buf=await audioCtx.decodeAudioData(bytes.buffer.slice(0));
     guidanceVoiceBuffers.set(text,buf);
     return buf;
   })().finally(()=>guidanceVoicePending.delete(text));
@@ -347,7 +357,7 @@ async function getGuidanceBuffer(text){
   return p;
 }
 async function preloadGuidanceVoice(){
-  await Promise.allSettled(GUIDANCE_PHRASES.map(text=>getGuidanceBuffer(text)));
+  await Promise.allSettled(GUIDANCE_PHRASES.map(text=>loadGuidanceBase64(text)));
 }
 async function playGuidanceVoice(text,priority){
   if(!text)return;
@@ -587,9 +597,12 @@ async function dispatchVision(){
 }
 cameraBtn.onclick=startCamera;
 describeBtn.onclick=async()=>{
-  unlockAudio();
+  const audioReady=await unlockAudio();
+  if(!audioReady){
+    setStatus('Không mở được âm thanh — chạm lại BẮT ĐẦU DẪN ĐƯỜNG.');
+    return;
+  }
   if(!stream)await startCamera();
-setTimeout(()=>preloadGuidanceVoice(),1200);
   if(!stream)return;
   autoMode=!autoMode;
   updateAutoButton();
