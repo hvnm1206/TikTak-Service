@@ -123,7 +123,7 @@ button:disabled{opacity:.42}
         <li>Vision model: <code>gpt-5.6-luna</code>.</li>
         <li>Reasoning: <code>none</code>; max output: <code>160</code>.</li>
         <li>Vision PERCEPTION output: <code>{description, sceneMemory, shouldSpeak, distanceBand, pathBlocked, obstaclePosition, freePath, motionRisk, confidence}</code>. GPT không còn trả action trái/phải.</li>
-        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>distanceBand</code>: far / mid / near / immediate / unknown. Không ép AI đo mét tuyệt đối.</li><li><code>pathBlocked</code> chỉ true khi vật thực sự nằm trên hướng đi dự kiến.</li><li>DECISION layer nằm ở frontend: stop/wait/slow/veer_left/veer_right/continue/scan được suy ra từ perception, không lấy trực tiếp từ GPT.</li><li><code>stop</code> chỉ hợp lệ khi distanceBand=immediate + pathBlocked, hoặc nguy cơ động immediate. Lệnh trái/phải phải được cùng freePath xác nhận 2 response liên tiếp.</li><li>Response stale không còn bị vứt hoàn toàn: app vẫn hiển thị perception và phát 'Đi chậm, đang cập nhật'; chỉ khóa quyền dùng response stale để xác nhận trái/phải.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng; <code>voiceInstruction</code> cực ngắn 3–8 từ để phát ngay.</li>
+        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>distanceBand</code>: far / mid / near / immediate / unknown. Không ép AI đo mét tuyệt đối.</li><li><code>pathBlocked</code> chỉ true khi vật thực sự nằm trên hướng đi dự kiến.</li><li>DECISION layer nằm ở frontend: stop/wait/slow/veer_left/veer_right/continue/scan được suy ra từ perception, không lấy trực tiếp từ GPT.</li><li><code>stop</code> chỉ hợp lệ khi distanceBand=immediate + pathBlocked, hoặc nguy cơ động immediate. Lệnh trái/phải phải được cùng freePath xác nhận 2 response liên tiếp.</li><li>Stale không còn đồng nghĩa vô dụng: app xác nhận perception geometry qua 2 response liên tiếp. Nếu freePath/pathBlocked ổn định với confidence đủ cao, response stale vẫn được dùng cho Decision. Nếu chưa ổn định thì chỉ hiển thị 'Đang xác nhận lối', không phát điệp khúc fallback.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng; <code>voiceInstruction</code> cực ngắn 3–8 từ để phát ngay.</li>
         <li>Ưu tiên hiện tại: xác định vật/nguy cơ trên hướng đi → phân loại distanceBand → xác định pathBlocked → chọn action → mới sinh câu nói. Không dùng 'thấy vật cản' đồng nghĩa với 'Dừng lại'.</li>
         <li>TTS model backend: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>. Auto guidance ưu tiên speechSynthesis nội bộ iPhone để giảm 2–6 giây latency backend.</li>
         <li>TTS instruction: nói tiếng Việt tự nhiên, liền câu, ngắt theo dấu câu, không đọc từng từ, không đánh vần, không thêm nội dung.</li>
@@ -185,7 +185,7 @@ button:disabled{opacity:.42}
         <li>Tuning ngưỡng adaptive sau test hiện trường: sampling cục bộ 250 ms; FAST PATH gửi 1 frame 512 px/JPEG 0.50. Nhịp thực tế vẫn bị giới hạn bởi latency Vision API vì chỉ cho phép 1 request đang chạy; tiếp tục đo sau thay đổi này.</li>
         <li>Đo và tuning ngưỡng scene-change để giảm nói lặp nhưng không bỏ sót nguy cơ khi người dùng đang di chuyển.</li>
         <li>Kiểm thử thực tế: vật cản, bậc thang, mép hụt, cửa/lối đi, người/xe cắt ngang, trái/phải, thay đổi nhanh của cảnh.</li>
-        <li>Gate A/B + Perception→Decision: ĐÃ TRIỂN KHAI. Voice regression 17:10: execution xác nhận shouldSpeak=true nhưng iPhone không phát; sửa riêng lớp voice bằng no-cancel-normal + utterance retention + onstart watchdog + backend fallback.</li><li>Tiếp tục đo latency và chi phí thực tế trước khi mở rộng.</li>
+        <li>Gate A/B + Perception→Decision: ĐÃ TRIỂN KHAI. Phiên 17:18 xác nhận nhiều execution liên tiếp freePath=center, confidence=high nhưng stale-gate vẫn fallback; đã sửa thành stable-perception gate 2 response và bỏ voice fallback lặp.</li><li>Tiếp tục đo latency và chi phí thực tế trước khi mở rộng.</li>
       </ul>
     </div>
     </div>
@@ -224,7 +224,8 @@ let latestFrames=[],lastSignature=null,lastRequestAt=0,lastResponseAt=0;
 let urgency='normal',latestDiff=0;
 let requestSeq=0;
 let directionCandidate='unknown',directionCount=0;
-let lastDecision='scan',lastStaleSpeakAt=0;
+let perceptionCandidate='',perceptionCount=0;
+let lastDecision='scan';
 
 function maintenanceText(){
   const lines=[];
@@ -430,6 +431,18 @@ function sampleTick(){
 function currentCadence(){return CADENCE_MS[urgency]||CADENCE_MS.normal}
 function currentForce(){return FORCE_MS[urgency]||FORCE_MS.normal}
 function resetDirectionConfirm(){directionCandidate='unknown';directionCount=0}
+function resetPerceptionConfirm(){perceptionCandidate='';perceptionCount=0}
+function updatePerceptionStability(p){
+  const confidence=String(p&&p.confidence||'low');
+  const freePath=String(p&&p.freePath||'unknown');
+  if(confidence==='low'||!['left','center','right','none'].includes(freePath)){
+    resetPerceptionConfirm();return false;
+  }
+  const key=freePath+'|'+String(Boolean(p.pathBlocked));
+  if(perceptionCandidate===key)perceptionCount++;
+  else{perceptionCandidate=key;perceptionCount=1}
+  return perceptionCount>=2;
+}
 function directionInternallyConsistent(p){
   if(!p||!p.pathBlocked)return true;
   if(p.freePath==='left'&&p.obstaclePosition==='left')return false;
@@ -443,7 +456,7 @@ function confirmDirection(path,confidence){
   else{directionCandidate=path;directionCount=1}
   return directionCount>=DIRECTION_CONFIRMATIONS;
 }
-function decideGuidance(p){
+function decideGuidance(p,perceptionStable){
   const distance=String(p.distanceBand||'unknown');
   const motion=String(p.motionRisk||'unknown');
   const confidence=String(p.confidence||'low');
@@ -471,7 +484,7 @@ function decideGuidance(p){
     return {action:distance==='near'?'wait':'slow',urgency:'caution',voice:distance==='near'?'Chờ, lối chưa rõ':'Đi chậm, lối chưa rõ',speak:true};
   }
 
-  const confirmed=confirmDirection(freePath,confidence);
+  const confirmed=perceptionStable||confirmDirection(freePath,confidence);
   if(!confirmed){
     return {action:'slow',urgency:'caution',voice:'Đi chậm, đang xác nhận lối',speak:Boolean(p.shouldSpeak)};
   }
@@ -512,20 +525,17 @@ async function dispatchVision(){
     const stale=seq!==requestSeq||responseAge>MAX_RESPONSE_AGE_MS||sceneDrift>STALE_SCENE_DIFF;
     lastResponseAt=responseAt;
     sceneMemory=String(j.sceneMemory||'');
-    if(stale){
+    const perceptionStable=updatePerceptionStability(j);
+    if(stale&&!perceptionStable){
       resetDirectionConfirm();
       urgency='caution';
       const perception=String(j.description||'').trim();
-      resultEl.textContent=perception?perception+' · Đi chậm, đang cập nhật':'Đi chậm, đang cập nhật';
-      setStatus('Cảnh đang thay đổi — đi chậm');
-      if(Date.now()-lastStaleSpeakAt>=STALE_SPEAK_COOLDOWN_MS){
-        lastStaleSpeakAt=Date.now();
-        if(!speakFast('Đi chậm, đang cập nhật','caution')) speakBackend('Đi chậm, đang cập nhật','caution');
-      }
+      resultEl.textContent=perception?perception+' · Đang xác nhận lối':'Đang xác nhận lối';
+      setStatus('Đang xác nhận lối...');
       return;
     }
 
-    const decision=decideGuidance(j);
+    const decision=decideGuidance(j,perceptionStable);
     lastDecision=decision.action;
     urgency=decision.urgency;
     const perception=String(j.description||'').trim();
@@ -552,7 +562,7 @@ describeBtn.onclick=async()=>{
   autoMode=!autoMode;
   updateAutoButton();
   if(autoMode){
-    latestFrames=[];lastSignature=null;lastRequestAt=0;lastResponseAt=0;urgency='normal';requestSeq=0;resetDirectionConfirm();lastDecision='scan';
+    latestFrames=[];lastSignature=null;lastRequestAt=0;lastResponseAt=0;urgency='normal';requestSeq=0;resetDirectionConfirm();resetPerceptionConfirm();lastDecision='scan';
     setStatus('Bắt đầu dẫn đường tự động...');
     sampleTick();
     setTimeout(()=>maybeDispatch(true),100);
