@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NMH Vision Assist V2 — FAST TEST</title>
-<meta name="nmh-build" content="20260927-1846-fast-ai-no-18s-override">
+<meta name="nmh-build" content="20260927-1850-fast-c315-voice">
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#07101c;color:#fff;font-family:Arial,sans-serif}
@@ -89,7 +89,7 @@ button:disabled{opacity:.42}
         <li>Không quay lại Lovable hoặc raw.githack nếu chưa có yêu cầu mới.</li>
         <li>Camera live bằng <code>getUserMedia</code>, camera sau <code>facingMode: environment</code>.</li>
         <li>Frontend tự lấy mẫu camera mỗi 250 ms; FAST PATH chỉ gửi đúng 1 frame mới nhất, không chờ gom ảnh. Ảnh tối đa khoảng 512 px, JPEG quality 0.50, image detail low.</li>
-        <li>Auto guidance dùng 10 WAV <code>gpt-4o-mini-tts / marin</code> đã kiểm chứng, lưu thành asset tĩnh và phát trực tiếp bằng AudioContext; không dùng speechSynthesis.</li>
+        <li>FAST voice đã khôi phục đường voice của commit c31502fc: user-gesture unlock → backend TTS <code>gpt-4o-mini-tts / marin</code> → WAV/base64 → AudioContext decode/play. Bộ WAV tĩnh không còn là đường phát chính.</li>
         <li>Không tuyên bố app thay thế gậy trắng/chó dẫn đường/kỹ năng định hướng.</li>
       </ul>
     </div>
@@ -193,7 +193,7 @@ button:disabled{opacity:.42}
   </div>
 </div>
 <script>
-const APP_BUILD='20260927-1846-fast-ai-no-18s-override';
+const APP_BUILD='20260927-1850-fast-c315-voice';
 const API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-fast-test-v1';
 const TTS_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1';
 const SAMPLE_MS=250;
@@ -300,19 +300,15 @@ function setCameraReady(ready){
   overlay.style.display=ready?'none':'flex';
   updateAutoButton();
 }
-async function unlockAudio(){
+function unlockAudio(){
   try{
     const AC=window.AudioContext||window.webkitAudioContext;
-    if(!AC)throw new Error('AUDIO_CONTEXT_UNAVAILABLE');
+    if(!AC)return;
     if(!audioCtx)audioCtx=new AC();
-    if(audioCtx.state==='suspended')await audioCtx.resume();
+    if(audioCtx.state==='suspended')audioCtx.resume();
     const b=audioCtx.createBuffer(1,1,22050);
     const s=audioCtx.createBufferSource();s.buffer=b;s.connect(audioCtx.destination);s.start(0);
-    return audioCtx.state==='running';
-  }catch(e){
-    console.error('audio-unlock',e);
-    return false;
-  }
+  }catch(e){console.error('audio-unlock',e)}
 }
 function stopActiveAudio(){
   try{if(activeAudioSource){activeAudioSource.stop(0);activeAudioSource.disconnect()}}catch(_){}
@@ -406,6 +402,35 @@ async function speakBackend(text,priority){
     const blob=new Blob([bytes],{type:j.mimeType||'audio/mpeg'});
     const a=new Audio(URL.createObjectURL(blob));await a.play();
   }catch(e){console.error('tts',e)}
+}
+async function speak(text){
+  if(!text)return;
+  try{
+    const form=new FormData();form.append('text',text);
+    const r=await fetch(TTS_API,{method:'POST',body:form});
+    const j=await r.json();
+    if(!r.ok||!j.ok||!j.audioBase64)throw new Error(j.error||('HTTP '+r.status));
+    const bin=atob(j.audioBase64),bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!audioCtx&&AC)audioCtx=new AC();
+    if(audioCtx){
+      if(audioCtx.state==='suspended')await audioCtx.resume();
+      const buf=await audioCtx.decodeAudioData(bytes.buffer.slice(0));
+      const node=audioCtx.createBufferSource();node.buffer=buf;node.connect(audioCtx.destination);node.start(0);
+      return;
+    }
+    const blob=new Blob([bytes],{type:j.mimeType||'audio/mpeg'});
+    const a=new Audio(URL.createObjectURL(blob));await a.play();
+  }catch(e){
+    console.error('tts',e);
+    try{
+      if('speechSynthesis' in window){
+        speechSynthesis.cancel();speechSynthesis.resume();
+        const u=new SpeechSynthesisUtterance(text);u.lang='vi-VN';u.rate=1;u.volume=1;speechSynthesis.speak(u);
+      }
+    }catch(_){}
+  }
 }
 async function startCamera(){
   if(stream||starting)return;
@@ -540,7 +565,7 @@ async function dispatchVision(){
     if(speakNow){
       lastSpokenVoice=decision.voice;lastSpokenAt=nowSpeak;
       if(navigator.vibrate){try{navigator.vibrate(urgency==='danger'?[100,60,100]:60)}catch(_){}}
-      playGuidanceVoice(decision.voice,urgency);
+      speak(decision.voice);
     }
   }catch(e){
     console.error(e);
@@ -552,11 +577,7 @@ async function dispatchVision(){
 }
 cameraBtn.onclick=startCamera;
 describeBtn.onclick=async()=>{
-  const audioReady=await unlockAudio();
-  if(!audioReady){
-    setStatus('Không mở được âm thanh — chạm lại BẮT ĐẦU DẪN ĐƯỜNG.');
-    return;
-  }
+  unlockAudio();
   if(!stream)await startCamera();
   if(!stream)return;
   autoMode=!autoMode;
@@ -564,7 +585,6 @@ describeBtn.onclick=async()=>{
   if(autoMode){
     latestFrames=[];lastSignature=null;lastRequestAt=0;lastResponseAt=0;urgency='normal';requestSeq=0;resetDirectionConfirm();resetPerceptionConfirm();lastDecision='scan';lastSpokenVoice='';lastSpokenAt=0;
     setStatus('Bắt đầu dẫn đường tự động...');
-    preloadGuidanceVoice();
     sampleTick();
     setTimeout(()=>maybeDispatch(true),100);
   }else{
