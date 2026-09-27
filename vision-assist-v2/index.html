@@ -87,7 +87,7 @@ button:disabled{opacity:.42}
         <li>Không dùng file picker / native Camera / gallery làm luồng chính.</li>
         <li>Không quay lại Lovable hoặc raw.githack nếu chưa có yêu cầu mới.</li>
         <li>Camera live bằng <code>getUserMedia</code>, camera sau <code>facingMode: environment</code>.</li>
-        <li>Frontend tự lấy mẫu camera mỗi 250 ms, luôn giữ 3 frame mới nhất; Vision lấy ngay rolling buffer hiện thời, không chờ gom 0,9 giây. Ảnh tối đa khoảng 640 px, JPEG quality 0.58, image detail low.</li>
+        <li>Frontend tự lấy mẫu camera mỗi 250 ms; FAST PATH chỉ gửi đúng 1 frame mới nhất, không chờ gom ảnh. Ảnh tối đa khoảng 512 px, JPEG quality 0.50, image detail low.</li>
         <li>Trong chế độ dẫn đường tự động, voice chính dùng browser speechSynthesis để giảm latency và luôn hủy câu cũ khi có chỉ dẫn mới; backend TTS + WAV + AudioContext giữ làm fallback/luồng mô tả chất lượng cao.</li>
         <li>Không tuyên bố app thay thế gậy trắng/chó dẫn đường/kỹ năng định hướng.</li>
       </ul>
@@ -114,7 +114,7 @@ button:disabled{opacity:.42}
       <h2>D. WORKFLOW REGISTRY</h2>
       <p><b>Vision:</b> Analyze Webhook → Prepare Vision Request → OpenAI Vision → Parse Vision Result → Return Vision.</p>
       <p><b>TTS:</b> TTS Webhook → Prepare TTS → OpenAI TTS → Encode Audio → Return TTS.</p>
-      <p><b>Frontend:</b> mở camera → sampling cục bộ 250 ms → rolling buffer 3 frame mới nhất → local scene-change gate → latest-frame-wins POST Vision → nhận description + sceneMemory + urgency + shouldSpeak → TTS chỉ khi cần → decode WAV → phát bằng AudioContext.</p>
+      <p><b>Frontend:</b> mở camera → sampling cục bộ 250 ms → giữ frame mới nhất → local scene-change gate → one-frame latest-frame-wins POST Vision → nhận description + sceneMemory + urgency + shouldSpeak → TTS chỉ khi cần → decode WAV → phát bằng AudioContext.</p>
     </div>
 
     <div class="maint-card">
@@ -135,7 +135,7 @@ button:disabled{opacity:.42}
       <ul>
         <li>Camera live: ĐÃ CHẠY.</li>
         <li>Mô tả bằng lời theo nút bấm: ĐÃ CHẠY.</li>
-        <li>3-frame temporal sampling: ĐÃ CHẠY.</li>
+        <li>FAST PATH 1 frame mới nhất: ĐÃ CHẠY. Multi-frame chỉ còn là hướng context/motion riêng, không chặn chỉ dẫn tức thời.</li>
         <li>Scene memory: ĐÃ CHẠY.</li>
         <li>Backend TTS + AudioContext: ĐÃ CHẠY, giữ làm fallback/voice chất lượng cao.</li><li>Fast voice bằng speechSynthesis + cancel câu cũ: ĐÃ TRIỂN KHAI cho auto guidance.</li>
         <li>Tự quan sát theo chu kỳ thích ứng: ĐÃ TRIỂN KHAI — camera sampling 250 ms; gọi AI theo nhịp adaptive, không queue ảnh cũ.</li>
@@ -182,7 +182,7 @@ button:disabled{opacity:.42}
       <h2>J. OPEN ITEMS / NEXT WORK</h2>
       <ul>
         <li>Hoàn thiện sản phẩm cho người mù trước khi nhân bản sang tài xế.</li>
-        <li>Tuning ngưỡng adaptive sau test hiện trường: sampling cục bộ 250 ms; AI normal tối thiểu khoảng 1,8 s, caution khoảng 0,85 s, danger khoảng 0,45 s; thực tế còn bị giới hạn bởi latency API vì chỉ cho phép 1 request Vision đang chạy.</li>
+        <li>Tuning ngưỡng adaptive sau test hiện trường: sampling cục bộ 250 ms; FAST PATH gửi 1 frame 512 px/JPEG 0.50. Nhịp thực tế vẫn bị giới hạn bởi latency Vision API vì chỉ cho phép 1 request đang chạy; tiếp tục đo sau thay đổi này.</li>
         <li>Đo và tuning ngưỡng scene-change để giảm nói lặp nhưng không bỏ sót nguy cơ khi người dùng đang di chuyển.</li>
         <li>Kiểm thử thực tế: vật cản, bậc thang, mép hụt, cửa/lối đi, người/xe cắt ngang, trái/phải, thay đổi nhanh của cảnh.</li>
         <li>Tiếp tục đo latency và chi phí thực tế trước khi mở rộng.</li>
@@ -353,11 +353,11 @@ async function startCamera(){
 }
 function grabFrame(){
   const vw=video.videoWidth||640,vh=video.videoHeight||480;
-  const scale=Math.min(1,640/Math.max(vw,vh));
+  const scale=Math.min(1,512/Math.max(vw,vh));
   const c=document.createElement('canvas');
   c.width=Math.max(1,Math.round(vw*scale));c.height=Math.max(1,Math.round(vh*scale));
   c.getContext('2d',{alpha:false}).drawImage(video,0,0,c.width,c.height);
-  return c.toDataURL('image/jpeg',0.58);
+  return c.toDataURL('image/jpeg',0.50);
 }
 function sceneSignature(){
   const c=document.createElement('canvas');c.width=24;c.height=18;
@@ -402,7 +402,7 @@ function maybeDispatch(changed){
 async function dispatchVision(){
   if(inFlight||!autoMode||!latestFrames.length)return;
   inFlight=true;lastRequestAt=Date.now();
-  const frames=latestFrames.slice(-3);
+  const frames=[latestFrames[latestFrames.length-1]];
   setStatus('Đang quan sát tự động...');
   try{
     const form=new FormData();
