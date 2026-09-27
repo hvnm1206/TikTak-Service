@@ -132,9 +132,8 @@ describeBtn.onclick=async()=>{
   try{
     if(video.paused){try{await video.play()}catch(_){}}
     const frames=[grabFrame()];
-    await wait(650);frames.push(grabFrame());
-    await wait(650);frames.push(grabFrame());
-    await wait(700);frames.push(grabFrame());
+    await wait(450);frames.push(grabFrame());
+    await wait(450);frames.push(grabFrame());
     const form=new FormData();
     form.append('frames',JSON.stringify(frames));
     form.append('sceneMemory',sceneMemory);
