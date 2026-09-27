@@ -89,7 +89,7 @@ button:disabled{opacity:.42}
         <li>Không quay lại Lovable hoặc raw.githack nếu chưa có yêu cầu mới.</li>
         <li>Camera live bằng <code>getUserMedia</code>, camera sau <code>facingMode: environment</code>.</li>
         <li>Frontend tự lấy mẫu camera mỗi 250 ms; FAST PATH chỉ gửi đúng 1 frame mới nhất, không chờ gom ảnh. Ảnh tối đa khoảng 512 px, JPEG quality 0.50, image detail low.</li>
-        <li>Auto guidance ưu tiên browser speechSynthesis nhưng KHÔNG cancel trước mọi câu. Chỉ danger mới preempt; utterance được giữ reference đến khi kết thúc. Nếu speechSynthesis không phát sự kiện start trong ~0,9 s hoặc báo lỗi, tự fallback sang backend TTS.</li>
+        <li>Auto guidance dùng giọng tự nhiên backend TTS <code>gpt-4o-mini-tts / marin</code>. Bộ câu chỉ dẫn chuẩn được preload + cache local và phát trực tiếp bằng AudioContext; không dùng speechSynthesis làm đường dẫn chính.</li>
         <li>Không tuyên bố app thay thế gậy trắng/chó dẫn đường/kỹ năng định hướng.</li>
       </ul>
     </div>
@@ -138,7 +138,7 @@ button:disabled{opacity:.42}
         <li>Mô tả bằng lời theo nút bấm: ĐÃ CHẠY.</li>
         <li>FAST PATH 1 frame mới nhất: ĐÃ CHẠY ở frontend và backend. Backend cắt input về đúng frame cuối.</li>
         <li>Scene memory: ĐÃ CHẠY.</li>
-        <li>Backend TTS + AudioContext: ĐÃ CHẠY, giữ làm fallback/voice chất lượng cao.</li><li>Fast voice: speechSynthesis có start/error watchdog + giữ active utterance + backend TTS fallback; bỏ cancel-before-every-sentence để tránh race trên WebKit.</li>
+        <li>Backend TTS + AudioContext: ĐÃ CHẠY, giữ làm fallback/voice chất lượng cao.</li><li>Fast voice: các câu chỉ dẫn chuẩn dùng audio marin cache local + AudioContext để phát ngay; dynamic text mới gọi backend TTS.</li>
         <li>Tự quan sát theo chu kỳ thích ứng: ĐÃ TRIỂN KHAI — camera sampling 250 ms; gọi AI theo nhịp adaptive, không queue ảnh cũ.</li>
         <li>Chỉ nói khi có thay đổi/nguy cơ đáng kể: ĐÃ CÓ gate cục bộ + shouldSpeak từ Vision; cần tiếp tục tuning bằng test hiện trường.</li>
       </ul>
@@ -206,7 +206,21 @@ const MAX_RESPONSE_AGE_MS=3200;
 const DIRECTION_CONFIRMATIONS=2;
 
 let audioCtx=null,activeAudioSource=null,speechSeq=0;
-let activeUtterance=null,fastSpeechAttempt=0;
+const VOICE_CACHE_VERSION='marin-v1';
+const guidanceVoiceBuffers=new Map();
+const guidanceVoicePending=new Map();
+const GUIDANCE_PHRASES=[
+  'Dừng lại',
+  'Dừng lại, quét tìm lối',
+  'Chờ một chút',
+  'Quét lại phía trước',
+  'Đi chậm, quét lại phía trước',
+  'Đi chậm, lối chưa rõ',
+  'Đi chậm',
+  'Lệch trái nhẹ',
+  'Lệch phải nhẹ',
+  'Đi thẳng chậm'
+];
 const video=document.getElementById('video');
 const overlay=document.getElementById('overlay');
 const statusEl=document.getElementById('status');
@@ -296,49 +310,76 @@ function unlockAudio(){
 function stopActiveAudio(){
   try{if(activeAudioSource){activeAudioSource.stop(0);activeAudioSource.disconnect()}}catch(_){}
   activeAudioSource=null;
-  try{if('speechSynthesis' in window)speechSynthesis.cancel()}catch(_){}
-  activeUtterance=null;fastSpeechAttempt++;
+
 }
-function speakFast(text,priority){
-  if(!text||!('speechSynthesis' in window))return false;
-  try{
-    const attempt=++fastSpeechAttempt;
-    const synth=window.speechSynthesis;
-    const u=new SpeechSynthesisUtterance(text);
-    activeUtterance=u;
-    u.lang='vi-VN';u.rate=priority==='danger'?1.18:1.12;u.pitch=1;u.volume=1;
-
-    let started=false,settled=false;
-    const clear=()=>{settled=true;if(activeUtterance===u)activeUtterance=null};
-    const fallbackTimer=setTimeout(()=>{
-      if(attempt!==fastSpeechAttempt||started||settled)return;
-      clear();
-      console.warn('speech-fast-no-start');
-      speakBackend(text,priority);
-    },900);
-
-    u.onstart=()=>{started=true;clearTimeout(fallbackTimer)};
-    u.onend=()=>{clearTimeout(fallbackTimer);clear()};
-    u.onerror=(e)=>{
-      clearTimeout(fallbackTimer);clear();
-      console.error('speech-fast-error',e&&e.error||e);
-      if(attempt===fastSpeechAttempt)speakBackend(text,priority);
-    };
-
-    const doSpeak=()=>{
-      if(attempt!==fastSpeechAttempt)return;
-      try{synth.resume()}catch(_){}
-      synth.speak(u);
-    };
-
-    if(priority==='danger'&&synth.speaking){
-      try{synth.cancel()}catch(_){}
-      setTimeout(doSpeak,140);
-    }else{
-      doSpeak();
+function voiceStorageKey(text){return 'nmh-voice:'+VOICE_CACHE_VERSION+':'+text}
+function base64ToBytes(b64){
+  const bin=atob(b64),bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  return bytes;
+}
+async function ensureAudioContext(){
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!audioCtx&&AC)audioCtx=new AC();
+  if(audioCtx&&audioCtx.state==='suspended')await audioCtx.resume();
+  return audioCtx;
+}
+async function getGuidanceBuffer(text){
+  if(guidanceVoiceBuffers.has(text))return guidanceVoiceBuffers.get(text);
+  if(guidanceVoicePending.has(text))return guidanceVoicePending.get(text);
+  const p=(async()=>{
+    let stored=null;
+    try{stored=localStorage.getItem(voiceStorageKey(text))}catch(_){}
+    let audioBase64='',mimeType='audio/wav';
+    if(stored){
+      try{
+        const j=JSON.parse(stored);audioBase64=j.audioBase64||'';mimeType=j.mimeType||mimeType;
+      }catch(_){}
     }
-    return true;
-  }catch(e){console.error('speech-fast',e);return false}
+    if(!audioBase64){
+      const form=new FormData();form.append('text',text);
+      const r=await fetch(TTS_API,{method:'POST',body:form});
+      const j=await r.json();
+      if(!r.ok||!j.ok||!j.audioBase64)throw new Error(j.error||('HTTP '+r.status));
+      audioBase64=j.audioBase64;mimeType=j.mimeType||mimeType;
+      try{localStorage.setItem(voiceStorageKey(text),JSON.stringify({audioBase64,mimeType}))}catch(_){}
+    }
+    const ctx=await ensureAudioContext();
+    if(!ctx)throw new Error('AUDIO_CONTEXT_UNAVAILABLE');
+    const bytes=base64ToBytes(audioBase64);
+    const buf=await ctx.decodeAudioData(bytes.buffer.slice(0));
+    guidanceVoiceBuffers.set(text,buf);
+    return buf;
+  })().finally(()=>guidanceVoicePending.delete(text));
+  guidanceVoicePending.set(text,p);
+  return p;
+}
+async function preloadGuidanceVoice(){
+  for(const text of GUIDANCE_PHRASES){
+    try{await getGuidanceBuffer(text)}catch(e){console.warn('voice-preload',text,e)}
+  }
+}
+async function playGuidanceVoice(text,priority){
+  if(!text)return;
+  const seq=++speechSeq;
+  try{
+    const buf=await getGuidanceBuffer(text);
+    if(seq!==speechSeq)return;
+    const ctx=await ensureAudioContext();
+    if(!ctx)return;
+    if(priority==='danger')stopActiveAudio();
+    else{
+      try{if(activeAudioSource){activeAudioSource.stop(0);activeAudioSource.disconnect()}}catch(_){}
+      activeAudioSource=null;
+    }
+    const node=ctx.createBufferSource();
+    activeAudioSource=node;node.buffer=buf;node.connect(ctx.destination);
+    node.onended=()=>{if(activeAudioSource===node)activeAudioSource=null};
+    node.start(0);
+  }catch(e){
+    console.error('guidance-voice',e);
+    speakBackend(text,priority);
+  }
 }
 async function speakBackend(text,priority){
   if(!text)return;
@@ -551,7 +592,7 @@ async function dispatchVision(){
     setStatus(urgency==='danger'?'NGUY HIỂM — '+decision.voice:urgency==='caution'?'Cẩn thận — '+decision.voice:'Đang dẫn đường — '+decision.voice);
     if(decision.speak){
       if(navigator.vibrate){try{navigator.vibrate(urgency==='danger'?[100,60,100]:60)}catch(_){}}
-      if(!speakFast(decision.voice,urgency)) speakBackend(decision.voice,urgency);
+      playGuidanceVoice(decision.voice,urgency);
     }
   }catch(e){
     console.error(e);
@@ -565,12 +606,14 @@ cameraBtn.onclick=startCamera;
 describeBtn.onclick=async()=>{
   unlockAudio();
   if(!stream)await startCamera();
+setTimeout(()=>preloadGuidanceVoice(),1200);
   if(!stream)return;
   autoMode=!autoMode;
   updateAutoButton();
   if(autoMode){
     latestFrames=[];lastSignature=null;lastRequestAt=0;lastResponseAt=0;urgency='normal';requestSeq=0;resetDirectionConfirm();resetPerceptionConfirm();lastDecision='scan';
     setStatus('Bắt đầu dẫn đường tự động...');
+    preloadGuidanceVoice();
     sampleTick();
     setTimeout(()=>maybeDispatch(true),100);
   }else{
