@@ -21,6 +21,9 @@ html,body{margin:0;height:100%;background:#07101c;color:#fff;font-family:Arial,s
 .maint-card p,.maint-card li{font-size:15px;line-height:1.45}
 .maint-card ul{margin:6px 0 0;padding-left:20px}
 .maint-card code{font-size:13px;word-break:break-all;color:#b9d7ff}
+.copy-wrap{position:sticky;top:0;z-index:5;background:#0b1522;padding:0 0 10px}
+#copyMaintBtn{width:100%;min-height:58px;border-radius:16px;background:#1684f5;color:#fff;font-size:20px;font-weight:900}
+#copyMaintBtn.copied{background:#2f9f58}
 .kv{display:grid;grid-template-columns:120px 1fr;gap:6px 10px;font-size:14px;line-height:1.4}
 .kv b{color:#9fb0c4}
 .locked{color:#ffcf76}
@@ -59,6 +62,10 @@ button:disabled{opacity:.42}
   </div>
 
   <div class="view maintenance" id="maintView">
+    <div class="copy-wrap">
+      <button id="copyMaintBtn" type="button">COPY TOÀN BỘ BẢO TRÌ</button>
+    </div>
+    <div id="maintenanceContent">
     <h1>BẢO TRÌ / PROJECT MEMORY — NMH VISION ASSIST V2</h1>
     <div class="meta">Cập nhật: 27/09/2026 · Nguồn chuẩn: live GitHub Pages + live n8n workflows · Baseline đã chốt</div>
 
@@ -181,6 +188,7 @@ button:disabled{opacity:.42}
         <li>Tiếp tục đo latency và chi phí thực tế trước khi mở rộng.</li>
       </ul>
     </div>
+    </div>
   </div>
 </div>
 <script>
@@ -197,7 +205,42 @@ const useTab=document.getElementById('useTab');
 const maintTab=document.getElementById('maintTab');
 const useView=document.getElementById('useView');
 const maintView=document.getElementById('maintView');
+const copyMaintBtn=document.getElementById('copyMaintBtn');
+const maintenanceContent=document.getElementById('maintenanceContent');
 let stream=null, starting=false, sceneMemory='';
+
+function maintenanceText(){
+  const lines=[];
+  for(const el of maintenanceContent.querySelectorAll('h1,h2,p,li,.kv b,.kv span,.meta')){
+    const t=String(el.innerText||'').trim();
+    if(!t)continue;
+    if(el.matches('h1')) lines.push(t,'');
+    else if(el.matches('h2')) lines.push('',t);
+    else if(el.matches('li')) lines.push('- '+t);
+    else if(el.matches('.kv b')){
+      const next=el.nextElementSibling;
+      if(next) lines.push(t+': '+String(next.innerText||'').trim());
+    } else if(!el.matches('.kv span')) lines.push(t);
+  }
+  return lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+async function copyMaintenance(){
+  const text=maintenanceText();
+  try{
+    await navigator.clipboard.writeText(text);
+  }catch(e){
+    const ta=document.createElement('textarea');
+    ta.value=text;ta.setAttribute('readonly','');
+    ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');ta.remove();
+  }
+  const old=copyMaintBtn.textContent;
+  copyMaintBtn.textContent='ĐÃ COPY TOÀN BỘ';
+  copyMaintBtn.classList.add('copied');
+  setTimeout(()=>{copyMaintBtn.textContent=old;copyMaintBtn.classList.remove('copied')},1800);
+}
+copyMaintBtn.onclick=copyMaintenance;
 
 function showView(name){
   const use=name==='use';
