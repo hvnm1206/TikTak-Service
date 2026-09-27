@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NMH Vision Assist V2 — FAST TEST</title>
-<meta name="nmh-build" content="20260927-1838-fast-directional-decision">
+<meta name="nmh-build" content="20260927-1842-fast-ai-decider">
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#07101c;color:#fff;font-family:Arial,sans-serif}
@@ -124,7 +124,7 @@ button:disabled{opacity:.42}
         <li>Vision model: <code>gpt-5.6-luna</code>.</li>
         <li>Reasoning: <code>none</code>; max output: <code>160</code>.</li>
         <li>Vision PERCEPTION output: <code>{description, sceneMemory, shouldSpeak, distanceBand, pathBlocked, obstaclePosition, freePath, motionRisk, confidence}</code>. GPT không còn trả action trái/phải.</li>
-        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>distanceBand</code>: far / mid / near / immediate / unknown. Không ép AI đo mét tuyệt đối.</li><li><code>pathBlocked</code> chỉ true khi vật thực sự nằm trên hướng đi dự kiến.</li><li>DECISION layer nằm ở frontend: stop/wait/slow/veer_left/veer_right/continue/scan được suy ra từ perception, không lấy trực tiếp từ GPT.</li><li><code>stop</code> chỉ hợp lệ khi distanceBand=immediate + pathBlocked, hoặc nguy cơ động immediate. Lệnh trái/phải phải được cùng freePath xác nhận 2 response liên tiếp.</li><li>Safety priority: immediate + pathBlocked luôn đi thẳng vào Decision và phát lệnh Dừng lại, kể cả response bị đánh dấu stale. Stale gate chỉ được chặn lựa chọn hướng trái/phải/đi tiếp. Near + blocked + freePath unknown phát 'Dừng lại, quét tìm lối'.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng; <code>voiceInstruction</code> cực ngắn 3–8 từ để phát ngay.</li>
+        <li>Scene memory ngắn để giảm lặp và nhận thay đổi cảnh.</li><li><code>distanceBand</code>: far / mid / near / immediate / unknown. Không ép AI đo mét tuyệt đối.</li><li><code>pathBlocked</code> chỉ true khi vật thực sự nằm trên hướng đi dự kiến.</li><li>FAST TEST: action stop/wait/slow/veer_left/veer_right/continue/scan do chính gpt-5.4-mini suy luận trực tiếp từ ảnh. Frontend không ánh xạ obstaclePosition/freePath thành hướng đi.</li><li><code>stop</code> chỉ hợp lệ khi distanceBand=immediate + pathBlocked, hoặc nguy cơ động immediate. Lệnh trái/phải phải được cùng freePath xác nhận 2 response liên tiếp.</li><li>Safety priority: immediate + pathBlocked luôn đi thẳng vào Decision và phát lệnh Dừng lại, kể cả response bị đánh dấu stale. Stale gate chỉ được chặn lựa chọn hướng trái/phải/đi tiếp. Near + blocked + freePath unknown phát 'Dừng lại, quét tìm lối'.</li><li><code>urgency</code>: normal / caution / danger để điều chỉnh nhịp quan sát; <code>shouldSpeak</code> quyết định có phát giọng nói hay im lặng; <code>voiceInstruction</code> cực ngắn 3–8 từ để phát ngay.</li>
         <li>Ưu tiên hiện tại: xác định vật/nguy cơ trên hướng đi → phân loại distanceBand → xác định pathBlocked → chọn action → mới sinh câu nói. Không dùng 'thấy vật cản' đồng nghĩa với 'Dừng lại'.</li>
         <li>TTS model backend: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>. Các câu chỉ dẫn chuẩn dùng WAV marin tĩnh, không gọi TTS runtime.</li>
         <li>TTS instruction: nói tiếng Việt tự nhiên, liền câu, ngắt theo dấu câu, không đọc từng từ, không đánh vần, không thêm nội dung.</li>
@@ -193,7 +193,7 @@ button:disabled{opacity:.42}
   </div>
 </div>
 <script>
-const APP_BUILD='20260927-1838-fast-directional-decision';
+const APP_BUILD='20260927-1842-fast-ai-decider';
 const API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-fast-test-v1';
 const TTS_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1';
 const SAMPLE_MS=250;
@@ -208,7 +208,7 @@ const DIRECTION_CONFIRMATIONS=2;
 
 let audioCtx=null,activeAudioSource=null,speechSeq=0;
 const VOICE_CACHE_VERSION='marin-final';
-const STATIC_GUIDANCE_URLS={"Dừng lại":"../vision-assist-v2/audio/marin-final/stop.b64","Dừng lại, quét tìm lối":"../vision-assist-v2/audio/marin-final/stop-scan.b64","Chờ một chút":"../vision-assist-v2/audio/marin-final/wait.b64","Đi thẳng chậm":"../vision-assist-v2/audio/marin-final/forward-slow.b64","Giữ giữa":"../vision-assist-v2/audio/marin-final/forward-slow.b64","Quét lại phía trước":"../vision-assist-v2/audio/marin-final/scan.b64","Đi chậm, quét lại phía trước":"../vision-assist-v2/audio/marin-final/slow-scan.b64","Đi chậm, lối chưa rõ":"../vision-assist-v2/audio/marin-final/slow-unclear.b64","Chờ, lối chưa rõ":"../vision-assist-v2/audio/marin-final/wait-unclear.b64","Đi chậm":"../vision-assist-v2/audio/marin-final/slow.b64","Lệch trái nhẹ":"../vision-assist-v2/audio/marin-final/left.b64","Lệch phải nhẹ":"../vision-assist-v2/audio/marin-final/right.b64"};
+const STATIC_GUIDANCE_URLS={"Dừng lại":"../vision-assist-v2/audio/marin-final/stop.b64","Dừng lại, quét tìm lối":"../vision-assist-v2/audio/marin-final/stop-scan.b64","Chờ một chút":"../vision-assist-v2/audio/marin-final/wait.b64","Đi thẳng chậm":"../vision-assist-v2/audio/marin-final/forward-slow.b64","Quét lại phía trước":"../vision-assist-v2/audio/marin-final/scan.b64","Đi chậm, quét lại phía trước":"../vision-assist-v2/audio/marin-final/slow-scan.b64","Đi chậm, lối chưa rõ":"../vision-assist-v2/audio/marin-final/slow-unclear.b64","Chờ, lối chưa rõ":"../vision-assist-v2/audio/marin-final/wait-unclear.b64","Đi chậm":"../vision-assist-v2/audio/marin-final/slow.b64","Lệch trái nhẹ":"../vision-assist-v2/audio/marin-final/left.b64","Lệch phải nhẹ":"../vision-assist-v2/audio/marin-final/right.b64"};
 const guidanceVoiceBuffers=new Map();
 const guidanceVoiceBase64=new Map();
 const guidanceVoicePending=new Map();
@@ -489,56 +489,7 @@ function confirmDirection(path,confidence){
   else{directionCandidate=path;directionCount=1}
   return directionCount>=DIRECTION_CONFIRMATIONS;
 }
-function decideGuidance(p,perceptionStable){
-  const distance=String(p.distanceBand||'unknown');
-  const confidence=String(p.confidence||'low');
-  const freePath=String(p.freePath||'unknown');
-  const obstacle=String(p.obstaclePosition||'unknown');
-  const blocked=Boolean(p.pathBlocked);
 
-  // Safety contradictions: never command forward on internally inconsistent geometry.
-  if(blocked&&freePath==='center'){
-    resetDirectionConfirm();
-    return {action:'scan',urgency:'caution',voice:'Quét lại phía trước',speak:true};
-  }
-
-  // Immediate blocked center is always a stop.
-  if(distance==='immediate'&&blocked){
-    resetDirectionConfirm();
-    return {action:'stop',urgency:'danger',voice:'Dừng lại',speak:true};
-  }
-
-  // If blocked, only a clearly available side path may be used.
-  if(blocked){
-    if(perceptionStable&&freePath==='left'&&confidence!=='low')
-      return {action:'veer_left',urgency:'caution',voice:'Lệch trái nhẹ',speak:true};
-    if(perceptionStable&&freePath==='right'&&confidence!=='low')
-      return {action:'veer_right',urgency:'caution',voice:'Lệch phải nhẹ',speak:true};
-    resetDirectionConfirm();
-    return {action:'wait',urgency:'caution',voice:'Dừng lại, quét tìm lối',speak:true};
-  }
-
-  // Clear center path: obstacle on one side should not degrade to generic "slow".
-  if(freePath==='center'){
-    if(obstacle==='right'&&['near','mid'].includes(distance)&&confidence!=='low')
-      return {action:'continue',urgency:'caution',voice:'Giữ giữa',speak:true};
-    if(obstacle==='left'&&['near','mid'].includes(distance)&&confidence!=='low')
-      return {action:'continue',urgency:'caution',voice:'Giữ giữa',speak:true};
-    if(obstacle==='none'&&['far','mid'].includes(distance)&&(confidence==='high'||(confidence==='medium'&&perceptionStable)))
-      return {action:'continue',urgency:'normal',voice:'Đi thẳng chậm',speak:true};
-    if(distance==='near'&&confidence!=='low')
-      return {action:'slow',urgency:'caution',voice:'Đi chậm',speak:true};
-  }
-
-  // Side free paths require stability before directional guidance.
-  if(perceptionStable&&freePath==='left'&&confidence!=='low')
-    return {action:'veer_left',urgency:'caution',voice:'Lệch trái nhẹ',speak:true};
-  if(perceptionStable&&freePath==='right'&&confidence!=='low')
-    return {action:'veer_right',urgency:'caution',voice:'Lệch phải nhẹ',speak:true};
-
-  resetDirectionConfirm();
-  return {action:'scan',urgency:'caution',voice:'Quét lại phía trước',speak:true};
-}
 function maybeDispatch(changed){
   if(!autoMode||inFlight||latestFrames.length<1)return;
   const now=Date.now();
@@ -567,16 +518,17 @@ async function dispatchVision(){
     const responseAge=responseAt-sentAt;
     const currentSignature=sceneSignature();
     const sceneDrift=signatureDiff(sentSignature,currentSignature);
-    const stale=seq!==requestSeq||responseAge>MAX_RESPONSE_AGE_MS||sceneDrift>STALE_SCENE_DIFF;
+    const stale=seq!==requestSeq||responseAge>MAX_RESPONSE_AGE_MS;
     lastResponseAt=responseAt;
-    sceneMemory=String(j.sceneMemory||'');
-    const perceptionStable=updatePerceptionStability(j);
-    const immediateHazard=String(j.distanceBand||'unknown')==='immediate'&&Boolean(j.pathBlocked);
-
-    let decision=decideGuidance(j,perceptionStable);
+    sceneMemory='';
+    let decision={
+      action:String(j.action||'scan'),
+      urgency:String(j.urgency||'caution'),
+      voice:String(j.voiceInstruction||'Quét lại phía trước'),
+      speak:true
+    };
     const movementTooOld=responseAge>MOVEMENT_MAX_AGE_MS;
-    if((stale||movementTooOld)&&['continue','veer_left','veer_right'].includes(decision.action)){
-      resetDirectionConfirm();
+    if(movementTooOld&&['continue','veer_left','veer_right'].includes(decision.action)){
       decision={action:'slow',urgency:'caution',voice:'Đi chậm',speak:true};
     }
     lastDecision=decision.action;
