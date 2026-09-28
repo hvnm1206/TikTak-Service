@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NMH Vision Assist — ĐỌC TÌNH HUỐNG</title>
-<meta name="nmh-build" content="20260927-2252-fast-situation-only">
+<meta name="nmh-build" content="20260928-0742-fast-realtime-voice">
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#07101c;color:#fff;font-family:Arial,sans-serif}
@@ -77,7 +77,7 @@ button:disabled{opacity:.42}
         <b>Mục tiêu</b><span>Trợ lý thị giác cho người mù/người khiếm thị: camera live → AI hiểu cảnh → đọc ngắn gọn tình huống quan trọng. Người dùng tự quyết định hành động; app không điều hướng bước chân.</span>
         <b>Trạng thái</b><span class="locked">BASELINE ĐÃ CHẠY THỰC TẾ TRÊN IPHONE VÀ ĐÃ ĐƯỢC CHỐT.</span>
         <b>Frontend</b><span><code>https://hvnm1206.github.io/TikTak-Service/vision-assist-fast-test/</code></span>
-        <b>Kiến trúc</b><span>GitHub Pages → n8n → OpenAI Vision/TTS.</span>
+        <b>Kiến trúc</b><span>GitHub Pages → n8n Vision + OpenAI Realtime WebRTC audio; backend TTS WAV giữ làm fallback.</span>
       </div>
     </div>
 
@@ -107,6 +107,8 @@ button:disabled{opacity:.42}
         <b>TTS key</b><span><code>nmh-vision-assist-tts-v1</code></span>
         <b>TTS ID</b><span><code>JdqIo79FSnp2pbqH</code></span>
         <b>TTS endpoint</b><span><code>https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1</code></span>
+        <b>Realtime token</b><span><code>https://zalo.nomahubvn.com/webhook/nmh-vision-assist-realtime-token-v1</code></span>
+        <b>Realtime key</b><span><code>nmh-vision-assist-realtime-token-test-v1</code></span>
         <b>OpenAI cred</b><span><code>4BmySN5oOqyScdFF — OpenAi account</code></span>
       </div>
     </div>
@@ -114,7 +116,7 @@ button:disabled{opacity:.42}
     <div class="maint-card">
       <h2>D. WORKFLOW REGISTRY</h2>
       <p><b>Vision:</b> Analyze Webhook → Prepare Vision Request → OpenAI Vision → Parse Vision Result → Return Vision.</p>
-      <p><b>TTS:</b> TTS Webhook → Prepare TTS → OpenAI TTS → Encode Audio → Return TTS.</p>
+      <p><b>Voice chính:</b> frontend lấy ephemeral token từ n8n → WebRTC trực tiếp OpenAI Realtime → audio stream về iPhone. <b>Fallback:</b> TTS Webhook → gpt-4o-mini-tts → WAV.</p>
       <p><b>Frontend:</b> mở camera → sampling cục bộ 250 ms → giữ frame mới nhất → one-frame Vision → nhận mô tả tình huống → đọc bằng TTS.</p>
     </div>
 
@@ -127,7 +129,7 @@ button:disabled{opacity:.42}
         <li><code>situation</code>: một câu tiếng Việt ngắn, mô tả điều quan trọng nhất camera đang thấy; có thể nêu trái/phải/phía trước khi rõ.</li>
         <li>GPT bị cấm ra lệnh di chuyển: không đi thẳng/rẽ trái/rẽ phải/dừng/chờ. Người dùng tự quyết định.</li>
         <li><code>urgency</code>: normal / caution / danger chỉ dùng để ưu tiên đọc và cho phép tình huống nguy hiểm ngắt câu đang đọc.</li>
-        <li>TTS model backend: <code>gpt-4o-mini-tts</code>; voice <code>marin</code>; format <code>wav</code>; speed <code>1.02</code>. Vì nội dung tình huống là động, frontend gọi TTS runtime cho câu mô tả.</li>
+        <li>Voice thử nghiệm chính: <code>gpt-realtime-2.1</code> qua WebRTC, voice <code>marin</code>, audio stream bắt đầu trước khi tạo xong toàn bộ câu. Backend <code>gpt-4o-mini-tts</code>/WAV giữ làm fallback.</li>
         <li>TTS instruction: nói tiếng Việt tự nhiên, liền câu, ngắt theo dấu câu, không đọc từng từ, không đánh vần, không thêm nội dung.</li>
       </ul>
     </div>
@@ -139,7 +141,7 @@ button:disabled{opacity:.42}
         <li>Mô tả bằng lời theo nút bấm: ĐÃ CHẠY.</li>
         <li>FAST PATH 1 frame mới nhất: ĐÃ CHẠY ở frontend và backend. Backend cắt input về đúng frame cuối.</li>
         <li>Scene memory: ĐÃ CHẠY.</li>
-        <li>Backend TTS + AudioContext: ĐÃ CHẠY, giữ làm fallback/voice chất lượng cao.</li><li>Voice: câu tình huống động dùng backend TTS marin + AudioContext; scheduler không cắt câu thường, danger được quyền ngắt.</li>
+        <li>Backend TTS + AudioContext: ĐÃ CHẠY, giữ làm fallback/voice chất lượng cao.</li><li>Voice FAST: Realtime WebRTC marin là đường chính; normal/caution giữ câu đang phát và chỉ giữ tình huống mới nhất chờ sau; danger được quyền hủy response đang phát. Nếu Realtime không kết nối thì tự rơi về backend TTS marin hiện có.</li>
         <li>Tự quan sát theo chu kỳ thích ứng: ĐÃ TRIỂN KHAI — camera sampling 250 ms; gọi AI theo nhịp adaptive, không queue ảnh cũ.</li>
         <li>Đọc tình huống mới hoặc nhắc lại sau khoảng thời gian; response quá cũ không phát thành tiếng.</li>
       </ul>
@@ -149,7 +151,7 @@ button:disabled{opacity:.42}
       <h2>G. TECHNICAL DETAILS — CHỈ ĐỌC KHI CẦN</h2>
       <ul>
         <li>Frontend camera: <code>navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false})</code>.</li>
-        <li>Audio unlock xảy ra ngay trong user gesture của nút mô tả.</li>
+        <li>Audio unlock và khởi tạo Realtime WebRTC bắt đầu từ user gesture của nút đọc tình huống. Browser chỉ nhận audio, không mở microphone.</li>
         <li>Vision và TTS đều bật CORS cho frontend GitHub Pages.</li>
         <li>Cache response backend: <code>no-store</code>.</li>
         <li>n8n HTML Webhook không dùng cho frontend vì sandbox iframe chặn camera live trên iPhone.</li>
@@ -178,6 +180,7 @@ button:disabled{opacity:.42}
         <li>Runtime đã từng probe HTTP 200 trên GitHub Pages.</li><li>Frontend có APP_BUILD self-check mỗi 30 giây và khi quay lại tab; nếu GitHub Pages đã có build mới, app tự reload sang URL version mới để tránh chạy code cũ.</li>
         <li>User đã xác nhận camera, Vision và tiếng chạy; sau đó chốt baseline.</li>
         <li><code>20260927-2252-fast-situation-only</code> — đổi concept FAST sang situation-only: GPT chỉ mô tả cảnh, không điều hướng.</li>
+        <li><code>20260928-0742-fast-realtime-voice</code> — thêm thử nghiệm OpenAI Realtime WebRTC voice để giảm time-to-first-audio; backend TTS WAV giữ fallback.</li>
       </ul>
     </div>
 
@@ -195,9 +198,10 @@ button:disabled{opacity:.42}
   </div>
 </div>
 <script>
-const APP_BUILD='20260927-2252-fast-situation-only';
+const APP_BUILD='20260928-0742-fast-realtime-voice';
 const API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-fast-test-v1';
 const TTS_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1';
+const RT_TOKEN_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-realtime-token-v1';
 const SAMPLE_MS=250;
 const DIFF_THRESHOLD=7.5;
 const CADENCE_MS={normal:1800,caution:850,danger:450};
@@ -291,6 +295,144 @@ function unlockAudio(){
     const s=audioCtx.createBufferSource();s.buffer=b;s.connect(audioCtx.destination);s.start(0);
   }catch(e){console.error('audio-unlock',e)}
 }
+let rtPc=null,rtDc=null,rtAudio=null,rtReady=false,rtConnecting=null;
+let rtBusy=false,rtPending=null,rtResponseId='';
+
+function closeRealtimeVoice(){
+  rtReady=false;rtBusy=false;rtPending=null;rtResponseId='';
+  try{if(rtDc)rtDc.close()}catch(_){}
+  try{if(rtPc)rtPc.close()}catch(_){}
+  try{if(rtAudio){rtAudio.pause();rtAudio.srcObject=null}}catch(_){}
+  rtDc=null;rtPc=null;rtAudio=null;rtConnecting=null;
+}
+
+function waitDataChannelOpen(dc,timeoutMs=8000){
+  return new Promise((resolve,reject)=>{
+    if(dc.readyState==='open')return resolve();
+    const timer=setTimeout(()=>reject(new Error('REALTIME_DC_TIMEOUT')),timeoutMs);
+    const onOpen=()=>{clearTimeout(timer);dc.removeEventListener('open',onOpen);resolve()};
+    dc.addEventListener('open',onOpen);
+  });
+}
+
+async function ensureRealtimeVoice(){
+  if(rtReady&&rtDc&&rtDc.readyState==='open')return true;
+  if(rtConnecting)return rtConnecting;
+
+  rtConnecting=(async()=>{
+    try{
+      const tokenRes=await fetch(RT_TOKEN_API,{cache:'no-store'});
+      const tokenData=await tokenRes.json();
+      const ephemeral=String(tokenData&&tokenData.value||'');
+      if(!tokenRes.ok||!ephemeral)throw new Error('REALTIME_TOKEN_FAILED');
+
+      const pc=new RTCPeerConnection();
+      const dc=pc.createDataChannel('oai-events');
+      const audio=document.createElement('audio');
+      audio.autoplay=true;
+      audio.playsInline=true;
+      audio.style.display='none';
+      document.body.appendChild(audio);
+
+      pc.addTransceiver('audio',{direction:'recvonly'});
+      pc.ontrack=e=>{
+        audio.srcObject=e.streams[0];
+        audio.play().catch(err=>console.warn('realtime-audio-play',err));
+      };
+      pc.onconnectionstatechange=()=>{
+        if(['failed','closed','disconnected'].includes(pc.connectionState))rtReady=false;
+      };
+
+      dc.addEventListener('message',e=>{
+        try{
+          const ev=JSON.parse(e.data);
+          if(ev.type==='response.created')rtResponseId=String(ev.response&&ev.response.id||'');
+          if(ev.type==='response.done'){
+            rtBusy=false;rtResponseId='';
+            const next=rtPending;rtPending=null;
+            if(next&&next.text)sendRealtimeVoice(next.text,next.priority);
+          }
+          if(ev.type==='error'){
+            console.error('realtime-event',ev);
+            rtBusy=false;rtResponseId='';
+          }
+        }catch(err){console.warn('realtime-event-parse',err)}
+      });
+
+      const offer=await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      const sdpRes=await fetch('https://api.openai.com/v1/realtime/calls',{
+        method:'POST',
+        body:offer.sdp,
+        headers:{
+          'Authorization':'Bearer '+ephemeral,
+          'Content-Type':'application/sdp'
+        }
+      });
+      if(!sdpRes.ok)throw new Error('REALTIME_SDP_'+sdpRes.status);
+      await pc.setRemoteDescription({type:'answer',sdp:await sdpRes.text()});
+      await waitDataChannelOpen(dc);
+
+      rtPc=pc;rtDc=dc;rtAudio=audio;rtReady=true;
+      return true;
+    }catch(e){
+      console.error('realtime-init',e);
+      closeRealtimeVoice();
+      return false;
+    }finally{
+      rtConnecting=null;
+    }
+  })();
+
+  return rtConnecting;
+}
+
+function sendRealtimeVoice(text,priority){
+  if(!text||!rtReady||!rtDc||rtDc.readyState!=='open')return false;
+
+  if(rtBusy){
+    if(priority==='danger'){
+      try{rtDc.send(JSON.stringify({type:'response.cancel'}))}catch(_){}
+      rtPending=null;
+      rtBusy=false;
+    }else{
+      rtPending={text,priority};
+      return true;
+    }
+  }
+
+  rtBusy=true;
+  const event={
+    type:'response.create',
+    response:{
+      conversation:'none',
+      output_modalities:['audio'],
+      instructions:'Đọc đúng nguyên văn câu tiếng Việt trong input. Không thêm, không bớt, không giải thích. Giọng tự nhiên, rõ và nhanh vừa phải.',
+      input:[{
+        type:'message',
+        role:'user',
+        content:[{type:'input_text',text}]
+      }],
+      metadata:{kind:'situation-reader'}
+    }
+  };
+  try{
+    rtDc.send(JSON.stringify(event));
+    return true;
+  }catch(e){
+    console.error('realtime-send',e);
+    rtBusy=false;
+    return false;
+  }
+}
+
+async function speakSituation(text,priority){
+  if(!text)return;
+  const ok=await ensureRealtimeVoice();
+  if(ok&&sendRealtimeVoice(text,priority))return;
+  speak(text,priority);
+}
+
 const ttsBufferCache=new Map();
 let pendingVoice=null;
 let activeVoiceText='';
@@ -511,7 +653,7 @@ async function dispatchVision(){
       lastSpokenVoice=situation;
       lastSpokenAt=nowSpeak;
       if(navigator.vibrate&&urgency==='danger'){try{navigator.vibrate([100,60,100])}catch(_){}}
-      speak(situation,urgency);
+      speakSituation(situation,urgency);
     }
   }catch(e){
     console.error(e);
@@ -524,6 +666,7 @@ async function dispatchVision(){
 cameraBtn.onclick=startCamera;
 describeBtn.onclick=async()=>{
   unlockAudio();
+  if(!autoMode)ensureRealtimeVoice();
   if(!stream)await startCamera();
   if(!stream)return;
   autoMode=!autoMode;
@@ -535,6 +678,7 @@ describeBtn.onclick=async()=>{
     setTimeout(()=>maybeDispatch(true),100);
   }else{
     setStatus('Đã dừng đọc tình huống.');
+    if(rtReady&&rtDc&&rtBusy){try{rtDc.send(JSON.stringify({type:'response.cancel'}))}catch(_){} rtBusy=false;rtPending=null;}
     stopActiveAudio();
   }
 };
@@ -562,6 +706,7 @@ document.addEventListener('visibilitychange',()=>{
     checkForNewBuild();
   }
 });
+window.addEventListener('pagehide',closeRealtimeVoice);
 setTimeout(checkForNewBuild,3000);
 startCamera();
 </script>
