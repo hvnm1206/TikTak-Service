@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NMH Vision Assist — ĐỌC TÌNH HUỐNG</title>
-<meta name="nmh-build" content="20260928-0742-fast-realtime-voice">
+<meta name="nmh-build" content="20260928-0750-fast-short-event">
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#07101c;color:#fff;font-family:Arial,sans-serif}
@@ -88,7 +88,7 @@ button:disabled{opacity:.42}
         <li>Không dùng file picker / native Camera / gallery làm luồng chính.</li>
         <li>Không quay lại Lovable hoặc raw.githack nếu chưa có yêu cầu mới.</li>
         <li>Camera live bằng <code>getUserMedia</code>, camera sau <code>facingMode: environment</code>.</li>
-        <li>Frontend tự lấy mẫu camera mỗi 250 ms; FAST PATH chỉ gửi đúng 1 frame mới nhất, không chờ gom ảnh. Ảnh tối đa khoảng 512 px, JPEG quality 0.50, image detail low.</li>
+        <li>Frontend tự lấy mẫu camera mỗi 250 ms; FAST PATH chỉ gửi đúng 1 frame mới nhất, không chờ gom ảnh. Speed-first test dùng ảnh tối đa khoảng 384 px, JPEG quality 0.45, image detail low.</li>
         <li>FAST situation-only: GPT chỉ trả <code>situation</code> mô tả tình huống. Không trả action, không chỉ đi/rẽ/dừng/chờ. Người dùng tự quyết định.</li>
         <li>Không tuyên bố app thay thế gậy trắng/chó dẫn đường/kỹ năng định hướng.</li>
       </ul>
@@ -124,9 +124,9 @@ button:disabled{opacity:.42}
       <h2>E. DATA / AI RULES</h2>
       <ul>
         <li>Vision model FAST TEST: <code>gpt-5.4-mini</code>.</li>
-        <li>Reasoning: <code>none</code>; max output: <code>120</code>.</li>
-        <li>Vision output hiện tại: <code>{situation, urgency, confidence}</code>.</li>
-        <li><code>situation</code>: một câu tiếng Việt ngắn, mô tả điều quan trọng nhất camera đang thấy; có thể nêu trái/phải/phía trước khi rõ.</li>
+        <li>Reasoning: <code>none</code>; speed-first max output: <code>60</code>.</li>
+        <li>Vision output hiện tại: <code>{situation, urgency}</code>.</li>
+        <li><code>situation</code>: chỉ một điều quan trọng nhất, câu tự nhiên khoảng 4–7 từ để nghe kịp; ưu tiên “có gì + ở đâu” hoặc “có gì + đang làm gì + ở đâu”.</li>
         <li>GPT bị cấm ra lệnh di chuyển: không đi thẳng/rẽ trái/rẽ phải/dừng/chờ. Người dùng tự quyết định.</li>
         <li><code>urgency</code>: normal / caution / danger chỉ dùng để ưu tiên đọc và cho phép tình huống nguy hiểm ngắt câu đang đọc.</li>
         <li>Voice thử nghiệm chính: <code>gpt-realtime-2.1</code> qua WebRTC, voice <code>marin</code>, audio stream bắt đầu trước khi tạo xong toàn bộ câu. Backend <code>gpt-4o-mini-tts</code>/WAV giữ làm fallback.</li>
@@ -180,6 +180,7 @@ button:disabled{opacity:.42}
         <li>Runtime đã từng probe HTTP 200 trên GitHub Pages.</li><li>Frontend có APP_BUILD self-check mỗi 30 giây và khi quay lại tab; nếu GitHub Pages đã có build mới, app tự reload sang URL version mới để tránh chạy code cũ.</li>
         <li>User đã xác nhận camera, Vision và tiếng chạy; sau đó chốt baseline.</li>
         <li><code>20260927-2252-fast-situation-only</code> — đổi concept FAST sang situation-only: GPT chỉ mô tả cảnh, không điều hướng.</li>
+        <li><code>20260928-0750-fast-short-event</code> — speed-first short-event: câu 4–7 từ, output budget 60, ảnh 384 px/JPEG 0.45.</li>
         <li><code>20260928-0742-fast-realtime-voice</code> — thêm thử nghiệm OpenAI Realtime WebRTC voice để giảm time-to-first-audio; backend TTS WAV giữ fallback.</li>
       </ul>
     </div>
@@ -188,7 +189,7 @@ button:disabled{opacity:.42}
       <h2>J. OPEN ITEMS / NEXT WORK</h2>
       <ul>
         <li>Định hướng hiện tại: app là “đôi mắt mô tả tình huống”, không phải hệ điều khiển bước chân.</li>
-        <li>Tuning ngưỡng adaptive sau test hiện trường: sampling cục bộ 250 ms; FAST PATH gửi 1 frame 512 px/JPEG 0.50. Nhịp thực tế vẫn bị giới hạn bởi latency Vision API vì chỉ cho phép 1 request đang chạy; tiếp tục đo sau thay đổi này.</li>
+        <li>Speed-first test: sampling cục bộ 250 ms; FAST PATH gửi 1 frame 384 px/JPEG 0.45; Vision chỉ trả situation 4–7 từ + urgency. Đo lại latency thực tế sau thay đổi này.</li>
         <li>Đo và tuning ngưỡng scene-change để giảm nói lặp nhưng không bỏ sót nguy cơ khi người dùng đang di chuyển.</li>
         <li>Kiểm thử thực tế: vật cản, bậc thang, mép hụt, cửa/lối đi, người/xe cắt ngang, trái/phải, thay đổi nhanh của cảnh.</li>
         <li>Gate A/B + Perception→Decision: ĐÃ TRIỂN KHAI. Phiên 17:18 xác nhận nhiều execution liên tiếp freePath=center, confidence=high nhưng stale-gate vẫn fallback; đã sửa thành stable-perception gate 2 response và bỏ voice fallback lặp.</li><li>Tiếp tục đo latency và chi phí thực tế trước khi mở rộng.</li>
@@ -198,7 +199,7 @@ button:disabled{opacity:.42}
   </div>
 </div>
 <script>
-const APP_BUILD='20260928-0742-fast-realtime-voice';
+const APP_BUILD='20260928-0750-fast-short-event';
 const API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-fast-test-v1';
 const TTS_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-tts-v1';
 const RT_TOKEN_API='https://zalo.nomahubvn.com/webhook/nmh-vision-assist-realtime-token-v1';
@@ -567,11 +568,11 @@ async function startCamera(){
 }
 function grabFrame(){
   const vw=video.videoWidth||640,vh=video.videoHeight||480;
-  const scale=Math.min(1,512/Math.max(vw,vh));
+  const scale=Math.min(1,384/Math.max(vw,vh));
   const c=document.createElement('canvas');
   c.width=Math.max(1,Math.round(vw*scale));c.height=Math.max(1,Math.round(vh*scale));
   c.getContext('2d',{alpha:false}).drawImage(video,0,0,c.width,c.height);
-  return c.toDataURL('image/jpeg',0.50);
+  return c.toDataURL('image/jpeg',0.45);
 }
 function sceneSignature(){
   const c=document.createElement('canvas');c.width=24;c.height=18;
@@ -633,7 +634,6 @@ async function dispatchVision(){
 
     const situation=String(j.situation||'').trim();
     urgency=String(j.urgency||'normal');
-    const confidence=String(j.confidence||'medium');
     if(!situation){
       setStatus('Chưa xác định rõ tình huống.');
       return;
