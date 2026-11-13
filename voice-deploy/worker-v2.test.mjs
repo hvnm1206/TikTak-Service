@@ -111,7 +111,7 @@ test('maintenance handover uses canonical source and cost ledger is estimate-onl
   try{
     const r=await worker.fetch(new Request(host+'/api/docs/handover'));
     assert.equal(r.status,200);
-    assert.match(fetched,/contents\/voice-deploy\/START_HERE_NEXT_CHAT\.md\?ref=nmh-voice-gpt-v1&v=\d+$/);
+    assert.match(fetched,/contents\/voice-deploy\/START_HERE_NEXT_CHAT\.md\?ref=nmh-voice-gpt-v1$/);
   }finally{globalThis.fetch=previous}
 });
 
