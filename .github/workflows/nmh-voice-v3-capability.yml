@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      CF_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CF_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
       CF_ACCOUNT: '769c2ab4af5ad50700039d473a72d48e'
       GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
     steps:
