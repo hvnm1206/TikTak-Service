@@ -1,5 +1,9 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+### 14/11/2026 — Canary tài liệu D1 thật sau V3 release: PASS
+[Actions 43471462899](https://github.com/hvnm1206/TikTak-Service/actions/runs/43471462899) chạy trực tiếp Cloudflare D1 bằng token đã cấp, tạo **user/ID tài liệu thử ngẫu nhiên**, chèn tài liệu tiếng Việt ("Lỗi E12"), lưu raw_text, tìm đoạn theo từ khóa, kiểm tra truy vấn account khác không có dữ liệu, và xóa toàn bộ dòng thử bằng `finally`. Kết quả log: `V3_D1_DOC_INSERT=PASS`, `V3_D1_DOC_TEXT_UTF8=PASS`, `V3_D1_KNOWLEDGE_LOOKUP=PASS`, `V3_D1_ACCOUNT_ISOLATION=PASS`, `V3_D1_CANARY_CLEANUP=PASS`. **Đây là kiểm thử DB thật, chưa phải upload qua tài khoản Google thật hoặc E2E iPhone.**
+
+
 ## 14/11/2026 — NMH VOICE V3 D1-ONLY: ĐÃ DEPLOY (ĐỌC TRƯỚC MỌI NHẬT KÝ CŨ)
 
 **URL production giữ nguyên:** https://nmh-voice-gpt-test.magical-budget.workers.dev/ — Worker `nmh-voice-gpt-test` trên Cloudflare account Magical Budget. **Version production đã kiểm chứng:** `8cc6032c-0035-414c-8217-7ea5e91825e5`; source release commit `3a40173817ab9f8bc4e93ce2c73bfd9d75ac1a03`; [Actions release 43470633928](https://github.com/hvnm1206/TikTak-Service/actions/runs/43470633928) **SUCCESS** (verify + deploy đều PASS).
