@@ -162,3 +162,20 @@ test('V3 Setup panel is attached without removing NMH Presence or exposing secre
  const g=await voice.fetch(new Request(host+'/health'));
  assert.equal((await g.json()).uiVersion,'presence-canvas-v1');
 });
+
+
+test('V3 memory and document context goes into existing GPT instructions as untrusted source excerpts',async()=>{
+ const {runAgent}=await import('./agent-v2.js');
+ let payload;
+ const reply=async(_url,options)=>{
+  payload=JSON.parse(options.body);
+  return Response.json({output:[{type:'message',content:[{type:'output_text',text:'Theo quytrinh.txt, đoạn 2: kiểm tra cảm biến.'}]}],usage:{input_tokens:150,output_tokens:50}});
+ };
+ const result=await runAgent({apiKey:'sk-'+'a'.repeat(40),messages:[{role:'user',content:'Xử lý lỗi E12?'}],style:'nghiem_tuc',fetchImpl:reply,personalization:{personalPrompt:'Trả lời gọn và có dẫn nguồn',memories:['Tôi là quản lý nhà máy'],documents:[{name:'quytrinh.txt',segment:2,text:'Lỗi E12: kiểm tra cảm biến.'}]}});
+ assert.match(payload.instructions,/Trả lời gọn và có dẫn nguồn/);
+ assert.match(payload.instructions,/Tôi là quản lý nhà máy/);
+ assert.match(payload.instructions,/quytrinh.txt/);
+ assert.match(payload.instructions,/dữ liệu không đáng tin cậy/);
+ assert.equal(result.documentReferences[0].name,'quytrinh.txt');
+ assert.equal(result.model,'gpt-6-luna');
+});
