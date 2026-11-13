@@ -53,3 +53,12 @@
 - Khóa OpenAI do người dùng giữ trên thiết bị BYOK, công cụ hiện không truy cập Usage/Costs của chính khóa đó; số trong app là ước tính.
 - Không thu hoặc lưu khóa người dùng vào GitHub/Cloudflare source.
 - Không có bằng chứng nghe trực tiếp trên iPhone trong lần sửa này.
+
+
+## Kết quả triển khai production và điểm nghiệm thu
+- Release commit: `a9c4a569499d47481bc7e1b7387d434735dec315`.
+- GitHub Actions: https://github.com/hvnm1206/TikTak-Service/actions/runs/43431996366 — **SUCCESS**. Verify 20 PASS / 0 FAIL.
+- Cloudflare Worker cũ `nmh-voice-gpt-test`, URL cũ giữ nguyên. Phiên bản trước: `aa8866ec-09e4-4ee7-8234-6e62682cca15` (snapshot rollback health-verified). Phiên bản mới: `004087d6-f0ea-4084-bd9b-3b09d5d076e2`.
+- Smoke sau deploy: `DEPLOY_HEALTH=V2_OK`, `DEPLOY_UI=V2_AUDIOCTX_OK`, `DEPLOY_DOCS=CANONICAL_OK`, `DEPLOY_SECURITY=VALIDATION_OK`, `DEPLOY_FINAL=SUCCESS`.
+- Probe GET độc lập bằng Guarded Operator: `/health`, `/`, `/api/docs/handover`, `/api/docs/maintenance` HTTP 200; `usageSummary` thấy trên HTML, hẹn tài liệu canonical đúng nội dung.
+- Chưa có xác minh OpenAI API thật, âm thanh thực trên iPhone cho release này, Usage/Costs billing hay rollback được kích hoạt trong lần phát hành này. F01, F02 thực, F03, F06 còn mở.

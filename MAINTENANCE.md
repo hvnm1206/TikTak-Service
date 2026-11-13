@@ -72,3 +72,15 @@ Không chép API key, token nhận quyền sở hữu, password vào tài liệu
 - CI `43427730110`: **18/18 PASS**. Release https://github.com/hvnm1206/TikTak-Service/actions/runs/43427854906 **SUCCESS** with health/UI/security smoke PASS.
 - Official Worker `https://nmh-voice-gpt-test.magical-budget.workers.dev/`; live `/health` HTTP 200 `v2-tts-audioctx`; UI HAS `testVoice` and HAS NO `speakFallback`.
 - **Device audio playback requires one real iPhone test** in SETUP → THỬ GIỌNG AI MARIN. Do not mark voice accepted until audio is heard and source says `OpenAI Marin — phát hoàn tất`. If failure, capture exact `TTS THẤT BẠI` code displayed; key must not be shared.
+
+
+## 13/11/2026 — Audit F01–F16, sửa source và triển khai an toàn V2.1 tiếp theo
+- Bàn giao chính thức phải đọc `voice-deploy/START_HERE_NEXT_CHAT.md` trước; các ghi chú V1/V2 tại đầu file này chỉ là lịch sử.
+- Xác minh live NMH Guarded Operator preflight PASS `0.5.16`, GET /health và / PASS; GitHub `nmh-voice-gpt-v1` HEAD trước sửa `dc15962c5b30704bcbd4958f72e4f365c0003cac`.
+- Audit chính thức `voice-deploy/AUDIT_COST_2026-11-13.md`, 16 findings; bảng xử lý mới `voice-deploy/VOICE_V21_REMEDIATION_2026-11-13.md`.
+- Thay source atomic commit `6733820c6800c557b8d4cb68d5434e032890d7c1` (5 file), thêm smoke commit `46adf4cb9b646ec009003addbccd8167073e50be`; mỗi đợt verify 20/20 PASS, deploy SKIPPED trước release.
+- Thay đổi: F11 snapshot version active + production identity, F07 giá Luna Standard/cached, F02 sổ **ước phí** GPT+TTS local theo ngày/tháng, F13 docs chuẩn, F15 hợp nhất abort signal. Bỏ lời nhắc Safari fallback sai trên UI.
+- Release source commit `a9c4a569499d47481bc7e1b7387d434735dec315` qua Actions https://github.com/hvnm1206/TikTak-Service/actions/runs/43431996366: verify **20/20 PASS**, deploy **SUCCESS**, snapshot rollback version `aa8866ec-09e4-4ee7-8234-6e62682cca15`, Cloudflare new version `004087d6-f0ea-4084-bd9b-3b09d5d076e2`. Smoke HEALTH/UI/DOCS/SECURITY PASS.
+- Guarded Operator GET post-release /health, /, /api/docs/handover, /api/docs/maintenance => HTTP 200; UI có `usageSummary`, AudioContext; bàn giao từ đường dẫn canonical. URL vẫn https://nmh-voice-gpt-test.magical-budget.workers.dev/.
+- **Chưa PASS**: F01 migration Realtime (gpt-4o-mini-tts ngừng 06/01/2027); F02 đo hóa đơn OpenAI thực; F03 hard cap; F06 end-to-end iPhone/API thật; F04 latency; F10 backend telemetry; các mục F05/F08/F09/F12/F14/F16. Chưa kiểm thử rollback trong release mới vì không có lỗi; rollback V3 từng được thử lịch sử.
+- Sau release, sổ ước phí chỉ có dữ liệu mới phát sinh trên đúng iPhone, không có billing cũ. Không đưa con số ước tính làm hóa đơn hoặc công bố mục tiêu 50–150đ/lượt đã đạt.

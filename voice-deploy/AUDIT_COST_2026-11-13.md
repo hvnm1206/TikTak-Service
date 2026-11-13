@@ -1,6 +1,13 @@
 # NMH VOICE GPT — AUDIT V2.1 VÀ CHI PHÍ VẬN HÀNH
 **Ngày:** 13/11/2026. **Phạm vi:** GitHub `hvnm1206/TikTak-Service`, branch `nmh-voice-gpt-v1`, files `worker.js`, `agent-v2.js`, `wrangler.jsonc`, Actions workflow, tests, implementation notes; production Cloudflare Magical Budget.
 
+## CẬP NHẬT SAU RELEASE 13/11/2026
+- Đây là **bản audit gốc**, giữ nguyên kết quả và các kịch bản tại thời điểm audit, không ghi đè bằng chứng lịch sử.
+- Khắc phục đã deploy: F11 (rollback snapshot active), F07 (đơn giá GPT Standard short/cached), F13 (link bàn giao), F15 (timeout OpenAI một phần), F02 (thống kê **ước phí** local một phần).
+- Release run **43431996366** SUCCESS, verify **20/20 PASS**, Cloudflare version **004087d6-f0ea-4084-bd9b-3b09d5d076e2**; smoke HEALTH/UI/DOCS/SECURITY và Guarded Operator live GET PASS.
+- F01, F03, F06 và phí hóa đơn F02 **chưa đạt**. Số liệu mới trên thiết bị chỉ là ước tính, không phải token TTS OpenAI hay Usage/Costs thực.
+- Thứ tự ưu tiên, tiêu chí nghiệm thu và bằng chứng theo file [VOICE_V21_REMEDIATION_2026-11-13.md](VOICE_V21_REMEDIATION_2026-11-13.md).
+
 ## Tình trạng thực tế
 - Runtime chính thức: https://nmh-voice-gpt-test.magical-budget.workers.dev
 - GET `/health` HTTP 200: `v2-tts-audioctx`, `gpt-6-luna`; GET `/` HTTP 200, ba phong cách và `THỬ GIỌNG AI MARIN` hiển thị. Kiểm chứng read-only NMH Guarded Operator.
