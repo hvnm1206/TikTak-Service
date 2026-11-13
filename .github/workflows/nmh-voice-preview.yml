@@ -147,12 +147,17 @@ jobs:
               false
             fi
           done
+          curl --fail --silent --show-error --max-time 15 "${TARGET}/health" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d.get("uiVersion")=="presence-canvas-v1"'
           curl --fail --silent --show-error --max-time 15 "${TARGET}/" -o /tmp/nmh-v2-page.html
           grep -q 'styleDanh' /tmp/nmh-v2-page.html || { echo "::error::V2 persona UI missing"; false; }
           grep -q 'testVoice' /tmp/nmh-v2-page.html || { echo "::error::Marin diagnostic control missing"; false; }
           grep -q 'AUDIO_DECODE_FAILED' /tmp/nmh-v2-page.html || { echo "::error::New AudioContext engine missing"; false; }
           grep -q 'usageSummary' /tmp/nmh-v2-page.html || { echo "::error::Cost usage UI missing"; false; }
-          echo "DEPLOY_UI=V2_AUDIOCTX_OK"
+          grep -q 'id="avatar"' /tmp/nmh-v2-page.html || { echo "::error::Face Canvas not found"; false; }
+          grep -q 'class PresenceFace' /tmp/nmh-v2-page.html || { echo "::error::Face engine not found"; false; }
+          grep -q 'id="journalBtn"' /tmp/nmh-v2-page.html || { echo "::error::Transcript drawer not found"; false; }
+          grep -q 'getByteTimeDomainData' /tmp/nmh-v2-page.html || { echo "::error::Actual audio visualizer not found"; false; }
+          echo "DEPLOY_UI=PRESENCE_CANVAS_OK"
           curl --fail --silent --show-error --max-time 20 "${TARGET}/api/docs/handover" -o /tmp/nmh-v2-handover.md
           grep -q 'ĐIỂM BÀN GIAO DUY NHẤT' /tmp/nmh-v2-handover.md || { echo "::error::Canonical handover not served"; false; }
           echo "DEPLOY_DOCS=CANONICAL_OK"

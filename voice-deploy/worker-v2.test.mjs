@@ -96,7 +96,7 @@ test('iPhone browser unlocks Web Audio from START and RESUME gestures; AI failur
 test('V2.1 health identifies new iPhone AudioContext engine',async()=>{
  const r=await worker.fetch(new Request(host+'/health'));
  assert.equal(r.status,200);
- assert.equal((await r.json()).version,'v2-tts-audioctx');
+ const body=await r.json();assert.equal(body.version,'v2-tts-audioctx');assert.equal(body.uiVersion,'presence-canvas-v1');
 });
 
 test('maintenance handover uses canonical source and cost ledger is estimate-only',async()=>{
