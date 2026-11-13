@@ -34,8 +34,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -z "${CLOUDFLARE_API_TOKEN}" || -z "${CLOUDFLARE_ACCOUNT_ID}" ]]; then
-            echo "CLOUDFLARE_CREDENTIALS=NOT_CONFIGURED"
+          if [[ -z "${CLOUDFLARE_API_TOKEN}" ]]; then
+            echo "CLOUDFLARE_API_TOKEN=NOT_CONFIGURED"
             exit 0
           fi
           if [[ "${CLOUDFLARE_ACCOUNT_ID}" != "769c2ab4af5ad50700039d473a72d48e" ]]; then
