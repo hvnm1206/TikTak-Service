@@ -1,5 +1,19 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## V3 — CẬP NHẬT HẠ TẦNG 13/11/2026 SAU KHI CẤP TOKEN (ƯU TIÊN TRƯỚC CÁC GHI CHÚ V3 CŨ)
+
+**D1 ĐÃ ĐẠT VỀ HẠ TẦNG; V3 CHƯA PHÁT HÀNH.** Người dùng đã tự cấu hình Secret `NMH_V3_CF_PROVISION_TOKEN` trong GitHub và không gửi giá trị token vào chat. Không sửa token Worker cũ.
+
+- **Đối chiếu token mới:** [Actions 43459324694](https://github.com/hvnm1206/TikTak-Service/actions/runs/43459324694) qua Cloudflare API, D1 `GET /d1/database` HTTP 200/AUTHORIZED, R2 `GET /r2/buckets` HTTP 403 mã **10042**; Google Web Client `NMH_V3_GOOGLE_CLIENT_ID` chưa cấu hình.
+- **Kết luận lỗi R2:** mã **10042 / NotEntitled** theo tài liệu chính thức Cloudflare nghĩa là tài khoản chưa có R2 subscription/entitlement, **không kết luận là token R2 thiếu quyền**. Cloudflare yêu cầu chủ tài khoản vào `Storage & databases → R2 → Overview` và hoàn thành kích hoạt R2; có bước billing nên **không được AI tự đồng ý chi phí**.
+- **Cấp phát D1 độc lập đã thành công:** [Actions 43459579821](https://github.com/hvnm1206/TikTak-Service/actions/runs/43459579821) job `d1-bootstrap` SUCCESS; resource `nmh-voice-v3`, UUID **`3ce295cb-a84d-4a50-abee-d14fdd903514`**. Tạo bằng API Cloudflare với token cấp mới và đúng Account ID `769c2ab4af5ad50700039d473a72d48e`.
+- D1 migration `voice-deploy/migrations/0001_v3.sql` đã chạy **11 SQL statements**, sau đó truy vấn từ D1 remote bảng `v3_sessions`: `V3_D1_MIGRATION=PASS`, `V3_D1_PROVISIONED_AND_VERIFIED=PASS`. Không tạo dữ liệu cá nhân thực; không thay Worker production.
+- Workflow cấp D1 an toàn/idempotent được lưu `.github/workflows/nmh-voice-v3-d1-bootstrap.yml`. Chạy tự động theo push thay đổi chính file này, KHÔNG auto-deploy ứng dụng.
+- **Còn phải làm:** (1) chủ tài khoản kích hoạt R2 subscription theo điều khoản Cloudflare; (2) chạy lại kiểm tra R2 và provision bucket `nmh-voice-v3-docs`; (3) tạo Google OAuth **Web Client** dành riêng ứng dụng, JavaScript Origin `https://nmh-voice-gpt-test.magical-budget.workers.dev`, thiết lập `NMH_V3_GOOGLE_CLIENT_ID`; (4) chạy pre-deploy/guarded release đúng Worker, test đăng nhập và đồng bộ hai thiết bị thật, ghi nhớ có lệnh, tài liệu. PDF/DOCX/OCR chưa được hiện thực hóa; không gắn PASS.
+- **Giới hạn nghiệm thu:** D1 database/schema PASS là kết quả hạ tầng, **không phải** xác nhận người dùng đã đồng bộ thực tế. Production vẫn NMH Presence V2, chưa kích hoạt V3.
+
+---
+
 ## CẬP NHẬT NHÁNH V3 13/11/2026 — CHƯA DEPLOY
 - Người dùng chốt Google Sign-In + D1/R2 đồng bộ, Prompt chỉnh tự do, ghi nhớ **chỉ theo lệnh/nhập tay**, kho tài liệu có nguồn. ĐÃ VIẾT SOURCE + PASS MOCK CI, CHƯA CÓ PROD V3.
 - Đọc đầu file `MAINTENANCE.md` và `voice-deploy/V3_STATUS_2026-11-13.md` để có bằng chứng. Cloudflare token hiện tại D1 HTTP 401 / R2 HTTP 403, `NMH_V3_GOOGLE_CLIENT_ID` thiếu; Operator Google OAuth không tự đồng nghĩa Google Web Client trên workers.dev.
