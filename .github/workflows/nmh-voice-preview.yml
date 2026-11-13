@@ -14,8 +14,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify Worker JavaScript syntax
-        run: node --check voice-deploy/worker.js
+      - name: Verify Worker JavaScript and V2 regression tests
+        run: |
+          node --check voice-deploy/worker.js
+          node --check voice-deploy/agent-v2.js
+          node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs
       - name: Deploy Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
