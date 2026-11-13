@@ -135,14 +135,20 @@ jobs:
           PY
           npx --yes wrangler@4.102.0 deploy --config voice-deploy/wrangler-v3.generated.jsonc
           TARGET="https://nmh-voice-gpt-test.magical-budget.workers.dev"
-          for i in 1 2 3 4 5 6; do
+          v3_ready=0
+          for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
             sleep 5
-            if curl --fail --silent --show-error --max-time 15 "$TARGET/health" | \
-              python3 -c 'import json,sys;x=json.load(sys.stdin);assert x.get("uiVersion")=="presence-canvas-v1"'; then break; fi
-            if [[ "$i" == 6 ]]; then false; fi
+            if curl --fail --silent --max-time 12 "$TARGET/health" -o /tmp/v3-health.json && \
+               python3 -c 'import json;x=json.load(open("/tmp/v3-health.json"));assert x.get("ok") and x.get("uiVersion")=="presence-canvas-v1" and x.get("v3Version")=="d1-only-google-v3"' && \
+               curl --fail --silent --max-time 12 "$TARGET/api/v3/config" -o /tmp/v3-config.json && \
+               python3 -c 'import json;x=json.load(open("/tmp/v3-config.json"));assert x.get("ready") and x.get("sync") and x.get("storage")=="Cloudflare D1" and x.get("r2Required")==False and x.get("googleClientId","").endswith(".apps.googleusercontent.com")'; then
+              echo "V3_EDGE_READY_AT_ATTEMPT=$i"
+              v3_ready=1
+              break
+            fi
+            echo "V3_EDGE_NOT_READY_ATTEMPT=$i"
           done
-          curl --fail --silent --show-error --max-time 15 "$TARGET/api/v3/config" | \
-            python3 -c 'import json,sys;x=json.load(sys.stdin);assert x["ready"] and x["sync"]'
+          if [[ "$v3_ready" != 1 ]]; then echo "::error::V3 readiness smoke did not converge"; false; fi
           curl --fail --silent --show-error --max-time 15 "$TARGET/" -o /tmp/v3-current.html
           grep -q 'id="avatar"' /tmp/v3-current.html
           grep -q 'id="v3Personal"' /tmp/v3-current.html
