@@ -91,12 +91,14 @@ export async function loadV3Context(req,env,question){
   const rows=await env.NMH_DB.prepare('SELECT c.body, c.segment, d.name FROM v3_chunks c JOIN v3_documents d ON d.id=c.doc_id AND d.user_id=c.user_id WHERE c.user_id=? LIMIT 300').bind(sub).all();
   const docs=(rows.results||[]).map(x=>({...x,score:scoreSegment(question,x.body)})).filter(x=>x.score>=3).sort((a,b)=>b.score-a.score).slice(0,4).map(x=>({name:x.name,segment:x.segment,text:x.body.slice(0,900)}));
   return {personalPrompt:maxText(profile?.prompt,2500),memories:ranked.map(x=>x.body),documents:docs};
- }catch{return {personalPrompt:'',memories:[],documents:[]}}
+ }catch{return {personalPrompt:'',memories:[],documents:[],contextError:'Không truy cập được kho cá nhân, không thể xác minh tài liệu.'}}
 }
 export function memoryIntent(question){
  const text=String(question||'').trim();
  const save=text.match(/^(?:hãy\s+)?(?:nhớ\s+rằng|ghi\s+nhớ(?:\s+rằng)?|lưu\s+vào\s+bộ\s+nhớ)\s*[:：,]?\s+(.+)$/isu);
  if(save&&save[1].trim().length>=2)return {action:'save',body:save[1].trim().slice(0,500)};
+ const edit=text.match(/^(?:hãy\s+)?sửa\s+ghi\s+nhớ\s+(.+?)\s+thành\s+(.+)$/isu);
+ if(edit&&edit[1].trim().length>=2&&edit[2].trim().length>=2)return {action:'edit',query:edit[1].trim(),body:edit[2].trim().slice(0,500)};
  const erase=text.match(/^(?:hãy\s+)?(?:quên\s+điều|xóa\s+ghi\s+nhớ(?:\s+về)?)\s*[:：,]?\s+(.+)$/isu);
  if(erase&&erase[1].trim().length>=2)return {action:'erase',query:erase[1].trim()};
  return null;
@@ -116,6 +118,11 @@ export async function handleVoiceMemory(req,env,question){
   const q=intent.query.toLocaleLowerCase('vi');
   const hits=(results.results||[]).filter(x=>x.body.toLocaleLowerCase('vi').includes(q));
   if(hits.length!==1)return {answer:hits.length?'Tìm thấy nhiều ghi nhớ liên quan, hãy xóa trong SETUP để tránh xóa nhầm.':'Không tìm thấy ghi nhớ tương ứng. Chưa xóa.',sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
+  if(intent.action==='edit'){
+   const update=await env.NMH_DB.prepare('UPDATE v3_memories SET body=? WHERE user_id=? AND id=?').bind(intent.body,sub,hits[0].id).run();
+   if(Number(update.meta?.changes||0)!==1)throw Error('Failed memory update');
+   return {answer:'Đã sửa ghi nhớ thành: '+intent.body,sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
+  }
   await env.NMH_DB.prepare('DELETE FROM v3_memories WHERE user_id=? AND id=?').bind(sub,hits[0].id).run();
   return {answer:'Đã xóa ghi nhớ: '+hits[0].body,sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
  }catch{return {answer:'Không lưu được vào bộ nhớ. Vui lòng thử lại; chưa xác nhận thành công.',sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}}}
@@ -156,8 +163,8 @@ export async function handleV3(req,env){
    if(typeof body.prompt!=='string'||body.prompt.length>2500||!Number.isInteger(body.revision)||body.revision<0)return fail('Prompt hoặc phiên bản không hợp lệ');
    const row=await env.NMH_DB.prepare('SELECT revision FROM v3_profiles WHERE user_id=?').bind(sub).first();
    if((row?.revision||0)!==body.revision)return fail('Dữ liệu đã thay đổi ở thiết bị khác. Tải lại trước khi lưu.',409);
-   if(row)await env.NMH_DB.prepare('UPDATE v3_profiles SET prompt=?,revision=revision+1,updated_at=? WHERE user_id=? AND revision=?').bind(body.prompt,Date.now(),sub,body.revision).run();
-   else await env.NMH_DB.prepare('INSERT INTO v3_profiles (user_id,prompt,revision,updated_at) VALUES (?,?,1,?)').bind(sub,body.prompt,Date.now()).run();
+   if(row){const update=await env.NMH_DB.prepare('UPDATE v3_profiles SET prompt=?,revision=revision+1,updated_at=? WHERE user_id=? AND revision=?').bind(body.prompt,Date.now(),sub,body.revision).run();if(Number(update.meta?.changes||0)!==1)return fail('Dữ liệu đã thay đổi ở thiết bị khác',409)}
+   else {try{await env.NMH_DB.prepare('INSERT INTO v3_profiles (user_id,prompt,revision,updated_at) VALUES (?,?,1,?)').bind(sub,body.prompt,Date.now()).run()}catch{return fail('Dữ liệu đã thay đổi ở thiết bị khác',409)}}
    return json({ok:true,revision:body.revision+1});
   }
  }
@@ -174,6 +181,12 @@ export async function handleV3(req,env){
   }
  }
  const mm=path.match(/^\/api\/v3\/memories\/([a-f0-9-]{36})$/);
+ if(mm&&method==='PUT'){
+  let d;try{d=await readJson(req,1200)}catch(e){return fail(e.message)}
+  const body=maxText(d?.body,500);if(body.length<2)return fail('Ghi nhớ phải có nội dung');
+  const r=await env.NMH_DB.prepare('UPDATE v3_memories SET body=? WHERE user_id=? AND id=?').bind(body,sub,mm[1]).run();
+  return Number(r.meta?.changes||0)===1?json({ok:true,body}):fail('Không tìm thấy ghi nhớ',404);
+ }
  if(mm&&method==='DELETE'){
   const r=await env.NMH_DB.prepare('DELETE FROM v3_memories WHERE user_id=? AND id=?').bind(sub,mm[1]).run();
   return json({ok:true,deleted:Number(r.meta?.changes||0)});
@@ -192,8 +205,9 @@ export async function handleV3(req,env){
    const key=id(),now=Date.now(),r2key='u/'+sub+'/'+key;
    await env.NMH_DOCS.put(r2key,enc.encode(body),{httpMetadata:{contentType:'text/plain; charset=utf-8'}});
    try{
-    await env.NMH_DB.prepare('INSERT INTO v3_documents (id,user_id,name,mime,segment_count,created_at) VALUES (?,?,?,?,?,?)').bind(key,sub,name,mime,chunks.length,now).run();
-    for(let i=0;i<chunks.length;i++)await env.NMH_DB.prepare('INSERT INTO v3_chunks (doc_id,user_id,segment,body) VALUES (?,?,?,?)').bind(key,sub,i+1,chunks[i]).run();
+    const statements=[env.NMH_DB.prepare('INSERT INTO v3_documents (id,user_id,name,mime,segment_count,created_at) VALUES (?,?,?,?,?,?)').bind(key,sub,name,mime,chunks.length,now)];
+    for(let i=0;i<chunks.length;i++)statements.push(env.NMH_DB.prepare('INSERT INTO v3_chunks (doc_id,user_id,segment,body) VALUES (?,?,?,?)').bind(key,sub,i+1,chunks[i]));
+    await env.NMH_DB.batch(statements);
    }catch(e){await env.NMH_DOCS.delete(r2key);throw e}
    return json({ok:true,id:key,segments:chunks.length},201);
   }
