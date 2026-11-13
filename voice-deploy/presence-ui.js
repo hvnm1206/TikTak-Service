@@ -201,8 +201,10 @@ export function enhanceVoicePage(original){
  p=patchOnce(p,'heard=(final||interim).trim()};','heard=(final||interim).trim();if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110);if(final.trim()&&rec===r&&active&&g===gen){const done=r.onend;if(done){r.onend=null;done();try{r.abort()}catch{}}}};');
  p=patchOnce(p,'const text=heard.trim();if(!text)','const text=heard.trim();$("liveUtterance").textContent="";if(!text)');
  p=patchOnce(p,'if(audioSource){audioSource.onended=null;','avatarFace?.setAudio(null);if(audioSource){audioSource.onended=null;');
+ p=patchOnce(p,'s.start(0);return {duration:decoded.duration,seconds:decoded.duration/playbackSpeed}}',
+  's.start(0);speechWatch=setTimeout(()=>{if(audioSource===s){try{s.stop()}catch{};s.onended?.()}},Math.min(65000,Math.max(3500,Math.ceil(decoded.duration/playbackSpeed*1000)+3500)));return {duration:decoded.duration,seconds:decoded.duration/playbackSpeed}}');
  p=patchOnce(p,'s.connect(audioCtx.destination);audioSource=s;s.onended=','let meter=null;try{meter=audioCtx.createAnalyser();meter.fftSize=256;s.connect(meter);meter.connect(audioCtx.destination)}catch{s.connect(audioCtx.destination)}avatarFace?.setAudio(meter);audioSource=s;s.onended=');
- p=patchOnce(p,'if(audioSource===s){audioSource=null;onDone?.()}','if(audioSource===s){audioSource=null;avatarFace?.setAudio(null);onDone?.()}');
+ p=patchOnce(p,'if(audioSource===s){audioSource=null;onDone?.()}','if(audioSource===s){if(speechWatch){clearTimeout(speechWatch);speechWatch=null}audioSource=null;avatarFace?.setAudio(null);onDone?.()}');
  p=patchOnce(p,'function styleUI(){const a=','function styleUI(){avatarFace?.setPersona(style);const a=');
  p=patchOnce(p,' updateVoiceUI();renderCost();',' avatarFace=new PresenceFace($("avatar"));avatarFace.setPersona(style);updateVoiceUI();renderCost();captionRefresh();');
  return p;
