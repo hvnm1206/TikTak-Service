@@ -95,6 +95,7 @@ try{
  const memoryResult=await handleVoiceMemory(request,env,question);
  if(memoryResult)return respond(memoryResult);
  const personalization=await loadV3Context(request,env,question);
+ if(personalization.contextError)return respond({error:personalization.contextError},503);
  const result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal:ctl.signal});
  return respond(result);
 }catch(e){

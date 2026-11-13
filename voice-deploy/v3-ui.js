@@ -41,17 +41,19 @@ const script=String.raw`
   return d;
  };
  const safeText=(host,value)=>{host.replaceChildren();host.textContent=String(value||'')};
- function line(host,title,remove){
+ function line(host,title,remove,edit){
   const p=document.createElement('div');p.style.cssText='display:flex;gap:6px;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #374151';
   const text=document.createElement('span');text.style.cssText='overflow-wrap:anywhere;white-space:pre-wrap;flex:1';text.textContent=String(title).slice(0,500);
   const btn=document.createElement('button');btn.type='button';btn.textContent='XÓA';btn.style.cssText='flex:0 0 auto;padding:8px';btn.onclick=remove;
-  p.append(text,btn);host.append(p);
+  p.append(text);
+  if(edit){const eb=document.createElement('button');eb.type='button';eb.textContent='SỬA';eb.style.cssText='padding:8px';eb.onclick=edit;p.append(eb)}
+  p.append(btn);host.append(p);
  }
  async function populate(){
   const [p,m,d]=await Promise.all([req('/api/v3/profile'),req('/api/v3/memories'),req('/api/v3/documents')]);
   rev=p.revision;$('v3Prompt').value=p.prompt||'';
   const ml=$('v3Memories');ml.replaceChildren();
-  for(const item of m.memories||[])line(ml,item.body,async()=>{if(!confirm('Xóa ghi nhớ này?'))return;try{await req('/api/v3/memories/'+encodeURIComponent(item.id),'DELETE',{});await populate();msg('Đã xóa')}catch(e){msg(e.message)}});
+  for(const item of m.memories||[])line(ml,item.body,async()=>{if(!confirm('Xóa ghi nhớ này?'))return;try{await req('/api/v3/memories/'+encodeURIComponent(item.id),'DELETE',{});await populate();msg('Đã xóa')}catch(e){msg(e.message)}},async()=>{const text=prompt('Sửa nội dung ghi nhớ:',item.body);if(text===null)return;try{await req('/api/v3/memories/'+encodeURIComponent(item.id),'PUT',{body:text.trim()});await populate();msg('Đã sửa')}catch(e){msg(e.message)}});
   const dl=$('v3Documents');dl.replaceChildren();
   for(const item of d.documents||[])line(dl,item.name+' ('+item.segment_count+' đoạn)',async()=>{if(!confirm('Xóa tài liệu này?'))return;try{await req('/api/v3/documents/'+encodeURIComponent(item.id),'DELETE',{});await populate();msg('Đã xóa')}catch(e){msg(e.message)}});
  }

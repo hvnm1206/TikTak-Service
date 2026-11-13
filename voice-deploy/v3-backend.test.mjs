@@ -8,6 +8,7 @@ const secret='secret-for-mock-tests-32-characters-minimum-only';
 function db(){
  const users=new Map(),profiles=new Map(),memories=new Map(),docs=new Map(),chunks=[];
  return {users,profiles,memories,docs,chunks,
+ async batch(stmts){const out=[];for(const s of stmts)out.push(await s.run());return out},
  prepare(sql){let args=[];return {
   bind(...p){args=p;return this},
   async run(){
@@ -15,6 +16,7 @@ function db(){
    if(sql.startsWith('INSERT INTO v3_profiles')){profiles.set(args[0],{prompt:args[1],revision:1});return {success:true,meta:{changes:1}}}
    if(sql.startsWith('UPDATE v3_profiles')){const p=profiles.get(args[2]);if(!p||p.revision!==args[3])return {meta:{changes:0}};p.prompt=args[0];p.revision++;return {meta:{changes:1}}}
    if(sql.startsWith('INSERT INTO v3_memories')){memories.set(args[0],{id:args[0],user_id:args[1],body:args[2],created_at:args[3]});return {meta:{changes:1}}}
+   if(sql.startsWith('UPDATE v3_memories')){const m=memories.get(args[2]);if(m?.user_id!==args[1])return {meta:{changes:0}};m.body=args[0];return {meta:{changes:1}}}
    if(sql.startsWith('DELETE FROM v3_memories')){const m=memories.get(args[1]);if(m?.user_id===args[0]){memories.delete(args[1]);return {meta:{changes:1}}}return {meta:{changes:0}}}
    if(sql.startsWith('INSERT INTO v3_documents')){docs.set(args[0],{id:args[0],user_id:args[1],name:args[2],mime:args[3],segment_count:args[4],created_at:args[5]});return {meta:{changes:1}}}
    if(sql.startsWith('INSERT INTO v3_chunks')){chunks.push({doc_id:args[0],user_id:args[1],segment:args[2],body:args[3]});return {meta:{changes:1}}}
@@ -71,6 +73,7 @@ test('memory actions only trigger for intentional voice commands, not every sent
  assert.deepEqual(memoryIntent('Nhớ rằng tôi thích ngắn gọn'),{action:'save',body:'tôi thích ngắn gọn'});
  assert.equal(memoryIntent('Tôi nghe câu nhớ rằng nhưng không yêu cầu'),null);
  assert.deepEqual(memoryIntent('Quên điều tôi thích ngắn gọn'),{action:'erase',query:'tôi thích ngắn gọn'});
+ assert.deepEqual(memoryIntent('Sửa ghi nhớ màu xanh thành màu đỏ'),{action:'edit',query:'màu xanh',body:'màu đỏ'});
  assert.equal(memoryIntent('Tối nay ăn gì?'),null);
 });
 test('fake or missing login is rejected, no client-supplied owner identity is trusted',async()=>{
@@ -98,8 +101,12 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   assert.equal((await handleV3(req('/api/v3/profile','PUT',{prompt:'stale edit',revision:0},cookie),e)).status,409);
   const mem=await asBody(await handleV3(req('/api/v3/memories','POST',{body:'Ưu tiên báo cáo ngắn'},cookie),e));
   assert.equal(mem.status,201);
+  const edited=await asBody(await handleV3(req('/api/v3/memories/'+mem.body.id,'PUT',{body:'Chỉ báo cáo đúng trọng tâm'},cookie),e));
+  assert.equal(edited.status,200);
   const dup=await handleVoiceMemory(req('/api/chat','POST',{},cookie),e,'Nhớ rằng máy chạy 3 ca');
   assert.match(dup.answer,/Đã lưu/);
+  const voiceEdit=await handleVoiceMemory(req('/api/chat','POST',{},cookie),e,'Sửa ghi nhớ máy chạy 3 ca thành máy chạy 2 ca');
+  assert.match(voiceEdit.answer,/Đã sửa/);
   const doc=await asBody(await handleV3(req('/api/v3/documents','POST',{name:'quytrinh.txt',mime:'text/plain',text:'Lỗi E12: kiểm tra cảm biến áp suất trước khi khởi động lại.'},cookie),e));
   assert.equal(doc.status,201);
   assert.equal(e.NMH_DOCS.store.size,1);
