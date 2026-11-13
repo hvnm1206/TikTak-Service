@@ -89,3 +89,10 @@ https://cloud.google.com/text-to-speech/pricing
 
 ## Release V2.1 — iPhone AudioContext fix
 - Baseline locked: `9f10411e-79b9-420b-b826-e3e6be8a08b5`; CI [43427730110](https://github.com/hvnm1206/TikTak-Service/actions/runs/43427730110) = success 18/18 tests. Initiating guarded release; outcome requires deployment run plus independent production probe.
+
+## 13/11/2026 — AudioContext repair DEPLOYED; device test pending
+- Production release SHA `007c6db43c85e17986c3c2c983d550f90501bfb7`.
+- GitHub Actions run `43427854906` **SUCCESS**: Worker uploaded, health `v2-tts-audioctx`, UI `V2_AUDIOCTX_OK`, key-validation smoke PASS. Latest CI: 18/18 PASS at run `43427730110`.
+- Independent NMH Guarded Operator GET /health: HTTP 200 and version `v2-tts-audioctx`; GET /: HTTP 200, `testVoice`, `voiceStatus`, `AUDIO_DECODE_FAILED` present and `function speakFallback` absent.
+- Audio path changed from async `new Audio(...).play()` to AudioContext unlocked at real START/RESUME gesture; no more silent Safari fallback. SETUP → THỬ GIỌNG AI MARIN uses actual device API key to request MP3 and play it, displaying TTS HTTP/decode/audio-context diagnostics.
+- **Not yet accepted on real iPhone**: Marin speech audibly heard and voice likeness to Ngáo. API key is stored only on user device (not in Cloudflare/GitHub), so remote CI cannot perform a real paid synthesis without a separate safely provided test credential. No claims that audio quality or production TTS are PASS.
