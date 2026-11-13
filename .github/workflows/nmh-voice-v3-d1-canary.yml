@@ -1,4 +1,5 @@
 name: NMH Voice V3 - live D1-only document canary with cleanup
+# Production-safe synthetic test: UUID rows are cleaned in finally
 on:
   push:
     branches: [nmh-voice-gpt-v1]
