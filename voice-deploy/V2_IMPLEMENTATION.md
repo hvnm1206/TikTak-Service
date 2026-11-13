@@ -33,7 +33,7 @@ Ngày: 13/11/2026 · Trạng thái: SOURCE + CI VERIFIED; NOT DEPLOYED TO CLOUDF
 - Chất giọng trẻ trên iPhone cần kiểm chứng tai thực; thiếu khóa Google Chirp3-HD Leda trong Cloudflare nên chưa thể tái hiện đúng nguồn giọng chính của Ngáo.
 
 ## Gate triển khai
-1. Có Cloudflare Account ID, Worker đúng, API token quyền Workers Scripts Edit, GitHub Actions secrets được cài bằng kênh bảo mật, **không đưa token lên chat**.
+1. Account ID đã chốt trực tiếp trong GitHub Actions là `769c2ab4af5ad50700039d473a72d48e`; **chỉ còn GitHub Secret `NMH_CF_API_TOKEN` thiếu**, được kiểm chứng tại run `43419105881` ngày 13/11/2026 (`CLOUDFLARE_API_TOKEN=NOT_CONFIGURED`). Token phải có quyền Workers Scripts Edit và được lưu qua kênh bí mật; không gửi token trong chat.
 2. Backup Cloudflare Worker production, xác minh có thể rollback sang version đang chạy.
 3. Test trực tiếp OpenAI key của người dùng và Speech/TTS trên iPhone ở môi trường an toàn; đo token, TTS audio và kết quả tra cứu.
 4. Phát hành production đúng URL cố định, ghi full deployment/commit/run, thử hồi quy, nếu lỗi lập tức rollback.
@@ -45,3 +45,9 @@ https://developers.openai.com/api/docs/guides/function-calling
 https://developers.openai.com/api/docs/guides/tools-web-search
 https://developers.openai.com/api/docs/models/gpt-4o-mini-tts
 https://cloud.google.com/text-to-speech/pricing
+
+## Bằng chứng kiểm tra bổ sung 13/11/2026
+- Cloudflare root HTML ở `nmh-voice-gpt-test.magical-budget.workers.dev/` được đối chiếu byte-for-byte với PAGE tại commit `04ca132e0df80ded80fcd0735fb05fe224209ce8`: **khớp chính xác 16.015 ký tự**. Đây chỉ chứng minh HTML frontend, không chứng minh bytecode backend giống commit.
+- Source V3 đầy đủ vẫn lưu được trên GitHub tại commit trên; rollback Cloudflare vẫn chưa thử.
+- CI mới nhất https://github.com/hvnm1206/TikTak-Service/actions/runs/43419105881: verify 14/14 PASS, deploy SKIPPED, `CLOUDFLARE_API_TOKEN=NOT_CONFIGURED`.
+- Worker production GET /health HTTP 200, GET / HTTP 200, tab BẢO TRÌ hiện đúng V3. V2 chưa xuất hiện ở production.
