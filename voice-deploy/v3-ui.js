@@ -68,11 +68,12 @@ const script=String.raw`
    }else{
     $('v3Login').style.display='block';$('v3App').style.display='none';$('v3State').textContent='Chưa đăng nhập Google — ghi nhớ và tài liệu chưa đồng bộ.';
     if(window.google?.accounts?.id&&loginClient){
+     $('v3GoogleBtn').replaceChildren();
      google.accounts.id.initialize({client_id:loginClient,callback:async response=>{
       try{await req('/api/v3/auth/google','POST',{credential:response.credential});await refresh();msg('Đăng nhập thành công')}catch(e){msg('Đăng nhập thất bại: '+e.message)}
      }});
      google.accounts.id.renderButton($('v3GoogleBtn'),{theme:'outline',size:'large',text:'signin_with',width:240});
-    }else msg('Không tải được Google Sign-In. Kiểm tra cấu hình trình duyệt.');
+    }else msg('Đang tải đăng nhập Google; nếu không hiện nút, kiểm tra trình duyệt và cấu hình.');
    }
   }catch(e){msg('Đồng bộ chưa sẵn sàng: '+e.message)}
  }
@@ -96,6 +97,7 @@ const script=String.raw`
    $('v3File').value='';await populate();msg('Đã đồng bộ tài liệu: '+d.segments+' đoạn')
   }catch(e){msg('Chưa tải được tài liệu: '+e.message)}
  };
+ window.nmhV3GoogleReady=()=>{if(loginClient)refresh()};
  refresh();
 })();
 `;
@@ -103,7 +105,7 @@ export function enhanceV3Page(original,env={}){
  if(!original.includes('<section id="setup"')||!original.includes('</body>'))throw Error('Voice Setup layout changed');
  const id=String(env?.NMH_V3_GOOGLE_CLIENT_ID||'');
  const authorized=/^\d+-[a-z0-9-]+\.apps\.googleusercontent\.com$/.test(id);
- const google=authorized?'<script src="https://accounts.google.com/gsi/client" async defer></script>':'';
+ const google=authorized?'<script src="https://accounts.google.com/gsi/client" async defer onload="window.nmhV3GoogleReady?.()"></script>':'';
  return original.replace('<button id="back">QUAY LẠI</button></section>',panel+'<button id="back">QUAY LẠI</button></section>')
   .replace('</body>',google+'<script>'+script+'</script></body>');
 }
