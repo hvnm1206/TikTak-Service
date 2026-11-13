@@ -20,7 +20,7 @@ try{
  if(!r.ok)return respond({error:"Không tải được tài liệu GitHub API (HTTP "+r.status+")"},502);
  const record=await r.json();
  if(record?.encoding!=="base64"||typeof record.content!=="string")return respond({error:"Tài liệu GitHub API không hợp lệ"},502);
- const encoded=record.content.replace(/\\s/g,"");
+ const encoded=record.content.replace(/\s/g,"");
  if(encoded.length>85000)return respond({error:"Tài liệu quá dài"},502);
  const bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));
  const data=new TextDecoder("utf-8",{fatal:true}).decode(bytes);
