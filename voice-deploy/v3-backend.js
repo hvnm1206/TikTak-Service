@@ -1,0 +1,211 @@
+// NMH Voice V3: authenticated, explicitly controlled per-user sync.
+const JSON_HEADERS={'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'};
+const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{...JSON_HEADERS,...headers}});
+const fail=(message,status=400)=>json({error:message},status);
+const maxText=(value,max)=>typeof value==='string'?value.trim().slice(0,max):'';
+const id=()=>crypto.randomUUID();
+const googleCerts='https://www.googleapis.com/oauth2/v3/certs';
+const enc=new TextEncoder();
+const dec=new TextDecoder('utf-8',{fatal:true});
+const b64url=bytes=>btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const un64=s=>Uint8Array.from(atob(String(s).replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((String(s).length+3)%4)),c=>c.charCodeAt(0));
+let jwksCache=null;
+let jwksTime=0;
+function productionReady(env){return !!(env?.NMH_DB&&env?.NMH_DOCS&&env?.NMH_V3_GOOGLE_CLIENT_ID&&env?.NMH_V3_SESSION_SECRET&&String(env.NMH_V3_SESSION_SECRET).length>=32)}
+function validClientId(env){const s=String(env?.NMH_V3_GOOGLE_CLIENT_ID||'');return /^\d+-[a-z0-9-]+\.apps\.googleusercontent\.com$/.test(s)?s:''}
+async function hmac(payload,secret){
+ const key=await crypto.subtle.importKey('raw',enc.encode(String(secret)),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+ return new Uint8Array(await crypto.subtle.sign('HMAC',key,enc.encode(payload)));
+}
+async function signSession(subject,env){
+ const payload=b64url(enc.encode(JSON.stringify({sub:subject,exp:Math.floor(Date.now()/1000)+7*86400})));
+ return payload+'.'+b64url(await hmac(payload,env.NMH_V3_SESSION_SECRET));
+}
+async function sessionSubject(req,env){
+ const text=req.headers.get('cookie')||'';
+ const m=text.match(/(?:^|;\s*)__Host-nmhv3=([^;\s]+)/);
+ if(!m||!env?.NMH_V3_SESSION_SECRET)return null;
+ const [payload,signature]=m[1].split('.');
+ if(!payload||!signature||payload.length>1024||signature.length>200)return null;
+ try{
+  const actual=un64(signature),expected=await hmac(payload,env.NMH_V3_SESSION_SECRET);
+  if(actual.length!==expected.length)return null;
+  let mismatch=0;for(let i=0;i<actual.length;i++)mismatch|=actual[i]^expected[i];
+  if(mismatch!==0)return null;
+  const session=JSON.parse(dec.decode(un64(payload)));
+  if(!Number.isFinite(session.exp)||session.exp<=Date.now()/1000||session.exp>Date.now()/1000+7*86400+90)return null;
+  return typeof session.sub==='string'&&/^[A-Za-z0-9_-]{6,200}$/.test(session.sub)?session.sub:null;
+ }catch{return null}
+}
+async function verifiedGoogleIdentity(jwt,client,fetchImpl=fetch){
+ if(typeof jwt!=='string'||jwt.length>12000)throw Error('Google token không hợp lệ');
+ const parts=jwt.split('.');if(parts.length!==3)throw Error('Google token không hợp lệ');
+ let head,payload;
+ try{head=JSON.parse(dec.decode(un64(parts[0])));payload=JSON.parse(dec.decode(un64(parts[1])))}catch{throw Error('Google token không hợp lệ')}
+ if(head.alg!=='RS256'||!head.kid||payload.aud!==client||!['accounts.google.com','https://accounts.google.com'].includes(payload.iss)||!Number.isFinite(payload.exp)||payload.exp<=Date.now()/1000||payload.exp>Date.now()/1000+7200||typeof payload.sub!=='string'||!/^[A-Za-z0-9_-]{6,200}$/.test(payload.sub))throw Error('Google ID token bị từ chối');
+ if(!jwksCache||Date.now()>jwksTime){
+  const r=await fetchImpl(googleCerts,{headers:{accept:'application/json'}});
+  if(!r.ok)throw Error('Không kiểm tra được chữ ký Google');
+  const data=await r.json();
+  if(!Array.isArray(data.keys))throw Error('Chứng thư Google không hợp lệ');
+  jwksCache=data.keys;jwksTime=Date.now()+Math.min(3600000,300000);
+ }
+ const jwk=jwksCache.find(k=>k.kid===head.kid&&k.kty==='RSA'&&k.alg==='RS256'&&k.use==='sig');
+ if(!jwk)throw Error('Không tìm thấy khóa ký Google');
+ const pub=await crypto.subtle.importKey('jwk',jwk,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify']);
+ const ok=await crypto.subtle.verify({name:'RSASSA-PKCS1-v1_5'},pub,un64(parts[2]),enc.encode(parts[0]+'.'+parts[1]));
+ if(!ok)throw Error('Chữ ký Google không hợp lệ');
+ return {sub:payload.sub,name:maxText(payload.name,100),email:maxText(payload.email,200)};
+}
+async function readJson(req,max=16000){
+ const text=await req.text();
+ if(text.length>max)throw Error('Dữ liệu quá lớn');
+ try{return JSON.parse(text)}catch{throw Error('JSON không hợp lệ')}
+}
+function originAllowed(req,url){
+ return req.headers.get('origin')===url.origin&&!!req.headers.get('content-type')?.includes('application/json');
+}
+const cookie=(value,ttl)=>'__Host-nmhv3='+value+'; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age='+ttl;
+async function ensureAuth(req,env){
+ const sub=await sessionSubject(req,env);
+ if(!sub)return {error:fail('Cần đăng nhập Google để đồng bộ',401)};
+ return {sub};
+}
+function extractTerms(text){
+ const ignore=new Set(['và','của','là','có','được','cho','này','một','những','với','không','trong','theo','hay','mình','tôi','anh','tao','mày','đâu','nào','thế']);
+ return [...new Set(String(text).toLocaleLowerCase('vi').normalize('NFKC').match(/[\p{L}\p{N}]{2,}/gu)||[])].filter(t=>!ignore.has(t)).slice(0,20);
+}
+function scoreSegment(query,text){
+ const q=extractTerms(query),tokens=new Set(extractTerms(text));let score=0;
+ for(const t of q){if(tokens.has(t))score+=3;else if(text.toLocaleLowerCase('vi').includes(t))score+=1}
+ return score;
+}
+export async function loadV3Context(req,env,question){
+ if(!productionReady(env))return {personalPrompt:'',memories:[],documents:[]};
+ const sub=await sessionSubject(req,env);
+ if(!sub)return {personalPrompt:'',memories:[],documents:[]};
+ try{
+  const profile=await env.NMH_DB.prepare('SELECT prompt FROM v3_profiles WHERE user_id=?').bind(sub).first();
+  const recent=await env.NMH_DB.prepare('SELECT body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 40').bind(sub).all();
+  const ranked=(recent.results||[]).map(x=>({body:x.body,score:scoreSegment(question,x.body)})).sort((a,b)=>b.score-a.score).filter(x=>x.score>0).slice(0,6);
+  const rows=await env.NMH_DB.prepare('SELECT c.body, c.segment, d.name FROM v3_chunks c JOIN v3_documents d ON d.id=c.doc_id AND d.user_id=c.user_id WHERE c.user_id=? LIMIT 300').bind(sub).all();
+  const docs=(rows.results||[]).map(x=>({...x,score:scoreSegment(question,x.body)})).filter(x=>x.score>=3).sort((a,b)=>b.score-a.score).slice(0,4).map(x=>({name:x.name,segment:x.segment,text:x.body.slice(0,900)}));
+  return {personalPrompt:maxText(profile?.prompt,2500),memories:ranked.map(x=>x.body),documents:docs};
+ }catch{return {personalPrompt:'',memories:[],documents:[]}}
+}
+export function memoryIntent(question){
+ const text=String(question||'').trim();
+ const save=text.match(/^(?:hãy\s+)?(?:nhớ\s+rằng|ghi\s+nhớ(?:\s+rằng)?|lưu\s+vào\s+bộ\s+nhớ)\s*[:：,]?\s+(.+)$/isu);
+ if(save&&save[1].trim().length>=2)return {action:'save',body:save[1].trim().slice(0,500)};
+ const erase=text.match(/^(?:hãy\s+)?(?:quên\s+điều|xóa\s+ghi\s+nhớ(?:\s+về)?)\s*[:：,]?\s+(.+)$/isu);
+ if(erase&&erase[1].trim().length>=2)return {action:'erase',query:erase[1].trim()};
+ return null;
+}
+export async function handleVoiceMemory(req,env,question){
+ const intent=memoryIntent(question);if(!intent)return null;
+ if(!productionReady(env))return {answer:'Bộ nhớ đồng bộ chưa được cấu hình. Chưa lưu thông tin nào.',sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
+ const {sub,error}=await ensureAuth(req,env);
+ if(error)return {answer:'Cần đăng nhập Google trong SETUP để ghi nhớ đồng bộ. Chưa lưu.',sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
+ try{
+  if(intent.action==='save'){
+   const k=id();
+   await env.NMH_DB.prepare('INSERT INTO v3_memories (id,user_id,body,created_at) VALUES (?,?,?,?)').bind(k,sub,intent.body,Date.now()).run();
+   return {answer:'Đã lưu ghi nhớ: '+intent.body,sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
+  }
+  const results=await env.NMH_DB.prepare('SELECT id,body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 100').bind(sub).all();
+  const q=intent.query.toLocaleLowerCase('vi');
+  const hits=(results.results||[]).filter(x=>x.body.toLocaleLowerCase('vi').includes(q));
+  if(hits.length!==1)return {answer:hits.length?'Tìm thấy nhiều ghi nhớ liên quan, hãy xóa trong SETUP để tránh xóa nhầm.':'Không tìm thấy ghi nhớ tương ứng. Chưa xóa.',sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
+  await env.NMH_DB.prepare('DELETE FROM v3_memories WHERE user_id=? AND id=?').bind(sub,hits[0].id).run();
+  return {answer:'Đã xóa ghi nhớ: '+hits[0].body,sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
+ }catch{return {answer:'Không lưu được vào bộ nhớ. Vui lòng thử lại; chưa xác nhận thành công.',sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}}}
+}
+function splitText(text){
+ const clean=String(text).replace(/\r\n/g,'\n').replace(/\u0000/g,'').trim();
+ const out=[];let p=0;
+ while(p<clean.length&&out.length<100){let end=Math.min(p+760,clean.length);if(end<clean.length){const j=clean.lastIndexOf('\n',end);if(j>p+360)end=j+1}out.push(clean.slice(p,end));if(end>=clean.length)break;p=Math.max(p+1,end-70)}
+ return out;
+}
+export async function handleV3(req,env){
+ const u=new URL(req.url),path=u.pathname,method=req.method.toUpperCase();
+ if(path==='/api/v3/config'&&method==='GET')return json({ready:productionReady(env),googleClientId:validClientId(env),storage:'Cloudflare D1/R2',sync:productionReady(env)});
+ if(!productionReady(env))return fail('NMH Voice V3 chưa được kích hoạt: cần D1, R2, Google Web Client và session secret',503);
+ if(['POST','PUT','DELETE','PATCH'].includes(method)&&!originAllowed(req,u))return fail('Origin/JSON không hợp lệ',403);
+ if(path==='/api/v3/auth/google'&&method==='POST'){
+  try{
+   const data=await readJson(req,14000);
+   const person=await verifiedGoogleIdentity(data.credential,validClientId(env));
+   await env.NMH_DB.prepare('INSERT INTO v3_users (id,name,created_at) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name').bind(person.sub,person.name,Date.now()).run();
+   const token=await signSession(person.sub,env);
+   return json({ok:true,name:person.name},200,{'set-cookie':cookie(token,604800)});
+  }catch(e){return fail('Đăng nhập không thành công: '+maxText(e?.message,100),401)}
+ }
+ if(path==='/api/v3/logout'&&method==='POST')return json({ok:true},200,{'set-cookie':cookie('',0)});
+ const {sub,error}=await ensureAuth(req,env);if(error)return error;
+ if(path==='/api/v3/me'&&method==='GET'){
+  const person=await env.NMH_DB.prepare('SELECT name FROM v3_users WHERE id=?').bind(sub).first();
+  return json({signedIn:true,name:person?.name||'',userId:sub});
+ }
+ if(path==='/api/v3/profile'){
+  if(method==='GET'){
+   const data=await env.NMH_DB.prepare('SELECT prompt, revision FROM v3_profiles WHERE user_id=?').bind(sub).first();
+   return json({prompt:data?.prompt||'',revision:data?.revision||0});
+  }
+  if(method==='PUT'){
+   let body;try{body=await readJson(req,4500)}catch(e){return fail(e.message)}
+   if(typeof body.prompt!=='string'||body.prompt.length>2500||!Number.isInteger(body.revision)||body.revision<0)return fail('Prompt hoặc phiên bản không hợp lệ');
+   const row=await env.NMH_DB.prepare('SELECT revision FROM v3_profiles WHERE user_id=?').bind(sub).first();
+   if((row?.revision||0)!==body.revision)return fail('Dữ liệu đã thay đổi ở thiết bị khác. Tải lại trước khi lưu.',409);
+   if(row)await env.NMH_DB.prepare('UPDATE v3_profiles SET prompt=?,revision=revision+1,updated_at=? WHERE user_id=? AND revision=?').bind(body.prompt,Date.now(),sub,body.revision).run();
+   else await env.NMH_DB.prepare('INSERT INTO v3_profiles (user_id,prompt,revision,updated_at) VALUES (?,?,1,?)').bind(sub,body.prompt,Date.now()).run();
+   return json({ok:true,revision:body.revision+1});
+  }
+ }
+ if(path==='/api/v3/memories'){
+  if(method==='GET'){
+   const r=await env.NMH_DB.prepare('SELECT id,body,created_at FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 100').bind(sub).all();
+   return json({memories:r.results||[]});
+  }
+  if(method==='POST'){
+   let d;try{d=await readJson(req,1200)}catch(e){return fail(e.message)}
+   const body=maxText(d?.body,500);if(body.length<2)return fail('Ghi nhớ phải có nội dung');
+   const key=id();await env.NMH_DB.prepare('INSERT INTO v3_memories (id,user_id,body,created_at) VALUES (?,?,?,?)').bind(key,sub,body,Date.now()).run();
+   return json({id:key,body,ok:true},201);
+  }
+ }
+ const mm=path.match(/^\/api\/v3\/memories\/([a-f0-9-]{36})$/);
+ if(mm&&method==='DELETE'){
+  const r=await env.NMH_DB.prepare('DELETE FROM v3_memories WHERE user_id=? AND id=?').bind(sub,mm[1]).run();
+  return json({ok:true,deleted:Number(r.meta?.changes||0)});
+ }
+ if(path==='/api/v3/documents'){
+  if(method==='GET'){
+   const r=await env.NMH_DB.prepare('SELECT id,name,mime,created_at,segment_count FROM v3_documents WHERE user_id=? ORDER BY created_at DESC LIMIT 100').bind(sub).all();
+   return json({documents:r.results||[]});
+  }
+  if(method==='POST'){
+   let d;try{d=await readJson(req,90000)}catch(e){return fail(e.message)}
+   const name=maxText(d?.name,150),mime=maxText(d?.mime,70),body=typeof d?.text==='string'?d.text:'';
+   if(!name||!['text/plain','text/markdown'].includes(mime)||!body||body.length>60000)return fail('Hiện chỉ lập chỉ mục TXT/Markdown có chữ, tối đa 60.000 ký tự',415);
+   const chunks=splitText(body);
+   if(!chunks.length||chunks.length>100)return fail('Tài liệu không hợp lệ',400);
+   const key=id(),now=Date.now(),r2key='u/'+sub+'/'+key;
+   await env.NMH_DOCS.put(r2key,enc.encode(body),{httpMetadata:{contentType:'text/plain; charset=utf-8'}});
+   try{
+    await env.NMH_DB.prepare('INSERT INTO v3_documents (id,user_id,name,mime,segment_count,created_at) VALUES (?,?,?,?,?,?)').bind(key,sub,name,mime,chunks.length,now).run();
+    for(let i=0;i<chunks.length;i++)await env.NMH_DB.prepare('INSERT INTO v3_chunks (doc_id,user_id,segment,body) VALUES (?,?,?,?)').bind(key,sub,i+1,chunks[i]).run();
+   }catch(e){await env.NMH_DOCS.delete(r2key);throw e}
+   return json({ok:true,id:key,segments:chunks.length},201);
+  }
+ }
+ const doc=path.match(/^\/api\/v3\/documents\/([a-f0-9-]{36})$/);
+ if(doc&&method==='DELETE'){
+  const row=await env.NMH_DB.prepare('SELECT id FROM v3_documents WHERE user_id=? AND id=?').bind(sub,doc[1]).first();
+  if(!row)return fail('Không tìm thấy tài liệu',404);
+  await env.NMH_DB.prepare('DELETE FROM v3_chunks WHERE user_id=? AND doc_id=?').bind(sub,doc[1]).run();
+  await env.NMH_DB.prepare('DELETE FROM v3_documents WHERE user_id=? AND id=?').bind(sub,doc[1]).run();
+  await env.NMH_DOCS.delete('u/'+sub+'/'+doc[1]);
+  return json({ok:true});
+ }
+ return fail('Không tìm thấy chức năng V3',404);
+}
