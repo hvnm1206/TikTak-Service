@@ -19,10 +19,10 @@ function db(){
    if(sql.startsWith('INSERT INTO v3_memories')){memories.set(args[0],{id:args[0],user_id:args[1],body:args[2],created_at:args[3]});return {meta:{changes:1}}}
    if(sql.startsWith('UPDATE v3_memories')){const m=memories.get(args[2]);if(m?.user_id!==args[1])return {meta:{changes:0}};m.body=args[0];return {meta:{changes:1}}}
    if(sql.startsWith('DELETE FROM v3_memories')){const m=memories.get(args[1]);if(m?.user_id===args[0]){memories.delete(args[1]);return {meta:{changes:1}}}return {meta:{changes:0}}}
-   if(sql.startsWith('INSERT INTO v3_documents')){docs.set(args[0],{id:args[0],user_id:args[1],name:args[2],mime:args[3],segment_count:args[4],created_at:args[5]});return {meta:{changes:1}}}
+   if(sql.startsWith('INSERT INTO v3_documents')){docs.set(args[0],{id:args[0],user_id:args[1],name:args[2],mime:args[3],segment_count:args[4],created_at:args[5],raw_text:args[6]});return {meta:{changes:1}}}
    if(sql.startsWith('INSERT INTO v3_chunks')){chunks.push({doc_id:args[0],user_id:args[1],segment:args[2],body:args[3]});return {meta:{changes:1}}}
    if(sql.startsWith('DELETE FROM v3_chunks')){let n=0;for(let i=chunks.length-1;i>=0;i--)if(chunks[i].user_id===args[0]&&chunks[i].doc_id===args[1]){chunks.splice(i,1);n++}return {meta:{changes:n}}}
-   if(sql.startsWith('DELETE FROM v3_documents')){const v=docs.get(args[1]);if(v?.user_id===args[0])docs.delete(args[1]);return {meta:{changes:1}}}
+   if(sql.startsWith('DELETE FROM v3_documents')){const v=docs.get(args[1]);if(v?.user_id===args[0]){docs.delete(args[1]);for(let i=chunks.length-1;i>=0;i--)if(chunks[i].doc_id===args[1]&&chunks[i].user_id===args[0])chunks.splice(i,1);return {meta:{changes:1}}}return {meta:{changes:0}}}
    throw Error('Unknown run SQL '+sql);
   },
   async first(){
@@ -33,7 +33,7 @@ function db(){
    if(sql.startsWith('SELECT prompt, revision FROM v3_profiles'))return profiles.get(args[0])||null;
    if(sql.startsWith('SELECT prompt FROM v3_profiles'))return profiles.get(args[0])||null;
    if(sql.startsWith('SELECT revision FROM v3_profiles'))return profiles.get(args[0])||null;
-   if(sql.startsWith('SELECT id FROM v3_documents')){const d=docs.get(args[1]);return d?.user_id===args[0]?d:null}
+   if(sql.startsWith('SELECT id FROM v3_documents')||sql.startsWith('SELECT name,mime,raw_text FROM v3_documents')){const d=docs.get(args[1]);return d?.user_id===args[0]?d:null}
    throw Error('Unknown first SQL '+sql);
   },
   async all(){
@@ -47,7 +47,7 @@ function db(){
  }}};
 }
 const r2=()=>{const store=new Map();return {store,async put(k,v){store.set(k,v)},async delete(k){store.delete(k)}}};
-const env=()=>({NMH_DB:db(),NMH_DOCS:r2(),NMH_V3_GOOGLE_CLIENT_ID:config});
+const env=()=>({NMH_DB:db(),NMH_V3_GOOGLE_CLIENT_ID:config});
 function req(path,method='GET',body=null,cookie=''){
  const headers={};
  if(method!=='GET'){headers.origin=host;headers['content-type']='application/json'}
@@ -118,7 +118,11 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   assert.match(voiceEdit.answer,/Đã sửa/);
   const doc=await asBody(await handleV3(req('/api/v3/documents','POST',{name:'quytrinh.txt',mime:'text/plain',text:'Lỗi E12: kiểm tra cảm biến áp suất trước khi khởi động lại.'},cookie),e));
   assert.equal(doc.status,201);
-  assert.equal(e.NMH_DOCS.store.size,1);
+  assert.equal(e.NMH_DB.docs.size,1);
+  assert.equal(doc.body.storage,'d1');
+  const restored=await asBody(await handleV3(req('/api/v3/documents/'+doc.body.id,'GET',null,cookie),e));
+  assert.equal(restored.status,200);
+  assert.equal(restored.body.text,'Lỗi E12: kiểm tra cảm biến áp suất trước khi khởi động lại.');
   const context=await loadV3Context(req('/api/chat','POST',{},cookie),e,'Lỗi E12 cần làm gì?');
   assert.equal(context.personalPrompt,'Nói ngắn gọn, có căn cứ');
   assert.ok(context.documents.some(x=>x.name==='quytrinh.txt'));
@@ -133,12 +137,14 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   const cookie2=(login2.headers.get('set-cookie')||'').split(';')[0];
   assert.deepEqual((await asBody(await handleV3(req('/api/v3/documents','GET',null,cookie2),e))).body.documents,[]);
   assert.deepEqual((await asBody(await handleV3(req('/api/v3/memories','GET',null,cookie2),e))).body.memories,[]);
+  assert.equal((await handleV3(req('/api/v3/documents/'+doc.body.id,'GET',null,cookie2),e)).status,404);
   assert.equal((await handleV3(req('/api/v3/documents/'+doc.body.id,'DELETE',{},cookie2),e)).status,404);
   assert.deepEqual((await loadV3Context(req('/api/chat','POST',{},cookie2),e,'E12')).documents,[]);
   const del=await handleV3(req('/api/v3/memories/'+mem.body.id,'DELETE',{},cookie),e);
   assert.equal(del.status,200);
   const removed=await handleV3(req('/api/v3/documents/'+doc.body.id,'DELETE',{},cookie),e);
-  assert.equal(removed.status,200);assert.equal(e.NMH_DOCS.store.size,0);
+  assert.equal(removed.status,200);assert.equal(e.NMH_DB.docs.size,0);
+  assert.equal(e.NMH_DB.chunks.length,0);
   const noSession=await loadV3Context(req('/api/chat'),e,'E12');assert.deepEqual(noSession.documents,[]);
   const logout=await handleV3(req('/api/v3/logout','POST',{},cookie),e);assert.equal(logout.status,200);
   assert.equal(e.NMH_DB.sessions.size,1);
@@ -178,4 +184,14 @@ test('V3 memory and document context goes into existing GPT instructions as untr
  assert.match(payload.instructions,/dữ liệu không đáng tin cậy/);
  assert.equal(result.documentReferences[0].name,'quytrinh.txt');
  assert.equal(result.model,'gpt-6-luna');
+});
+
+test('D1-only V3 needs no R2 binding and rejects anonymous access',async()=>{
+ const e=env();assert.equal('NMH_DOCS' in e,false);
+ const conf=await asBody(await handleV3(req('/api/v3/config'),e));
+ assert.equal(conf.body.ready,true);
+ assert.equal(conf.body.storage,'Cloudflare D1');
+ assert.equal(conf.body.r2Required,false);
+ const unauth=await handleV3(req('/api/v3/documents'),e);
+ assert.equal(unauth.status,401);
 });

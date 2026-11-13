@@ -1,0 +1,1 @@
+-- D1-only: retain the original text of supported documents without R2.\nALTER TABLE v3_documents ADD COLUMN raw_text TEXT;\n

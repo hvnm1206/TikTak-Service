@@ -19,7 +19,7 @@ const panel=String.raw`
    <div id="v3Memories"></div>
   </details>
   <details><summary><strong>KHO TÀI LIỆU</strong></summary>
-   <p class="hint">Giai đoạn này chỉ lập chỉ mục TXT và Markdown. PDF/DOCX chưa xử lý nội dung; không tuyên bố đã tra cứu khi chưa trích xuất được chữ.</p>
+   <p class="hint">Lưu trực tiếp nội dung TXT/Markdown vào Cloudflare D1, không cần R2 hoặc kích hoạt thanh toán. PDF/DOCX chưa hỗ trợ trích xuất ở phiên này.</p>
    <input id="v3File" type="file" accept=".txt,.md,.markdown,text/plain,text/markdown">
    <button type="button" id="v3Upload">THÊM TÀI LIỆU</button>
    <div id="v3Documents"></div>
@@ -55,12 +55,12 @@ const script=String.raw`
   const ml=$('v3Memories');ml.replaceChildren();
   for(const item of m.memories||[])line(ml,item.body,async()=>{if(!confirm('Xóa ghi nhớ này?'))return;try{await req('/api/v3/memories/'+encodeURIComponent(item.id),'DELETE',{});await populate();msg('Đã xóa')}catch(e){msg(e.message)}},async()=>{const text=prompt('Sửa nội dung ghi nhớ:',item.body);if(text===null)return;try{await req('/api/v3/memories/'+encodeURIComponent(item.id),'PUT',{body:text.trim()});await populate();msg('Đã sửa')}catch(e){msg(e.message)}});
   const dl=$('v3Documents');dl.replaceChildren();
-  for(const item of d.documents||[])line(dl,item.name+' ('+item.segment_count+' đoạn)',async()=>{if(!confirm('Xóa tài liệu này?'))return;try{await req('/api/v3/documents/'+encodeURIComponent(item.id),'DELETE',{});await populate();msg('Đã xóa')}catch(e){msg(e.message)}});
+  for(const item of d.documents||[])line(dl,item.name+' ('+item.segment_count+' đoạn)',async()=>{if(!confirm('Xóa tài liệu này?'))return;try{await req('/api/v3/documents/'+encodeURIComponent(item.id),'DELETE',{});await populate();msg('Đã xóa')}catch(e){msg(e.message)}},async()=>{try{const d=await req('/api/v3/documents/'+encodeURIComponent(item.id));alert(d.name+'\n\n'+d.text)}catch(e){msg(e.message)}});
  }
  async function refresh(){
   try{
    const conf=await req('/api/v3/config');
-   if(!conf.ready){$('v3State').textContent='Đồng bộ chưa kích hoạt: cần quyền Cloudflare D1/R2 và Google Web Client. Dữ liệu chưa được lưu.';return}
+   if(!conf.ready){$('v3State').textContent='Đồng bộ chưa kích hoạt: cần D1 và Google Web Client. Không cần R2. Dữ liệu chưa được lưu.';return}
    loginClient=conf.googleClientId;
    const me=await req('/api/v3/me').catch(()=>null);
    if(me?.signedIn){

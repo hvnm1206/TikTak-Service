@@ -11,7 +11,7 @@ const b64url=bytes=>btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').repla
 const un64=s=>Uint8Array.from(atob(String(s).replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((String(s).length+3)%4)),c=>c.charCodeAt(0));
 let jwksCache=null;
 let jwksTime=0;
-function productionReady(env){return !!(env?.NMH_DB&&env?.NMH_DOCS&&validClientId(env))}
+function productionReady(env){return !!(env?.NMH_DB&&validClientId(env))}
 function validClientId(env){const s=String(env?.NMH_V3_GOOGLE_CLIENT_ID||'');return /^\d+-[a-z0-9-]+\.apps\.googleusercontent\.com$/.test(s)?s:''}
 async function sessionHash(raw){
  const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(raw)));
@@ -140,9 +140,9 @@ export async function handleV3(req,env){
  if(path==='/api/v3/config'&&method==='GET'){
   let ready=productionReady(env);
   if(ready){try{await env.NMH_DB.prepare('SELECT COUNT(*) AS n FROM v3_users').first();await env.NMH_DB.prepare('SELECT COUNT(*) AS n FROM v3_sessions').first()}catch{ready=false}}
-  return json({ready,googleClientId:validClientId(env),storage:'Cloudflare D1/R2',sync:ready});
+  return json({ready,googleClientId:validClientId(env),storage:'Cloudflare D1',sync:ready,documentMode:'text-only',r2Required:false});
  }
- if(!productionReady(env))return fail('NMH Voice V3 chưa được kích hoạt: cần D1, R2, Google Web Client và session secret',503);
+ if(!productionReady(env))return fail('NMH Voice V3 chưa kích hoạt: cần D1 và Google Web Client',503);
  if(['POST','PUT','DELETE','PATCH'].includes(method)&&!originAllowed(req,u))return fail('Origin/JSON không hợp lệ',403);
  if(path==='/api/v3/auth/google'&&method==='POST'){
   try{
@@ -212,24 +212,21 @@ export async function handleV3(req,env){
    if(!name||!['text/plain','text/markdown'].includes(mime)||!body||body.length>60000)return fail('Hiện chỉ lập chỉ mục TXT/Markdown có chữ, tối đa 60.000 ký tự',415);
    const chunks=splitText(body);
    if(!chunks.length||chunks.length>100)return fail('Tài liệu không hợp lệ',400);
-   const key=id(),now=Date.now(),r2key='u/'+sub+'/'+key;
-   await env.NMH_DOCS.put(r2key,enc.encode(body),{httpMetadata:{contentType:'text/plain; charset=utf-8'}});
-   try{
-    const statements=[env.NMH_DB.prepare('INSERT INTO v3_documents (id,user_id,name,mime,segment_count,created_at) VALUES (?,?,?,?,?,?)').bind(key,sub,name,mime,chunks.length,now)];
-    for(let i=0;i<chunks.length;i++)statements.push(env.NMH_DB.prepare('INSERT INTO v3_chunks (doc_id,user_id,segment,body) VALUES (?,?,?,?)').bind(key,sub,i+1,chunks[i]));
-    await env.NMH_DB.batch(statements);
-   }catch(e){await env.NMH_DOCS.delete(r2key);throw e}
-   return json({ok:true,id:key,segments:chunks.length},201);
+   const key=id(),now=Date.now();
+   const statements=[env.NMH_DB.prepare('INSERT INTO v3_documents (id,user_id,name,mime,segment_count,created_at,raw_text) VALUES (?,?,?,?,?,?,?)').bind(key,sub,name,mime,chunks.length,now,body)];
+   for(let i=0;i<chunks.length;i++)statements.push(env.NMH_DB.prepare('INSERT INTO v3_chunks (doc_id,user_id,segment,body) VALUES (?,?,?,?)').bind(key,sub,i+1,chunks[i]));
+   await env.NMH_DB.batch(statements);
+   return json({ok:true,id:key,segments:chunks.length,storage:'d1'},201);
   }
  }
  const doc=path.match(/^\/api\/v3\/documents\/([a-f0-9-]{36})$/);
+ if(doc&&method==='GET'){
+  const row=await env.NMH_DB.prepare('SELECT name,mime,raw_text FROM v3_documents WHERE user_id=? AND id=?').bind(sub,doc[1]).first();
+  return row?json({name:row.name,mime:row.mime,text:row.raw_text||''}):fail('Không tìm thấy tài liệu',404);
+ }
  if(doc&&method==='DELETE'){
-  const row=await env.NMH_DB.prepare('SELECT id FROM v3_documents WHERE user_id=? AND id=?').bind(sub,doc[1]).first();
-  if(!row)return fail('Không tìm thấy tài liệu',404);
-  await env.NMH_DB.prepare('DELETE FROM v3_chunks WHERE user_id=? AND doc_id=?').bind(sub,doc[1]).run();
-  await env.NMH_DB.prepare('DELETE FROM v3_documents WHERE user_id=? AND id=?').bind(sub,doc[1]).run();
-  await env.NMH_DOCS.delete('u/'+sub+'/'+doc[1]);
-  return json({ok:true});
+  const result=await env.NMH_DB.prepare('DELETE FROM v3_documents WHERE user_id=? AND id=?').bind(sub,doc[1]).run();
+  return Number(result.meta?.changes||0)===1?json({ok:true,deleted:1}):fail('Không tìm thấy tài liệu',404);
  }
  return fail('Không tìm thấy chức năng V3',404);
 }
