@@ -27,6 +27,10 @@ jobs:
       - name: Test assistant, tools, TTS and Voice UI
         run: |
           node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs
+      - name: Verify V3 staged backend syntax and isolated account tests
+        run: |
+          node --check voice-deploy/v3-backend.js
+          node --test voice-deploy/v3-backend.test.mjs
       - name: Check Cloudflare CI readiness without deploying or revealing secrets
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
