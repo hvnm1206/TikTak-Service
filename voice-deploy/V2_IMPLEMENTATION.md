@@ -67,3 +67,6 @@ https://cloud.google.com/text-to-speech/pricing
 
 ## Attempt 2 — diagnosis and rollback
 - Run 43425131917: upload/deploy OK; V2 health & 3 style UI OK. Negative-key smoke expected HTTP 400 but curl --fail incorrectly interpreted valid rejection as failure. Auto rollback successful to V3. Replaced smoke with explicit HTTP status=400 and JSON error assertion (commit dd181244).
+
+## Authorized release attempt 3
+- CI check 43425287967 SUCCESS, code unchanged, smoke corrected for expected HTTP 400. Release gate still requires previous V3 version baseline.
