@@ -1,4 +1,13 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
+
+
+## BẢO TRÌ MỚI NHẤT — 13/11/2026 (ƯU TIÊN HƠN GHI CHÚ CŨ)
+- Chính thức `https://nmh-voice-gpt-test.magical-budget.workers.dev/`, Worker `nmh-voice-gpt-test`, `/health` trả `uiVersion=presence-canvas-v1`. AI và giọng giữ `gpt-6-luna` / `marin`.
+- **Cloudflare version đang chạy:** `abcac5e5-0749-45ac-8c94-1d1bed49df82`; source release commit `e2b08266120df63840c516cc05e9f48cab7ac1a1`. [Actions run 43440716438](https://github.com/hvnm1206/TikTak-Service/actions/runs/43440716438) SUCCESS, **26/26 tests PASS**, smoke HEALTH/UI PRESENCE/DOCS/SECURITY PASS; rollback snapshot trước deploy `e6cb6c6d-064c-413e-8a12-93cf4873fa00`.
+- Trong tab BẢO TRÌ: tài liệu `MAINTENANCE.md` đã được cập nhật commit `ac14f06c3df133642621b286ef7b8efd0413c63b`. Có phần tổng hợp hiện trạng, 16 findings, phản hồi giao diện “Tao thấy khá tốt đấy”, nguồn code, chi phí, đối sách, bản ghi lịch sử. Đây là file **chuẩn hiện trạng**, không xem các đoạn cũ trong handover này là bản production.
+- Đã xử lý lỗi Github Raw cache cũ và GitHub Contents API ẩn danh đôi lúc trả 403 → Worker 502: dùng Cloudflare edge cache TTL 120 giây + raw fallback **có kiểm tra marker**, lỗi rõ nếu không lấy được. Sau release, 5 lượt probe độc lập BẢO TRÌ liên tiếp HTTP 200 và đúng nội dung 22.422 ký tự. Commit tài liệu sau đó có thể chưa xuất hiện tại edge trong tối đa ~120 giây.
+- Người dùng **đánh giá tích cực sơ bộ về UI Presence**, không có cơ sở tuyên bố nghiệm thu micro/giọng liên tục toàn chuỗi trên iPhone ở release này. F01 TTS deprecation, F02 phí thực, F03 budget cap, F06 E2E còn mở; xem đầy đủ F01–F16 trong `MAINTENANCE.md`.
+- Chỉ ghi hoàn thành theo bằng chứng: source SHA, Workflow CI, Cloudflare version, smoke, probe đọc app; không có hóa đơn OpenAI thật thì không kết luận đạt 50–150đ/lượt. Không tạo Worker mới, không sửa `main`, không dùng `--temporary`.
 **Chốt:** 13/11/2026. **Mục đích:** tiếp tục từ trạng thái thực tế, không dựng lại, không hỏi lại thông tin đã có, không làm hỏng production.
 
 
