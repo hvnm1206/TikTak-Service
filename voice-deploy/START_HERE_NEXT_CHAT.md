@@ -1,5 +1,21 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## 14/11/2026 — NÂNG CẤP TÌM KIẾM WEB TÙY CHỌN (ĐÃ DEPLOY, CHƯA ĐO API CÓ PHÍ)
+
+**Vấn đề người dùng báo:** "Ok rồi, nhưng tìm kiếm có vẻ kém". Audit source `agent-v2.js` xác định NMH Voice trước đó **không có tìm kiếm web tổng quát**; chỉ có Wikipedia, Google News RSS, Open-Meteo và thời gian máy chủ. Không suy diễn lỗi GPT hay micro.
+
+**Đã sửa trên nhánh `nmh-voice-gpt-v1`:**
+- `agent-v2.js`: khi người dùng chủ động bật, thêm công cụ OpenAI Responses `{type:"web_search",search_context_size:"low"}`, AI quyết định gọi khi cần tra cứu hiện thời; dùng chú giải `url_citation` trả `sources` có URL HTTPS; thống kê `webSearchCalls`, `estimatedSearchUsd`, `searchProvider`. Khi tắt không gửi `web_search` lên API.
+- `v3-ui.js`: trong SETUP có checkbox **TRA WEB NÂNG CAO (CÓ PHÍ)**, mặc định **TẮT**, trạng thái lưu `localStorage` trên thiết bị, ghi rõ chi phí ước tính 0,01 USD/call + tokens. Không tự động bật và không có phí web nếu chưa gọi công cụ.
+- `worker.js`: chỉ chuyển `webSearch:true` khi checkbox bật; cộng phí tìm kiếm ước tính vào bộ đếm chi phí hiện có. Giữ nguyên STT, TTS Marin, Persona, Google Auth và D1.
+- `agent-v2.test.mjs`: thêm test opt-in/opt-out và chú giải URL; giữ đủ cấu trúc chi phí cũ để không phá báo cáo.
+
+**Bằng chứng triển khai:** [GitHub Actions 43481442885](https://github.com/hvnm1206/TikTak-Service/actions/runs/43481442885) verify 35/35 PASS, deploy SUCCESS, snapshot rollback `8cc6032c-0035-414c-8217-7ea5e91825e5`, bản production mới `6fde090a-6b0e-46e5-b922-4e20f2c8b2f6`; `V3_SMOKE=HEALTH_UI_D1_CONFIG_UNAUTH_LOGIN_INVALID_TOKEN_DOCS_OK`, `V3_DEPLOY_FINAL=SUCCESS`. Guarded Operator kiểm tra độc lập GET trang gốc HTTP 200 có `v3WebSearch`, `nmh_voice_web_search_v1`, `TRA WEB NÂNG CAO` và canvas `avatar`; /health HTTP 200 với `v3Version=d1-only-google-v3`. Sau release đã **khóa workflow quay về chỉ chạy bằng workflow_dispatch**, không tự deploy ở push thông thường.
+
+**Giới hạn cần ghi đúng:** đây là phần **tích hợp đã deploy và mock-test**, chưa có chứng cứ người dùng thực tế bật và OpenAI xử lý `web_search` bằng GPT-6 Luna (vì không dùng API key cá nhân). Không được tuyên bố chất lượng tìm kiếm Internet đã nghiệm thu hay chi phí hóa đơn đã khớp. Khi bật checkbox, có khả năng phát sinh phí theo OpenAI hiện tại khoảng **$10/1.000 web search calls = $0,01/call** cộng chi phí token, mức thực phải kiểm tra Usage. Không được mặc định tự trừ từ người dùng. Cần 1–2 truy vấn thật do chủ sở hữu key tự chạy và xem `sources`/chi phí trước khi kết luận đạt.
+
+---
+
 ### 14/11/2026 — Canary tài liệu D1 thật sau V3 release: PASS
 [Actions 43471462899](https://github.com/hvnm1206/TikTak-Service/actions/runs/43471462899) chạy trực tiếp Cloudflare D1 bằng token đã cấp, tạo **user/ID tài liệu thử ngẫu nhiên**, chèn tài liệu tiếng Việt ("Lỗi E12"), lưu raw_text, tìm đoạn theo từ khóa, kiểm tra truy vấn account khác không có dữ liệu, và xóa toàn bộ dòng thử bằng `finally`. Kết quả log: `V3_D1_DOC_INSERT=PASS`, `V3_D1_DOC_TEXT_UTF8=PASS`, `V3_D1_KNOWLEDGE_LOOKUP=PASS`, `V3_D1_ACCOUNT_ISOLATION=PASS`, `V3_D1_CANARY_CLEANUP=PASS`. **Đây là kiểm thử DB thật, chưa phải upload qua tài khoản Google thật hoặc E2E iPhone.**
 
