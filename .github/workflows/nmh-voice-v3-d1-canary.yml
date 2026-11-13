@@ -1,0 +1,56 @@
+name: NMH Voice V3 - live D1-only document canary with cleanup
+on:
+  push:
+    branches: [nmh-voice-gpt-v1]
+    paths: ['.github/workflows/nmh-voice-v3-d1-canary.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      CF_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+    steps:
+      - name: Test real D1 Vietnamese document insert retrieve owner isolation and delete
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CF_TOKEN"
+          python3 - <<'PY'
+          import os,json,uuid,urllib.request,urllib.error
+          url='https://api.cloudflare.com/client/v4/accounts/769c2ab4af5ad50700039d473a72d48e/d1/database/3ce295cb-a84d-4a50-abee-d14fdd903514/query'
+          def q(sql,params=[]):
+              body=json.dumps({'sql':sql,'params':params}).encode()
+              request=urllib.request.Request(url,method='POST',data=body,headers={'Authorization':'Bearer '+os.environ['CF_TOKEN'],'Content-Type':'application/json'})
+              with urllib.request.urlopen(request,timeout=25) as response: payload=json.load(response)
+              assert payload.get('success'), 'D1 query failed'
+              result=payload['result']
+              if isinstance(result,list): result=result[0]
+              assert result.get('success'), 'D1 query statement failure'
+              return result.get('results') or []
+          user='test_'+uuid.uuid4().hex
+          doc=str(uuid.uuid4())
+          text='Hướng dẫn lỗi E12: kiểm tra cảm biến áp suất trước khi khởi động lại.'
+          try:
+              q('INSERT INTO v3_users (id,name,created_at) VALUES (?,?,?)',[user,'NMH V3 TEST ONLY','0'])
+              q('INSERT INTO v3_documents (id,user_id,name,mime,segment_count,created_at,raw_text) VALUES (?,?,?,?,?,?,?)',[doc,user,'quytrinh-test.txt','text/plain','1','0',text])
+              q('INSERT INTO v3_chunks (doc_id,user_id,segment,body) VALUES (?,?,?,?)',[doc,user,'1',text])
+              owner=q('SELECT raw_text,name FROM v3_documents WHERE user_id=? AND id=?',[user,doc])
+              assert len(owner)==1 and owner[0]['raw_text']==text,'Raw text not round-tripped'
+              matches=q('SELECT c.body,d.name FROM v3_chunks c JOIN v3_documents d ON d.id=c.doc_id AND d.user_id=c.user_id WHERE c.user_id=? AND (c.body LIKE ?) LIMIT 80',[user,'%E12%'])
+              assert len(matches)==1 and matches[0]['body']==text,'Context search failed'
+              other=q('SELECT raw_text FROM v3_documents WHERE user_id=? AND id=?',['other_test_user',doc])
+              assert not other,'Cross-account access leakage'
+              print('V3_D1_DOC_INSERT=PASS')
+              print('V3_D1_DOC_TEXT_UTF8=PASS')
+              print('V3_D1_KNOWLEDGE_LOOKUP=PASS')
+              print('V3_D1_ACCOUNT_ISOLATION=PASS')
+          finally:
+              q('DELETE FROM v3_chunks WHERE user_id=? AND doc_id=?',[user,doc])
+              q('DELETE FROM v3_documents WHERE user_id=? AND id=?',[user,doc])
+              q('DELETE FROM v3_users WHERE id=?',[user])
+              assert not q('SELECT id FROM v3_documents WHERE id=?',[doc]),'Canary cleanup failed'
+              print('V3_D1_CANARY_CLEANUP=PASS')
+          PY
