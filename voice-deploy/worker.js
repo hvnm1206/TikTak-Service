@@ -45,7 +45,7 @@ for(const item of message?.annotations||[]){
  if(sources.length>=5)break;
 }
 if(!sources.length)return respond({error:"Không có nguồn trích dẫn kiểm chứng cho lượt tra cứu này."},502);
-const spokenAnswer=answer.replace(/\\[[^\\]]{1,140}\\]\\(https?:\\/\\/[^)]+\\)/g,"").replace(/https?:\\/\\/\\S+/g,"").replace(/\\[\\d+\\]/g,"").trim();
+const spokenAnswer=answer.replace(/\[[^\]]{1,140}\]\(https?:\/\/[^)]+\)/g,"").replace(/https?:\/\/\S+/g,"").replace(/\[\d+\]/g,"").trim();
 return respond({answer,spokenAnswer,sources,webSearched:true,model:searchModel});
-}catch(e){return respond({error:e?.name==="AbortError"?"Quá thời gian 25 giây":"Không kết nối được OpenAI"},504)}finally{clearTimeout(timer)}
+}catch(e){return respond({error:e?.name==="AbortError"?(searchNow?"Quá thời gian 45 giây":"Quá thời gian 25 giây"):"Không kết nối được OpenAI"},504)}finally{clearTimeout(timer)}
 }};
