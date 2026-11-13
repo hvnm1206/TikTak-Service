@@ -30,6 +30,7 @@ jobs:
       - name: Verify V3 staged backend syntax and isolated account tests
         run: |
           node --check voice-deploy/v3-backend.js
+          node --check voice-deploy/v3-ui.js
           node --test voice-deploy/v3-backend.test.mjs
       - name: Check Cloudflare CI readiness without deploying or revealing secrets
         env:

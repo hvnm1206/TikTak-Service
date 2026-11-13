@@ -113,3 +113,20 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   const noSession=await loadV3Context(req('/api/chat'),e,'E12');assert.deepEqual(noSession.documents,[]);
  }finally{globalThis.fetch=old}
 });
+
+test('V3 Setup panel is attached without removing NMH Presence or exposing secrets',async()=>{
+ const {default:voice}=await import('./worker.js');
+ const r=await voice.fetch(new Request(host+'/'));
+ assert.equal(r.status,200);
+ const html=await r.text();
+ for(const key of ['avatar','start','stop','setupbtn','v3Personal','v3Prompt','v3AddMemory','v3File','v3Upload','v3GoogleBtn','v3SavePrompt'])assert.match(html,new RegExp('id="'+key+'"'),key);
+ assert.doesNotMatch(html,/__Host-nmhv3=/);
+ assert.doesNotMatch(html,/NMH_V3_SESSION_SECRET/);
+ const inline=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x=>x[1]);
+ assert.equal(inline.length,2);
+ for(const js of inline)new Function(js);
+ const configBody=await (await voice.fetch(new Request(host+'/api/v3/config'))).json();
+ assert.equal(configBody.ready,false);
+ const g=await voice.fetch(new Request(host+'/health'));
+ assert.equal((await g.json()).uiVersion,'presence-canvas-v1');
+});
