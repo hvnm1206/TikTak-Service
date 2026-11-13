@@ -1,5 +1,21 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## 14/11/2026 — WEB SEARCH V2 CÁCH LY HOÀN TOÀN, CHƯA THAY PRODUCTION
+
+**Nguyên tắc người dùng chốt:** bản Voice iPhone đang hoạt động không được thay đổi micro/STT/Marin chỉ để bổ sung tìm kiếm. **Production tiếp tục** version `8cc6032c-0035-414c-8217-7ea5e91825e5` tại https://nmh-voice-gpt-test.magical-budget.workers.dev/; đợt này **KHÔNG triển khai bất kỳ thay đổi nào lên Worker đó**.
+
+**Đã thực thi:** tạo branch `nmh-voice-search-isolated-v2` và Worker riêng `nmh-voice-search-lab-v2`, URL https://nmh-voice-search-lab-v2.magical-budget.workers.dev/; trang thử tìm kiếm dạng chữ không cần mic: https://nmh-voice-search-lab-v2.magical-budget.workers.dev/search-lab. Staging version `0b8fdbda-b626-4a09-ba35-720483ee9886`, [staging GitHub Actions 43530262638](https://github.com/hvnm1206/TikTak-Service/actions/runs/43530262638) SUCCESS, smoke trên Cloudflare thực PASS và kiểm tra production không đổi PASS.
+
+**Kiến trúc:** Browser Voice dùng **nguyên trạng source production baseline** commit `3a40173817ab9f8bc4e93ce2c73bfd9d75ac1a03` (đã đối chiếu byte-for-byte `presence-ui.js` và toàn bộ PAGE embedded). Tính năng mới nằm trong module backend `voice-deploy/isolated-web-search.js`; server chỉ chuyển câu hỏi có nhu cầu thông tin mới khi env `NMH_WEB_SEARCH_ENABLED=true` (chỉ staging), còn tất cả hội thoại thường dùng `runAgent` cũ. OpenAI Responses `gpt-6-luna` + tool `web_search` `tool_choice=required`, `search_context_size=low`; trả `url_citation`, nguồn, chi phí ước tính khoảng $0,01/lượt cộng token. Khi nguồn không xác nhận được, trả lỗi có thể đọc bằng giọng, không dựng kết quả giả. Kế toán chi phí cũ được bao gồm phí search bằng điều chỉnh response backend, không đổi browser JS.
+
+**Bằng chứng kiểm thử:** [lab CI 43530262836](https://github.com/hvnm1206/TikTak-Service/actions/runs/43530262836) và [staging 43530262638](https://github.com/hvnm1206/TikTak-Service/actions/runs/43530262638): **52 trường hợp: 48 PASS, 4 SKIPPED có chủ đích** (đây là các kiểm thử cho lỗi Safari STT/TTS tiềm ẩn của baseline production, chưa triển khai hotfix; không được ghi PASS). Test backend: định tuyến đúng câu hỏi, mặc định không tìm web trên production, nguồn HTTPS, chống nguồn giả, lỗi nhà cung cấp, không để lộ khóa, chặn Origin giả, không sửa micro. GitHub CI xác nhận `VOICE_BROWSER_IDENTICAL_TO_DEPLOYED_BASELINE=PASS`. Guarded Operator GET độc lập: staging `/search-lab` HTTP 200; staging `/` có `start` HTTP 200; production `/health` HTTP 200; production `/search-lab` HTTP 404.
+
+**CHƯA ĐẠT:** chưa chạy được OpenAI Web Search bằng API key thật (key đang lưu trong trình duyệt iPhone, không có quyền lấy từ đó và không được giả mạo); chưa có một phiên thật trên iPhone với Web Search và Marin TTS sau tích hợp; chưa thể nghiệm thu chất lượng nguồn, độ trễ, hóa đơn, chi phí vượt hạn mức. Không được tuyên bố dự án tìm kiếm đã hoàn thành hoặc triển khai production. Chỉ sau test trên staging với API key của người dùng (tại trang `/search-lab`: nhập key, hỏi “Tìm giá vàng SJC mới nhất hôm nay”), test hội thoại thông thường rồi hỏi mới bằng Voice và đối chiếu nguồn mới được xem xét release production. Do localStorage theo origin, **staging không thể tự lấy API key đã lưu ở domain production**. Trang test không lưu key, OAuth/Google D1 sync không kích hoạt trên staging.
+
+**Quy tắc phát hành:** Giữ Worker production cũ cho tới khi người dùng xác nhận E2E trên iPhone; khi đủ bằng chứng phải dùng guarded release có snapshot+rollback, không thay đường Voice. Đường search cũ `nmh-voice-search-lab` chỉ bảo lưu lịch sử, không được trộn lại. Source bản sửa watchdog Safari tồn tại nhánh chính nhưng **chưa deploy** và **không nằm trong staging Web Search V2**, tránh nhập nhằng nguyên nhân.
+
+---
+
 ## 14/11/2026 — AUDIT MIC / WEB SEARCH, PRODUCTION ĐÃ ROLLBACK, KHÔNG TỰ DEPLOY
 
 **ƯU TIÊN ĐỌC TRƯỚC CÁC MỤC RELEASE TÌM KIẾM CŨ.** Người dùng báo NÓI trên iPhone không phản ứng sau nâng cấp search. Đã rollback thành công Worker version `6fde090a-6b0e-46e5-b922-4e20f2c8b2f6` → bản được dùng trước tìm kiếm **`8cc6032c-0035-414c-8217-7ea5e91825e5`**, [run 43483716480](https://github.com/hvnm1206/TikTak-Service/actions/runs/43483716480). GET /health, trang Presence, D1 config đều hoạt động, web-search toggle vắng mặt. **Chưa kiểm tra mic trên thiết bị thật sau rollback.**
