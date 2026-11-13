@@ -38,8 +38,14 @@ if(u.pathname==="/api/tts"){
  try{
   const r=await fetch("https://api.openai.com/v1/audio/speech",{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},signal:ctl.signal,
   body:JSON.stringify({model:"gpt-4o-mini-tts",voice:"marin",input:text,instructions,response_format:"mp3",speed:speakingSpeed})});
-  if(!r.ok)return respond({error:r.status===401?"API key không hợp lệ":r.status===429?"Giới hạn TTS":"Dịch vụ TTS không sẵn sàng"},r.status===401?401:r.status===429?429:502);
-  return new Response(r.body,{status:200,headers:{"content-type":"audio/mpeg","cache-control":"no-store","x-content-type-options":"nosniff"}});
+  if(!r.ok){
+   let detail="";try{const err=await r.json();detail=String(err?.error?.message||"").slice(0,160)}catch{}
+   const code=r.status===401?"TTS_INVALID_API_KEY":r.status===403?"TTS_PERMISSION_DENIED":r.status===429?"TTS_RATE_LIMIT":r.status===400?"TTS_INVALID_REQUEST":"TTS_UPSTREAM_ERROR";
+   return respond({error:"OpenAI TTS trả HTTP "+r.status,code,detail},r.status===401?401:r.status===403?403:r.status===429?429:r.status===400?400:502);
+  }
+  const contentType=r.headers.get("content-type")||"";
+  if(!contentType.includes("audio/")&&!contentType.includes("octet-stream"))return respond({error:"OpenAI TTS trả dữ liệu không phải âm thanh",code:"TTS_NON_AUDIO_RESPONSE"},502);
+  return new Response(r.body,{status:200,headers:{"content-type":"audio/mpeg","cache-control":"no-store","x-content-type-options":"nosniff","x-nmh-tts-source":"openai-marin"}});
  }catch(e){return respond({error:e?.name==="AbortError"?"TTS quá thời gian":"Không kết nối TTS"},504)}finally{clearTimeout(tm)}
 }
 const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),55000);
