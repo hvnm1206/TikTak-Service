@@ -109,7 +109,7 @@ jobs:
           vs=items[0]['versions']
           assert len(vs)==1 and vs[0].get('percentage')==100, 'Production split deployment: require manual review'
           version=vs[0]['version_id']
-          assert version=='1cbf0dcc-a3a6-40e2-93af-e1a857400100', 'Production baseline has changed: refuse deploy'
+          assert version=='9f10411e-79b9-420b-b826-e3e6be8a08b5', 'Production baseline has changed: refuse deploy'
           with open(os.environ['GITHUB_ENV'],'a') as h: h.write('NMH_STABLE_VERSION='+version+'\n')
           print('VERIFIED_STABLE_VERSION='+version)
           print('VERIFIED_DEPLOYMENT_ID='+str(items[0].get('id','')))
@@ -130,7 +130,7 @@ jobs:
           TARGET="https://nmh-voice-gpt-test.magical-budget.workers.dev"
           for attempt in 1 2 3 4 5 6; do
             sleep 5
-            if curl --fail --silent --show-error --max-time 15 "${TARGET}/health" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d.get("version")=="v2-ngao-reference"'; then
+            if curl --fail --silent --show-error --max-time 15 "${TARGET}/health" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d.get("version")=="v2-tts-audioctx"'; then
               echo "DEPLOY_HEALTH=V2_OK"
               break
             fi
@@ -141,7 +141,9 @@ jobs:
           done
           curl --fail --silent --show-error --max-time 15 "${TARGET}/" -o /tmp/nmh-v2-page.html
           grep -q 'styleDanh' /tmp/nmh-v2-page.html || { echo "::error::V2 persona UI missing"; false; }
-          echo "DEPLOY_UI=V2_OK"
+          grep -q 'testVoice' /tmp/nmh-v2-page.html || { echo "::error::Marin diagnostic control missing"; false; }
+          grep -q 'AUDIO_DECODE_FAILED' /tmp/nmh-v2-page.html || { echo "::error::New AudioContext engine missing"; false; }
+          echo "DEPLOY_UI=V2_AUDIOCTX_OK"
           HTTP_STATUS=$(curl --silent --show-error --max-time 15 -o /tmp/nmh-bad-key.json -w '%{http_code}' "${TARGET}/api/chat" \
             -X POST -H "Origin: ${TARGET}" -H 'Content-Type: application/json' \
             --data '{"apiKey":"invalid","messages":[{"role":"user","content":"hi"}]}')
