@@ -67,7 +67,7 @@ function makeBrowser({search='off',micError='',apiFailure=''}={}){
   performance,fetch:fetchImpl,Response,Request,URL,AbortController,AbortSignal,SpeechSynthesisUtterance:window.SpeechSynthesisUtterance,
   requestAnimationFrame:()=>0,cancelAnimationFrame(){},
   clearTimeout(handle){if(handle?.mockLongTimer){handle.cancelled=true;return}clearTimeout(handle)},
-  setTimeout(fn,ms,...args){if(ms>=18000){const handle={mockLongTimer:true,cancelled:false,run:()=>fn(...args)};longTimers.push(handle);return handle}return setTimeout(fn,ms,...args)},
+  setTimeout(fn,ms,...args){if(ms>=3000){const handle={mockLongTimer:true,cancelled:false,ms,run:()=>{if(!handle.cancelled)fn(...args)}};longTimers.push(handle);return handle}return setTimeout(fn,ms,...args)},
   clearInterval,setInterval,console,TextDecoder,TextEncoder,
   alert(){},confirm(){return false},prompt(){return null},location:{reload(){}}
  };
@@ -154,4 +154,18 @@ test('STOP cancels pending STT and cannot submit a stale result',async()=>{
  await microtaskFlush();
  assert.equal(h.writes.length,0);
  assert.equal(h.longTimers[0].cancelled,true);
+});
+
+test('iOS audio onended missing must recover voice to listening instead of hanging',async()=>{
+ const h=await initialize();
+ h.$('start').onclick();
+ h.recInstances[0].emit('Hỏi một câu');
+ await microtaskFlush();
+ assert.equal(h.writes.length,1);
+ const recovery=h.longTimers.find(t=>t.ms>3000&&t.ms<15000&&!t.cancelled);
+ assert.ok(recovery,'A stalled Marin playback must have a watchdog timer');
+ recovery.run();
+ await microtaskFlush();
+ assert.equal(h.recInstances.length,2,'After audio timeout Voice must resume hearing');
+ assert.equal(h.$('stateHint').textContent,'MIC · ĐANG NGHE');
 });
