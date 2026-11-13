@@ -126,7 +126,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
       const answer=extractText(response.output);
       if(!answer)throw Error("AI trả câu rỗng");
       const known=new Set(),sources=allSources.filter(x=>{if(!x?.url||known.has(x.url))return false;known.add(x.url);return true}).slice(0,8);
-      return {answer,sources,documentReferences:relatedDocs.map(x=>({name:x.name,segment:x.segment})),tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedSearchUsd:Math.round(webSearchCalls*0.01*1e6)/1e6,estimatedModelUsd:Math.round(((usage.input_tokens-usage.cached_input_tokens)*0.05+usage.cached_input_tokens*0.005+usage.output_tokens*0.25)/1e6*1e8)/1e8,estimateBasis:"estimated_tokens_and_web_search_billed_separately_not_invoice",searchProvider:webSearchCalls?"openai_web_search":webSearch?"web_enabled_not_used":"public_sources_only"};
+      return {answer,sources,documentReferences:relatedDocs.map(x=>({name:x.name,segment:x.segment})),tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedSearchUsd:Math.round(webSearchCalls*0.01*1e6)/1e6,estimatedModelUsd:Math.round(((usage.input_tokens-usage.cached_input_tokens)*0.05+usage.cached_input_tokens*0.005+usage.output_tokens*0.25)/1e6*1e8)/1e8,estimateBasis:"standard_short_context_excludes_other_fees;_web_search_separate_estimate_not_invoice",searchProvider:webSearchCalls?"openai_web_search":webSearch?"web_enabled_not_used":"public_sources_only"};
     }
     input.push(...response.output);
     for(const c of calls.slice(0,3)){
