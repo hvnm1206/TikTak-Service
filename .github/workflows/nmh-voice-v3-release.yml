@@ -1,0 +1,153 @@
+name: NMH Voice V3 — same Worker release, rollback guarded
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_live:
+        description: Deploy V3 to existing nmh-voice-gpt-test Worker, only after D1/R2/GIS approved
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: nmh-voice-gpt-production-deploy
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: inputs.deploy_live == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    outputs:
+      dbid: ${{ steps.resource.outputs.dbid }}
+    env:
+      CF_PROVISION_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+      CF_ACCOUNT: '769c2ab4af5ad50700039d473a72d48e'
+      GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run full Voice V2 plus V3 tests
+        run: |
+          set -euo pipefail
+          node --check voice-deploy/worker.js
+          node --check voice-deploy/v3-backend.js
+          node --check voice-deploy/v3-ui.js
+          node --test voice-deploy/worker-v2.test.mjs voice-deploy/agent-v2.test.mjs voice-deploy/v3-backend.test.mjs
+      - name: Fail closed unless D1 R2 and Google client are configured
+        id: resource
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$CF_PROVISION_TOKEN" || ! "$GOOGLE_CLIENT" =~ ^[0-9]+-[a-z0-9-]+\.apps\.googleusercontent\.com$ ]]; then
+            echo "::error::V3 permission gate: need NMH_V3_CF_PROVISION_TOKEN and NMH_V3_GOOGLE_CLIENT_ID"
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json,os,re,urllib.request
+          base='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CF_ACCOUNT']
+          def get(p):
+              q=urllib.request.Request(base+p,headers={'Authorization':'Bearer '+os.environ['CF_PROVISION_TOKEN']})
+              with urllib.request.urlopen(q,timeout=20) as r:data=json.load(r)
+              if not data.get('success'):raise RuntimeError('Cloudflare resource permission denied')
+              return data['result']
+          a=get('/d1/database'); items=a if isinstance(a,list) else a.get('databases',[])
+          db=next((d for d in items if d.get('name')=='nmh-voice-v3'),None)
+          b=get('/r2/buckets'); buckets=b.get('buckets',[]) if isinstance(b,dict) else b
+          assert db and any(d.get('name')=='nmh-voice-v3-docs' for d in buckets),'Missing provisioned D1 or R2'
+          uuid=db.get('uuid',db.get('id',''))
+          assert re.fullmatch(r'[a-f0-9A-F-]{36}',uuid),'Invalid database id'
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:out.write('dbid='+uuid+'\n')
+          print('V3_RESOURCE_GATE=D1_R2_READY')
+          PY
+      - name: Verify D1 schema exists before modifying Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+          DB_ID: ${{ steps.resource.outputs.dbid }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os
+          c={'name':'nmh-voice-gpt-test','main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'d1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':os.environ['DB_ID']}],'r2_buckets':[{'binding':'NMH_DOCS','bucket_name':'nmh-voice-v3-docs'}],'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT']}}
+          with open('voice-deploy/wrangler-v3.generated.jsonc','w') as out:json.dump(c,out)
+          PY
+          npx --yes wrangler@4.102.0 d1 execute nmh-voice-v3 --remote --config voice-deploy/wrangler-v3.generated.jsonc --command "SELECT COUNT(*) AS n FROM v3_sessions"
+          echo "V3_SCHEMA_GATE=PASS"
+  deploy:
+    needs: verify
+    if: inputs.deploy_live == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+      DB_ID: ${{ needs.verify.outputs.dbid }}
+      GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Capture exact existing Worker version and verify live identity
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          curl --fail --silent --show-error --max-time 18 \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/nmh-voice-gpt-test/deployments" \
+            -o /tmp/nmh-v3-rollback.json
+          python3 - <<'PY'
+          import json,os,re
+          d=json.load(open('/tmp/nmh-v3-rollback.json'));a=d.get('result',{}).get('deployments',[])
+          assert d.get('success') and a and len(a[0]['versions'])==1 and a[0]['versions'][0].get('percentage')==100
+          v=a[0]['versions'][0]['version_id']
+          assert re.fullmatch(r'[a-f0-9-]{36}',v)
+          with open(os.environ['GITHUB_ENV'],'a') as out:out.write('NMH_V3_STABLE='+v+'\n')
+          print('V3_SNAPSHOT='+v)
+          PY
+          curl --fail --silent --show-error --max-time 15 'https://nmh-voice-gpt-test.magical-budget.workers.dev/health' | \
+            python3 -c 'import json,sys;x=json.load(sys.stdin);assert x["ok"] and x["voice"]=="browser-stt+marin-tts" and x["uiVersion"]=="presence-canvas-v1"'
+          echo "V3_ROLLBACK_HEALTH=VERIFIED"
+      - name: Deploy existing Worker with V3 bindings and automatic rollback
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rollback() {
+            echo "::error::V3 release or smoke failed; rolling back to $NMH_V3_STABLE"
+            npx --yes wrangler@4.102.0 rollback "$NMH_V3_STABLE" --name nmh-voice-gpt-test --config voice-deploy/wrangler.jsonc || echo "::error::V3_ROLLBACK_FAILED"
+          }
+          trap rollback ERR
+          python3 - <<'PY'
+          import json,os,re
+          assert re.fullmatch('[a-f0-9-]{36}',os.environ['DB_ID'])
+          assert re.fullmatch('[0-9]+-[a-z0-9-]+[.]apps[.]googleusercontent[.]com',os.environ['GOOGLE_CLIENT'])
+          c={'name':'nmh-voice-gpt-test','main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'observability':{'enabled':False},'d1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':os.environ['DB_ID']}],'r2_buckets':[{'binding':'NMH_DOCS','bucket_name':'nmh-voice-v3-docs'}],'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT']}}
+          with open('voice-deploy/wrangler-v3.generated.jsonc','w') as f:json.dump(c,f)
+          PY
+          npx --yes wrangler@4.102.0 deploy --config voice-deploy/wrangler-v3.generated.jsonc
+          TARGET="https://nmh-voice-gpt-test.magical-budget.workers.dev"
+          for i in 1 2 3 4 5 6; do
+            sleep 5
+            if curl --fail --silent --show-error --max-time 15 "$TARGET/health" | \
+              python3 -c 'import json,sys;x=json.load(sys.stdin);assert x.get("uiVersion")=="presence-canvas-v1"'; then break; fi
+            if [[ "$i" == 6 ]]; then false; fi
+          done
+          curl --fail --silent --show-error --max-time 15 "$TARGET/api/v3/config" | \
+            python3 -c 'import json,sys;x=json.load(sys.stdin);assert x["ready"] and x["sync"]'
+          curl --fail --silent --show-error --max-time 15 "$TARGET/" -o /tmp/v3-current.html
+          grep -q 'id="avatar"' /tmp/v3-current.html
+          grep -q 'id="v3Personal"' /tmp/v3-current.html
+          grep -q 'id="v3Prompt"' /tmp/v3-current.html
+          grep -q 'id="v3Memories"' /tmp/v3-current.html
+          grep -q 'id="v3Documents"' /tmp/v3-current.html
+          test "$(curl --silent --max-time 15 -o /tmp/v3-unauthorized.json -w '%{http_code}' "$TARGET/api/v3/profile")" = 401
+          test "$(curl --silent --max-time 15 -o /tmp/v3-fake.json -w '%{http_code}' -X POST \
+            -H "Origin: $TARGET" -H 'Content-Type: application/json' \
+            --data '{"credential":"fake"}' "$TARGET/api/v3/auth/google")" = 401
+          curl --fail --silent --show-error --max-time 20 "$TARGET/api/docs/maintenance" | grep -q 'HIỆN TRẠNG ĐANG CHẠY'
+          echo "V3_SMOKE=HEALTH_PERSONA_LOGIN_STORAGE_ISOLATION_DOCS_OK"
+          echo "V3_REAL_GOOGLE_LOGIN_IPHONE=REQUIRES_DEVICE_E2E"
+          trap - ERR
+          echo "V3_DEPLOY_FINAL=SUCCESS"
