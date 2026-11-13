@@ -70,3 +70,11 @@ https://cloud.google.com/text-to-speech/pricing
 
 ## Authorized release attempt 3
 - CI check 43425287967 SUCCESS, code unchanged, smoke corrected for expected HTTP 400. Release gate still requires previous V3 version baseline.
+
+## DEPLOY VERIFIED — 13/11/2026
+- Release SHA `4e1a84b697f1bc9c9e7246ad39b670d2361937da`; GitHub Actions run `43425337401` completed **SUCCESS**. CI tests 14/14 PASS. Wrangler deployed persistent Worker `nmh-voice-gpt-test` on Cloudflare account Magical Budget. No temporary Worker.
+- Confirmed live endpoint: `https://nmh-voice-gpt-test.magical-budget.workers.dev/` returns HTTP 200, all three style control IDs; GET /health HTTP 200 with `version=v2-ngao-reference`, `agent=gpt-6-luna`, `voice=browser-stt+marin-tts`.
+- Deploy job logs: `DEPLOY_HEALTH=V2_OK`, `DEPLOY_UI=V2_OK`, `DEPLOY_SECURITY=VALIDATION_OK`, `DEPLOY_FINAL=SUCCESS`.
+- Verified rollback V3 version `1cbf0dcc-a3a6-40e2-93af-e1a857400100` in previous two release attempts. Those attempts rolled back automatically after **smoke-test script issues**, not proven V2 functional defects. Final release passed all smoke checks.
+- **Still not verified**: genuine OpenAI GPT-6 Luna response with the user's own key, audio quality and continuous voice interaction on a real iPhone, real cost per exchange. Never call those PASS until tested.
+- Warning: `gpt-4o-mini-tts` Speech API is deprecated with planned retirement 2027-01-06; migration will be required.
