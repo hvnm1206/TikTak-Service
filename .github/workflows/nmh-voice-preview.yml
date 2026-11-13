@@ -75,7 +75,9 @@ jobs:
           PY
   deploy:
     needs: verify
-    if: (github.event_name == 'workflow_dispatch' && inputs.deploy_live == true) || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'release(voice): V2 approved'))
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_live == true) ||
+      (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'release(voice): V2 approved'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
