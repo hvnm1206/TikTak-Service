@@ -1,3 +1,5 @@
+> **CẬP NHẬT MỚI NHẤT — 13/11/2026:** Bàn giao một cửa tại [`voice-deploy/START_HERE_NEXT_CHAT.md`](voice-deploy/START_HERE_NEXT_CHAT.md); audit + chi phí tại [`voice-deploy/AUDIT_COST_2026-11-13.md`](voice-deploy/AUDIT_COST_2026-11-13.md). Các ghi chú V1/V2 cũ bên dưới chỉ là lịch sử, không dùng thay hiện trạng V2.1.
+
 # NMH VOICE GPT V1 — BÀN GIAO CHUẨN
 Ngày cập nhật: 13/11/2026
 Trạng thái: Người dùng đã xác nhận app Cloudflare chạy OK trên iPhone. Các chức năng chưa được kiểm thử kỹ không được tự tuyên bố PASS.
