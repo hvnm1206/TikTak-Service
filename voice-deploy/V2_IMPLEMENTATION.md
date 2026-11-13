@@ -60,3 +60,7 @@ https://cloud.google.com/text-to-speech/pricing
 
 ## Release authorization
 - 13/11/2026: Người dùng đã cấu hình Cloudflare token và yêu cầu làm theo kế hoạch cho đến khi V2 chạy. GitHub Actions release gate đã PASS thử CI ở run 43424742122. Kích hoạt deploy lần đầu, có chốt V3 version và rollback tự động.
+
+## 13/11/2026 — First production attempt and verified rollback
+- Run 43424910739: Wrangler uploaded/deployed V2; V2 /health PASSED. Smoke pipeline `curl | grep -q` returned curl SIGPIPE and false UI failure. **Automatic rollback succeeded**, restored Worker version `1cbf0dcc-a3a6-40e2-93af-e1a857400100` to 100% traffic.
+- Fixed smoke to download HTML completely to file before `grep -q` (commit c4d2807). CI verify run 43425052735 PASS. New release authorized; keep pinned baseline.
