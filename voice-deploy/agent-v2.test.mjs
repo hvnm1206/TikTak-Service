@@ -88,3 +88,22 @@ test('usage estimate uses current Standard short-context GPT-6 Luna rates and ca
   assert.equal(r.estimatedModelUsd,0.2775);
   assert.match(r.estimateBasis,/excludes_other_fees/);
 });
+
+test('paid general web search requires opt-in and exposes clickable citations',async()=>{
+ let request;const url='https://example.org/official-report';
+ const fetchImpl=async(_url,o)=>{
+  request=JSON.parse(o.body);
+  return response([{id:'ws_1',type:'web_search_call',status:'completed',action:{type:'search',queries:['latest report']}},
+  {type:'message',content:[{type:'output_text',text:'Theo báo cáo.',annotations:[{type:'url_citation',title:'Báo cáo chính thức',url,start_index:0,end_index:10}]}]}]);
+ };
+ const r=await runAgent({apiKey:key,messages:[{role:'user',content:'Tìm báo cáo mới nhất'}],webSearch:true,fetchImpl});
+ assert.ok(request.tools.some(x=>x.type==='web_search'&&x.search_context_size==='low'));
+ assert.equal(r.webSearchCalls,1);assert.equal(r.estimatedSearchUsd,0.01);
+ assert.deepEqual(r.sources,[{title:'Báo cáo chính thức',url}]);
+ assert.equal(r.searchProvider,'openai_web_search');
+});
+test('paid web search is absent from ordinary calls by default',async()=>{
+ let request;const r=await runAgent({apiKey:key,messages:[{role:'user',content:'Chào'}],fetchImpl:async(_,o)=>{request=JSON.parse(o.body);return say('Chào bạn')}});
+ assert.equal(request.tools.some(x=>x.type==='web_search'),false);
+ assert.equal(r.webSearchCalls,0);assert.equal(r.estimatedSearchUsd,0);
+});
