@@ -170,7 +170,9 @@ test('V3 Setup panel is attached without removing NMH Presence or exposing secre
  const configBody=await (await voice.fetch(new Request(host+'/api/v3/config'))).json();
  assert.equal(configBody.ready,false);
  const g=await voice.fetch(new Request(host+'/health'));
- assert.equal((await g.json()).uiVersion,'presence-canvas-v1');
+ const health=await g.json();
+ assert.equal(health.uiVersion,'presence-canvas-v1');
+ assert.equal(health.v3Version,'d1-only-google-v3');
 });
 
 
