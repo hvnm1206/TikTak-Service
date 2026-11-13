@@ -1,31 +1,37 @@
-# NMH VOICE GPT V1 — GIAI ĐOẠN B: TRA CỨU INTERNET ĐỘC LẬP
+# NMH VOICE GPT V1 — GIAI ĐOẠN B: TRA CỨU INTERNET
 Ngày: 13/11/2026
 Nhánh: `nmh-voice-gpt-v1`
 
-## Phạm vi hoàn thành
-- Module riêng: `voice-deploy/web-search.mjs`, export `searchWeb(query, {apiKey, fetchImpl, timeoutMs, maxResults})` và `WebSearchError`.
-- Dùng Brave Search GET `/res/v1/web/search`; tìm bằng tiếng Việt, khu vực VN, tối đa 5 kết quả HTTPS được lọc/trích ngắn.
-- Không dùng key giả làm key thật; không ghi key vào source hay log. Nhận key qua tham số server-side, nguồn chuẩn khi tích hợp là Cloudflare secret `BRAVE_SEARCH_API_KEY`.
-- Không tự động cho phép truy cập từ frontend, không mở public endpoint với Brave key dùng chung vì có nguy cơ lạm dụng và tốn phí.
-- Không tích hợp vào `worker.js`, không đổi Voice/STT/TTS/SETUP và không deploy production trong Giai đoạn B. Tích hợp và lựa chọn nguồn thuộc Giai đoạn C.
+## Mục tiêu
+Thêm quyền tra cứu Internet khi người dùng chọn, **không cần đăng ký thêm Brave hoặc Search API khác**. Giữ nguyên Voice, SETUP API key, BẢO TRÌ; về sau deploy trên cùng Cloudflare Worker Magical Budget.
 
-## Kiểm thử đã thực hiện
-Lệnh: `node --check voice-deploy/web-search.mjs && node --test voice-deploy/web-search.test.mjs`
-Môi trường local: Node 22.
-Kết quả: 8/8 nhóm test PASS (mock HTTP), gồm lọc URL, khử trùng, định dạng câu hỏi, giới hạn số kết quả, thiếu secret, lỗi 401/429/503, sai JSON, timeout/network, rỗng và cắt snippet.
-Bằng chứng: `voice-deploy/web-search.test.mjs`. Các bài test dùng key giả và dữ liệu giả lập. **Chưa có bằng chứng gọi Brave thật**, chưa xác nhận dữ liệu tìm kiếm thực tế và hạn mức tài khoản.
+## Phương án đã lập trình
+- Dùng **OpenAI API key** người dùng đã nhập trong SETUP.
+- Chat bình thường giữ `gpt-4o-mini` qua Chat Completions, không kích hoạt công cụ tìm kiếm.
+- Trên màn hình NÓI có nút `TRA MẠNG: TẮT`. Bật thành `TRA MẠNG: LƯỢT TỚI`. Chỉ lượt hỏi tiếp theo gọi `gpt-5-search-api` và `web_search_options: {}`, sau đó tự tắt.
+- Backend vẫn kiểm tra Origin, định dạng key, messages và kích thước request.
+- Lấy `url_citation` từ OpenAI, chỉ cho URL HTTPS, lọc trùng, giới hạn 5; hiển thị link nguồn có thể bấm trong lịch sử.
+- Đọc giọng loại URL và markdown link; thiếu citations báo lỗi rõ.
+- Đã xóa module và test Brave không còn sử dụng.
 
-## Điều kiện tích hợp và nghiệm thu thật
-1. Có Brave Search API token hợp lệ (không đặt vào GitHub source; cấu hình bằng Cloudflare encrypted secret). Dịch vụ có $5 credit mỗi tháng nhưng có thể yêu cầu thẻ để đăng ký.
-2. Kiểm thử gọi API thật với truy vấn tiếng Việt và đối chiếu URL, nội dung, ngày cập nhật.
-3. Thiết kế kiểm soát số lượt tìm/chi phí ở server (rate limit, quota), quyền sử dụng (tránh public unauthenticated endpoint đốt credit).
-4. Tích hợp logic khi nào tìm và trích nguồn vào Worker, hoàn thiện kiểm thử tự động.
-5. Triển khai vào Worker Magical Budget cố định `nmh-voice-gpt-test` khi đã có quyền triển khai/rollback; kiểm thử Safari iPhone sau phát hành.
+## Bằng chứng kiểm tra mã
+- `voice-deploy/worker.js`: UI + backend tích hợp.
+- `voice-deploy/web-optin.test.mjs`: 7 ca kiểm thử tự động cho Node 22. Chạy: `node --test voice-deploy/web-optin.test.mjs`.
+- Kiểm thử trong môi trường JavaScript với mock HTTP: Worker và script HTML biên dịch thành công, giữ nguyên model chat thường, chọn model web đúng khi opt-in, lọc nguồn, chống Origin sai, key sai và câu trả lời thiếu nguồn.
+- Test giả lập **không đồng nghĩa** live API PASS.
 
-## Rủi ro được chốt
-- Kết quả Brave chỉ là tiêu đề/trích đoạn, **không đồng nghĩa đã đọc được toàn văn trang web**.
-- Dữ liệu search và trang web là đầu vào không tin cậy; không làm theo hướng dẫn nằm trong nguồn tìm kiếm.
-- Tính phí theo lượt gọi API, ngoài chi phí token GPT khi dùng nội dung kết quả.
-- Không được báo "tra cứu mạng đã dùng được trên iPhone" nếu chưa tích hợp, triển khai và nghiệm thu thực tế.
+## Điều kiện chưa xác minh
+- Chưa gọi tìm kiếm thật bằng OpenAI key người dùng; tài khoản cần có quyền dùng model `gpt-5-search-api`.
+- Web search OpenAI **có phí riêng**, khác với việc không cần đăng ký thêm tài khoản.
+- Chưa deploy Worker production vì GitHub Actions chưa có Cloudflare credentials đã được chứng thực và chưa xác minh rollback.
+- Chưa nghiệm thu trên iPhone.
 
-Nguồn chính thức: https://api-dashboard.search.brave.com/app/documentation/web-search và https://developers.cloudflare.com/workers/configuration/environment-variables/
+## Nghiệm thu cuối
+1. Dùng key hiện có của người dùng trên thiết bị, thử tìm kiếm Internet thật.
+2. Xác nhận link nguồn/đọc giọng và chat thường không tìm kiếm.
+3. Chuẩn bị rollback và chứng thực quyền cập nhật Worker `nmh-voice-gpt-test.magical-budget.workers.dev`.
+4. Deploy giữ URL, kiểm thử Safari iPhone.
+5. Ghi SHA, workflow, URL, test và phát sinh phí vào MAINTENANCE.
+
+API: https://developers.openai.com/api/docs/guides/tools-web-search
+Pricing: https://developers.openai.com/api/docs/pricing
