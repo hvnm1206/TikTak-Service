@@ -27,6 +27,34 @@ jobs:
       - name: Test assistant, tools, TTS and Voice UI
         run: |
           node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs
+      - name: Check Cloudflare CI readiness without deploying or revealing secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.NMH_CF_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDFLARE_API_TOKEN}" || -z "${CLOUDFLARE_ACCOUNT_ID}" ]]; then
+            echo "CLOUDFLARE_CREDENTIALS=NOT_CONFIGURED"
+            exit 0
+          fi
+          if [[ "${CLOUDFLARE_ACCOUNT_ID}" != "769c2ab4af5ad50700039d473a72d48e" ]]; then
+            echo "CLOUDFLARE_ACCOUNT=WRONG_TARGET"
+            exit 0
+          fi
+          if ! curl --silent --show-error --max-time 12 --output /tmp/cf-token-verify.json -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" https://api.cloudflare.com/client/v4/user/tokens/verify; then
+            echo "CLOUDFLARE_TOKEN=VERIFY_NETWORK_ERROR"
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json
+          try:
+              d=json.load(open('/tmp/cf-token-verify.json'))
+              status=d.get('result',{}).get('status','unknown')
+              print('CLOUDFLARE_TOKEN='+('ACTIVE' if d.get('success') and status=='active' else 'NOT_VERIFIED'))
+          except Exception:
+              print('CLOUDFLARE_TOKEN=INVALID_RESPONSE')
+          PY
   deploy:
     needs: verify
     if: github.event_name == 'workflow_dispatch' && inputs.deploy_live == true
