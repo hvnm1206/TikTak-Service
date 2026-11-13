@@ -149,7 +149,7 @@ test('live maintenance documents use GitHub Contents API and decode Unicode reli
  const md='# BẢO TRÌ — NMH PRESENCE\n## A. HIỆN TRẠNG ĐANG CHẠY\n“Tao thấy khá tốt đấy”\n';
  globalThis.fetch=async(url)=>{
    path=String(url);
-   return Response.json({encoding:'base64',content:Buffer.from(md,'utf8').toString('base64')});
+   return Response.json({encoding:'base64',content:Buffer.from(md,'utf8').toString('base64').replace(/(.{32})/g,'$1\n')});
  };
  try{
    const response=await worker.fetch(new Request(host+'/api/docs/maintenance'));
