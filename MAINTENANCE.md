@@ -1,4 +1,78 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
+**Chốt cập nhật: 13/11/2026.** Đây là phần tổng hợp hiện trạng *mới nhất*, phải đọc trước các bản ghi V1/V2 cũ bên dưới. Mọi kết luận quan trọng phải đối chiếu source, GitHub Actions và Worker thực tế.
+
+## A. HIỆN TRẠNG ĐANG CHẠY — NMH PRESENCE V2.1
+
+### 1. Nền tảng, quyền và phiên bản
+- URL chính thức: https://nmh-voice-gpt-test.magical-budget.workers.dev/ (giữ nguyên URL cũ trên iPhone).
+- Cloudflare account: **Magical Budget**; Account ID `769c2ab4af5ad50700039d473a72d48e`; Worker `nmh-voice-gpt-test`. Không tạo Worker temporary.
+- GitHub `hvnm1206/TikTak-Service`, chỉ cập nhật nhánh `nmh-voice-gpt-v1`, không động `main`.
+- **Production đang chạy:** Cloudflare version `7ea82e92-5933-4421-be9d-39c5ca00351e`; release source commit `121629381f7fb298f57c70c36ab51f28c8c2f52a`. [Actions run 43436827356](https://github.com/hvnm1206/TikTak-Service/actions/runs/43436827356): **SUCCESS**, CI **22/22 PASS**, smoke HEALTH / UI PRESENCE / DOCS / SECURITY **PASS**.
+- Rollback baseline trước release: `926e2435-0d19-4383-8b45-631f1107a032`, được ghi nhận **HEALTH_VERIFIED**. Workflow có đường `wrangler rollback` nếu lỗi; **chưa có bằng chứng diễn tập rollback của đúng bản Presence hiện hành**, do không phát sinh lỗi trong release.
+- GitHub HEAD được đối chiếu trước cập nhật bảo trì: `911bde3f4cd9365d27c4ef2ee1ab718f1fddbdf1` (commit tài liệu, **không phải** version triển khai). Actions `43437150330` verify SUCCESS, deploy SKIPPED.
+- NMH Guarded Operator preflight `0.5.16`: PASS. Đã trực tiếp kiểm tra `GET /health`, `GET /`, `GET /api/docs/maintenance` và cả ba trả **HTTP 200**.
+- Health xác thực: `ok=true`, `app=NMH Voice GPT V2`, `voice=browser-stt+marin-tts`, `agent=gpt-6-luna`, `version=v2-tts-audioctx`, `uiVersion=presence-canvas-v1`. Trang chính có các marker `avatar`, `journalBtn`, `subsBtn`, `getByteTimeDomainData`.
+
+### 2. Giao diện NMH Presence — đã phát hành
+- **Thay chat chữ chính bằng khuôn mặt điện tử Canvas 2D**. Khuôn mặt có mắt, con ngươi, nháy mắt, hướng nhìn khi chạm và vòng sáng theo trạng thái `idle/listening/processing/speaking/paused/error`.
+- Ba tính cách **ĐANH ĐÁ / CHÉM GIÓ / NGHIÊM TÚC** có màu và biểu cảm riêng. UI được vẽ hoàn toàn trên điện thoại; **không có API tính phí bổ sung để tạo biểu cảm**, không có micro thứ hai.
+- Chuyển động miệng trong giai đoạn phát âm thanh dùng dữ liệu MP3 đang phát qua Web Audio `AnalyserNode.getByteTimeDomainData`. Vòng sáng khi nghe là tín hiệu trạng thái, **không phải đo cường độ microphone thật**.
+- Hội thoại chữ được đưa vào **NHẬT KÝ**, mặc định đóng; **PHỤ ĐỀ** mặc định tắt và có thể bật. Nội dung hội thoại vẫn được sử dụng làm ngữ cảnh trong phiên, không xóa chức năng trả nguồn.
+- Bảo toàn NÓI / KẾT THÚC / NGẮT AI / TIẾP TỤC, 3 phong cách, SETUP, BẢO TRÌ, THỬ GIỌNG AI MARIN, API key tự nhập và sổ ước phí.
+- Cấu trúc source: `voice-deploy/worker.js` (Worker/API, nhúng trang), `voice-deploy/presence-ui.js` (Canvas và UI), `voice-deploy/agent-v2.js` (GPT + tools), `voice-deploy/wrangler.jsonc`, `.github/workflows/nmh-voice-preview.yml`, `worker-v2.test.mjs`, `agent-v2.test.mjs`.
+- Tư liệu tham khảo do người dùng cung cấp: mã **Ngáo v0.6** (`src/face/engine.ts`, `src/App.tsx`). NMH Presence là module riêng cho Worker hiện hữu, không bê nguyên React/Ngáo.
+- Release giao diện lần đầu: commit `ccfc91ef0d759849aeabe1e6c504fc0114ab9356`, [Actions 43435921467](https://github.com/hvnm1206/TikTak-Service/actions/runs/43435921467) SUCCESS, version `926e2435-0d19-4383-8b45-631f1107a032`. Bản hiện hành sau đó xử lý cache tài liệu BẢO TRÌ.
+- **Phản hồi người dùng đã nhận:** “Tao thấy khá tốt đấy”. Đây là **đánh giá tích cực ban đầu về giao diện**, chưa phải biên bản nghiệm thu tất cả thao tác, chất lượng giọng, độ trễ hay E2E trên iPhone.
+
+### 3. Giọng nói, tìm kiếm, bảo mật và chi phí
+- STT: Web SpeechRecognition của Safari; agent `gpt-6-luna` qua Responses API; TTS hiện thời `gpt-4o-mini-tts` giọng `marin` phát bằng AudioContext. Nếu Marin lỗi báo rõ, không tự động chuyển sang Safari fallback.
+- Tools công khai: giờ, Open-Meteo, Wikipedia tiếng Việt, Google News RSS. **Không phải tìm kiếm toàn bộ Internet**.
+- API key do người dùng điền SETUP, có lựa chọn lưu `localStorage` hoặc chỉ giữ phiên; không sao chép key vào GitHub, log hay tài liệu. Rủi ro localStorage còn mở.
+- Sổ **ước phí** GPT + TTS được lưu trên chính thiết bị: GPT theo usage/cached tokens, TTS theo thời lượng audio đã giải mã và mức giả định 0,015 USD/phút. Không có dữ liệu hóa đơn OpenAI thực, audio token billed, hoặc budget cap đã kiểm chứng.
+- Mục tiêu chi phí **50–150 VND/lượt chưa được nghiệm thu**; không được dùng bảng dự báo làm báo giá/chi tiêu thực tế.
+
+### 4. Audit F01–F16 — trạng thái đến thời điểm bàn giao
+| ID | Trạng thái | Tiêu chí còn thiếu |
+|---|---|---|
+| F01 | **MỞ / P0** | TTS model cũ theo tài liệu audit ngừng 06/01/2027; cần chuyển tuyến mới, test Marin/độ trễ/chi phí thật. Không chỉ thay tên model vào `/v1/audio/speech`. |
+| F02 | **MỘT PHẦN** | Có ước phí local; thiếu đo TTS billed usage và đối soát Usage/Costs thực theo lượt. |
+| F03 | **MỞ** | Budget cap và cảnh báo chi phí được kiểm chứng. |
+| F04 | **MỞ** | Tối ưu pipeline các chunk TTS, đo độ trễ trước/sau. |
+| F05 | **MỞ** | Mở rộng web search có nguồn, độ phủ và kiểm soát phí. |
+| F06 | **MỞ / P0** | Test iPhone thật: micro → STT → GPT → TTS Marin → phát → nghe lượt sau; dừng/ngắt/tiếp tục. |
+| F07 | **SỬA/CI PASS** | Công thức giá GPT Standard short/cached đã sửa; vẫn cần đối chiếu hóa đơn. |
+| F08 | **MỞ** | Đo `speed=0.756` và `playbackRate=1.455` đối với audio token/phí/giọng. |
+| F09 | **MỞ** | Rà soát nguy cơ lưu key localStorage trên thiết bị chia sẻ. |
+| F10 | **MỞ** | Observability và telemetry tối thiểu an toàn trên Worker. |
+| F11 | **ĐÃ DEPLOY** | Lấy snapshot active + health/identity trước deploy; chưa diễn tập rollback với bản hiện hành. |
+| F12 | **MỞ** | Kiểm tra điều khoản Open-Meteo và điều kiện thương mại. |
+| F13 | **ĐÃ DEPLOY** | BẢO TRÌ đọc tài liệu chuẩn, sửa cache GitHub raw, không hứa fallback sai. |
+| F14 | **GIỚI HẠN ĐÃ NÊU** | Safari chuyển nền/khóa màn hình phải tiếp tục thủ công; chưa xử lý kiến trúc. |
+| F15 | **MỘT PHẦN** | Có kết hợp tín hiệu abort cho Responses API; chưa tối ưu timeout/retry mọi tool. |
+| F16 | **MỞ** | Geocoding địa danh trùng và RSS parser chưa đủ chắc chắn. |
+
+**Thứ tự ưu tiên còn mở:** F01 + F06 + F03; tiếp đến F02 + F04 + F08; rồi F10 + F15 và các mục còn lại. Độ ưu tiên không đồng nghĩa với xác nhận đã làm xong.
+
+### 5. Phương pháp phát hành và nghiệm thu bắt buộc
+1. Xác minh HEAD, source, Cloudflare active version; phân biệt commit tài liệu và deployed Worker. Không sửa `main`, không dùng `wrangler deploy --temporary`, không tự tạo URL.
+2. Giữ các chức năng Voice, SETUP, BẢO TRÌ; test syntax và đầy đủ regression (CI mock không thay thế test API thật).
+3. Chốt active version/health làm snapshot rollback. Deploy qua GitHub Actions vào **cùng Worker**; smoke health, Presence Canvas, Nhật ký, Phụ đề, TTS controls, docs và key sai.
+4. Nếu fail phải xác minh trạng thái rollback; không công bố thành công chỉ vì workflow có sẵn lệnh rollback.
+5. Khi nghiệm thu iPhone cần kiểm micro, chất giọng, từng trạng thái và thao tác. Khi nghiệm thu chi phí cần OpenAI Usage/Costs. Phản hồi “khá tốt” chỉ xác nhận cảm nhận ban đầu.
+6. Sau mỗi lần sửa cập nhật `MAINTENANCE.md` và điểm bàn giao `voice-deploy/START_HERE_NEXT_CHAT.md` nếu thay đổi trạng thái. BẢO TRÌ trong app phải tải được nội dung mới. Không ghi key, audio hay dữ liệu nhạy cảm.
+
+### 6. Bằng chứng và đường dẫn
+- [Worker production](https://nmh-voice-gpt-test.magical-budget.workers.dev/) · [Live health](https://nmh-voice-gpt-test.magical-budget.workers.dev/health)
+- [Release đang chạy 43436827356](https://github.com/hvnm1206/TikTak-Service/actions/runs/43436827356) · [Tài liệu giao diện Presence](https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-gpt-v1/voice-deploy/UI_PRESENCE_RELEASE_2026-11-13.md)
+- [Bàn giao chính thức](https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-gpt-v1/voice-deploy/START_HERE_NEXT_CHAT.md)
+- [Audit gốc](https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-gpt-v1/voice-deploy/AUDIT_COST_2026-11-13.md) · [Remediation F01–F16](https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-gpt-v1/voice-deploy/VOICE_V21_REMEDIATION_2026-11-13.md)
+
+---
+
+## B. NHẬT KÝ LỊCH SỬ — GIỮ ĐỂ TRUY VẾT
+
+**Lưu ý:** Các mô tả “V2 chưa triển khai”, “Cloudflare chưa có token” hoặc “Worker temporary” bên dưới là bản ghi tại các mốc cũ, **không phải** hiện trạng hiện nay. Khi có mâu thuẫn, dựa trên phần A và nguồn live.
+
 Cập nhật gốc: 13/11/2026.
 Nguồn của sự thật: GitHub nhánh nmh-voice-gpt-v1, mã nguồn tại voice-deploy/worker.js.
 Không tự tạo trạng thái PASS; thay đổi hạng mục này sau khi có bằng chứng.
