@@ -41,3 +41,17 @@ test('UI preserves voice controls, supports 3 styles, no manual search',async()=
   const script=page.match(/<script>([\s\S]*?)<\/script>/)[1];
   new Function(script);
 });
+
+test('audio speech is chunked rather than truncating long answers',async()=>{
+  const r=await worker.fetch(new Request(host+'/'));
+  const page=await r.text();
+  const script=page.match(/<script>([\s\S]*?)<\/script>/)[1];
+  const fnSrc=script.match(/function speechParts\(text\)\{[\s\S]*?return out\}/)?.[0];
+  assert.ok(fnSrc,'speechParts exists');
+  const speechParts=new Function(fnSrc+';return speechParts')();
+  const input=('Đây là một câu nói tiếng Việt dài với thông tin cần đọc đầy đủ. ').repeat(25);
+  const chunks=speechParts(input);
+  assert.ok(chunks.length>=3);
+  assert.ok(chunks.every(c=>c.length>0&&c.length<=440));
+  assert.ok(chunks.join(' ').length>=input.trim().length-5);
+});
