@@ -167,3 +167,32 @@ test('invalid Github docs API result fails visibly instead of presenting stale m
    assert.equal(response.status,502);
  }finally{globalThis.fetch=original}
 });
+
+test('maintenance source fallback serves only canonical fresh Raw content if Github API returns 403',async()=>{
+ const orig=globalThis.fetch;
+ let attempts=[];
+ const md="# BẢO TRÌ\n## A. HIỆN TRẠNG ĐANG CHẠY\nTao thấy khá tốt đấy";
+ globalThis.fetch=async(url)=>{
+  attempts.push(String(url));
+  if(String(url).startsWith('https://api.github.com'))return Response.json({message:'rate limit'},{status:403});
+  if(String(url).startsWith('https://raw.githubusercontent.com'))return new Response(md,{status:200});
+  throw Error('unexpected '+url);
+ };
+ try{
+  const res=await worker.fetch(new Request(host+'/api/docs/maintenance'));
+  assert.equal(res.status,200);
+  assert.equal(res.headers.get('x-nmh-doc-source'),'github-raw-fallback');
+  assert.equal(await res.text(),md);
+  assert.equal(attempts.length,2);
+ }finally{globalThis.fetch=orig}
+});
+test('maintenance refuses stale Raw fallback when GitHub API unavailable',async()=>{
+ const orig=globalThis.fetch;
+ globalThis.fetch=async(url)=>String(url).includes('api.github.com')?Response.json({}, {status:403}):new Response('old stale doc',{status:200});
+ try{
+  const res=await worker.fetch(new Request(host+'/api/docs/maintenance'));
+  assert.equal(res.status,502);
+  const body=await res.json();
+  assert.match(body.error,/GitHub/);
+ }finally{globalThis.fetch=orig}
+});
