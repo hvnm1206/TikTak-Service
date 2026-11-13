@@ -1,1 +1,2 @@
--- D1-only: retain the original text of supported documents without R2.\nALTER TABLE v3_documents ADD COLUMN raw_text TEXT;\n
+-- D1-only: retain original text of uploaded documents. R2 is not needed.
+ALTER TABLE v3_documents ADD COLUMN raw_text TEXT;
