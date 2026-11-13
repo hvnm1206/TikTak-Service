@@ -98,3 +98,19 @@ test('V2.1 health identifies new iPhone AudioContext engine',async()=>{
  assert.equal(r.status,200);
  assert.equal((await r.json()).version,'v2-tts-audioctx');
 });
+
+test('maintenance handover uses canonical source and cost ledger is estimate-only',async()=>{
+  const page=await (await worker.fetch(new Request(host+'/'))).text();
+  assert.match(page,/id="usageSummary"/);
+  assert.match(page,/không phải hóa đơn/);
+  assert.match(page,/recordCost/);
+  assert.doesNotMatch(page,/sẽ dùng giọng Safari dự phòng/);
+  const previous=globalThis.fetch;
+  let fetched='';
+  globalThis.fetch=async(url)=>{fetched=String(url);return new Response('canonical doc',{status:200})};
+  try{
+    const r=await worker.fetch(new Request(host+'/api/docs/handover'));
+    assert.equal(r.status,200);
+    assert.match(fetched,/voice-deploy\/START_HERE_NEXT_CHAT\.md$/);
+  }finally{globalThis.fetch=previous}
+});

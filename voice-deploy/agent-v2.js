@@ -84,11 +84,11 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     "Giờ Việt Nam hiện tại: "+nowVN()+"."
   ].join("\n");
   const input=messages.slice(-16).map(m=>({role:m.role,content:str(m.content,1500)}));
-  const allSources=[];const toolCalls=[];let usage={input_tokens:0,output_tokens:0};let response=null;
+  const allSources=[];const toolCalls=[];let usage={input_tokens:0,output_tokens:0,cached_input_tokens:0,api_calls:0};let response=null;
   for(let round=0;round<3;round++){
     const controller=new AbortController();
     const tm=setTimeout(()=>controller.abort(),22000);
-    const sig=signal||controller.signal;
+    const sig=signal?AbortSignal.any([signal,controller.signal]):controller.signal;
     let r;
     try{
       r=await fetchImpl(API,{method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},
@@ -97,14 +97,17 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
       response=await r.json();
     }finally{clearTimeout(tm)}
     if(!Array.isArray(response.output))throw Error("Responses API trả dữ liệu không hợp lệ");
-    usage.input_tokens+=Number(response.usage?.input_tokens||0);
-    usage.output_tokens+=Number(response.usage?.output_tokens||0);
+    const thisInput=Math.max(0,Number(response.usage?.input_tokens||0));
+    usage.input_tokens+=thisInput;
+    usage.output_tokens+=Math.max(0,Number(response.usage?.output_tokens||0));
+    usage.cached_input_tokens+=Math.min(thisInput,Math.max(0,Number(response.usage?.input_tokens_details?.cached_tokens||0)));
+    usage.api_calls++;
     const calls=response.output.filter(x=>x.type==="function_call");
     if(!calls.length){
       const answer=extractText(response.output);
       if(!answer)throw Error("AI trả câu rỗng");
       const known=new Set(),sources=allSources.filter(x=>{if(!x?.url||known.has(x.url))return false;known.add(x.url);return true}).slice(0,8);
-      return {answer,sources,tools:toolCalls,model:MODEL,usage,estimatedModelUsd:Math.round((usage.input_tokens*0.10+usage.output_tokens*0.50)/1e6*1e8)/1e8,searchProvider:"public_sources_only"};
+      return {answer,sources,tools:toolCalls,model:MODEL,usage,estimatedModelUsd:Math.round(((usage.input_tokens-usage.cached_input_tokens)*0.05+usage.cached_input_tokens*0.005+usage.output_tokens*0.25)/1e6*1e8)/1e8,estimateBasis:"standard_short_context_excludes_other_fees",searchProvider:"public_sources_only"};
     }
     input.push(...response.output);
     for(const c of calls.slice(0,3)){

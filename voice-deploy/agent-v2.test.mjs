@@ -78,3 +78,13 @@ test('public tool failure does not silently hallucinate a successful result',asy
   assert.equal(r.sources.length,0);
   assert.ok(second.input.some(x=>x.type==='function_call_output'&&JSON.parse(x.output).ok===false));
 });
+
+
+test('usage estimate uses current Standard short-context GPT-6 Luna rates and cache discount',async()=>{
+  const fetchImpl=async()=>response([{type:'message',content:[{type:'output_text',text:'Kết quả'}]}],{input_tokens:1_000_000,output_tokens:1_000_000,input_tokens_details:{cached_tokens:500_000}});
+  const r=await runAgent({apiKey:key,messages:msg,fetchImpl});
+  assert.equal(r.usage.cached_input_tokens,500_000);
+  assert.equal(r.usage.api_calls,1);
+  assert.equal(r.estimatedModelUsd,0.2775);
+  assert.match(r.estimateBasis,/excludes_other_fees/);
+});

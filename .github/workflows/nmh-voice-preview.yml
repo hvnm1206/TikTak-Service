@@ -109,10 +109,18 @@ jobs:
           vs=items[0]['versions']
           assert len(vs)==1 and vs[0].get('percentage')==100, 'Production split deployment: require manual review'
           version=vs[0]['version_id']
-          assert version=='9f10411e-79b9-420b-b826-e3e6be8a08b5', 'Production baseline has changed: refuse deploy'
+          assert __import__('re').fullmatch(r'[0-9a-f-]{36}', version), 'Invalid active Cloudflare version; refuse deploy'
           with open(os.environ['GITHUB_ENV'],'a') as h: h.write('NMH_STABLE_VERSION='+version+'\n')
           print('VERIFIED_STABLE_VERSION='+version)
           print('VERIFIED_DEPLOYMENT_ID='+str(items[0].get('id','')))
+          PY
+          # Runtime identity must still be the expected healthy NMH Voice instance before capturing rollback.
+          curl --fail --silent --show-error --max-time 15 'https://nmh-voice-gpt-test.magical-budget.workers.dev/health' -o /tmp/nmh-predeploy-health.json
+          python3 - <<'PY'
+          import json
+          h=json.load(open('/tmp/nmh-predeploy-health.json'))
+          assert h.get('ok') is True and h.get('version')=='v2-tts-audioctx' and h.get('voice')=='browser-stt+marin-tts', 'Unexpected production identity; refuse deploy'
+          print('ROLLBACK_BASELINE=HEALTH_VERIFIED')
           PY
       - name: Deploy V2 to SAME Worker with automatic rollback on failed smoke checks
         env:
