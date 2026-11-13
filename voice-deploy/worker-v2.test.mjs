@@ -140,3 +140,5 @@ test('NMH Presence has no external JavaScript/CSS and no new upstream API calls'
  assert.match(page,/Marin/);
  assert.match(r.headers.get('content-security-policy'),/connect-src 'self'/);
 });
+
+// NMH Presence release verification: live deploy remains separately gated by the workflow.
