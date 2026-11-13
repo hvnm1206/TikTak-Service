@@ -64,3 +64,6 @@ https://cloud.google.com/text-to-speech/pricing
 ## 13/11/2026 — First production attempt and verified rollback
 - Run 43424910739: Wrangler uploaded/deployed V2; V2 /health PASSED. Smoke pipeline `curl | grep -q` returned curl SIGPIPE and false UI failure. **Automatic rollback succeeded**, restored Worker version `1cbf0dcc-a3a6-40e2-93af-e1a857400100` to 100% traffic.
 - Fixed smoke to download HTML completely to file before `grep -q` (commit c4d2807). CI verify run 43425052735 PASS. New release authorized; keep pinned baseline.
+
+## Attempt 2 — diagnosis and rollback
+- Run 43425131917: upload/deploy OK; V2 health & 3 style UI OK. Negative-key smoke expected HTTP 400 but curl --fail incorrectly interpreted valid rejection as failure. Auto rollback successful to V3. Replaced smoke with explicit HTTP status=400 and JSON error assertion (commit dd181244).
