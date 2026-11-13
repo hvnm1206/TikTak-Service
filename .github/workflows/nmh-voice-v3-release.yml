@@ -1,8 +1,5 @@
 name: NMH Voice V3 — same Worker release, rollback guarded
 on:
-  push:
-    branches: [nmh-voice-gpt-v1]
-    paths: ['.github/workflows/nmh-voice-v3-release.yml']
   workflow_dispatch:
     inputs:
       deploy_live:
@@ -17,9 +14,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   verify:
-    if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.deploy_live == true) ||
-      (github.event_name == 'push' && github.event.head_commit.message == 'release(voice-search): opt-in enhanced search guarded deployment')
+    if: inputs.deploy_live == true
     runs-on: ubuntu-latest
     timeout-minutes: 12
     outputs:
@@ -82,9 +77,7 @@ jobs:
           echo "V3_D1_ONLY_SCHEMA_GATE=PASS"
   deploy:
     needs: verify
-    if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.deploy_live == true) ||
-      (github.event_name == 'push' && github.event.head_commit.message == 'release(voice-search): opt-in enhanced search guarded deployment')
+    if: inputs.deploy_live == true
     runs-on: ubuntu-latest
     timeout-minutes: 18
     env:
