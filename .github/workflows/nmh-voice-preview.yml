@@ -142,10 +142,11 @@ jobs:
           curl --fail --silent --show-error --max-time 15 "${TARGET}/" -o /tmp/nmh-v2-page.html
           grep -q 'styleDanh' /tmp/nmh-v2-page.html || { echo "::error::V2 persona UI missing"; false; }
           echo "DEPLOY_UI=V2_OK"
-          curl --fail --silent --show-error --max-time 15 "${TARGET}/api/chat" \
+          HTTP_STATUS=$(curl --silent --show-error --max-time 15 -o /tmp/nmh-bad-key.json -w '%{http_code}' "${TARGET}/api/chat" \
             -X POST -H "Origin: ${TARGET}" -H 'Content-Type: application/json' \
-            --data '{"apiKey":"invalid","messages":[{"role":"user","content":"hi"}]}' \
-            | python3 -c 'import json,sys;d=json.load(sys.stdin);assert "error" in d'
+            --data '{"apiKey":"invalid","messages":[{"role":"user","content":"hi"}]}')
+          test "${HTTP_STATUS}" = "400" || { echo "::error::Expected 400, got ${HTTP_STATUS}"; false; }
+          python3 -c 'import json;d=json.load(open("/tmp/nmh-bad-key.json"));assert "error" in d'
           echo "DEPLOY_SECURITY=VALIDATION_OK"
           trap - ERR
           echo "DEPLOY_FINAL=SUCCESS"
