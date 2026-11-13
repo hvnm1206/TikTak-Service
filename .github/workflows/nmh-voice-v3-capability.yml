@@ -21,7 +21,14 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${CF_TOKEN}" ]]; then echo "V3_CLOUDFLARE_TOKEN=MISSING"; exit 0; fi
-          if [[ -z "${GOOGLE_CLIENT}" ]]; then echo "V3_GOOGLE_WEB_CLIENT=NOT_CONFIGURED"; else echo "V3_GOOGLE_WEB_CLIENT=CONFIGURED"; fi
+          if [[ -z "${GOOGLE_CLIENT}" ]]; then
+            echo "V3_GOOGLE_WEB_CLIENT=NOT_CONFIGURED"
+          elif [[ "${GOOGLE_CLIENT}" =~ ^[0-9]+-[a-z0-9-]+\.apps\.googleusercontent\.com$ ]]; then
+            echo "V3_GOOGLE_WEB_CLIENT=CONFIGURED_VALID_FORMAT"
+          else
+            echo "::error::V3_GOOGLE_WEB_CLIENT=INVALID_FORMAT"
+            exit 1
+          fi
           for resource in D1; do
             if [[ "$resource" == "D1" ]]; then url="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/d1/database"; else url="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/r2/buckets"; fi
             status=$(curl --silent --show-error --max-time 15 -o "/tmp/v3_${resource}.json" -w '%{http_code}' -H "Authorization: Bearer ${CF_TOKEN}" "$url" || true)
