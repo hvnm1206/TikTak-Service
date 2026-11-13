@@ -1,12 +1,18 @@
-name: Deploy NMH Voice GPT to Cloudflare
+name: NMH Voice GPT — verify and guarded production deploy
 on:
   push:
     branches: [nmh-voice-gpt-v1]
   workflow_dispatch:
+    inputs:
+      deploy_live:
+        description: 'Deploy to verified Magical Budget Worker (requires rollback readiness)'
+        type: boolean
+        required: true
+        default: false
 permissions:
   contents: read
 jobs:
-  deploy:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -14,12 +20,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify Worker JavaScript and V2 regression tests
+      - name: Verify JavaScript syntax
         run: |
           node --check voice-deploy/worker.js
           node --check voice-deploy/agent-v2.js
+      - name: Test assistant, tools, TTS and Voice UI
+        run: |
           node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs
-      - name: Deploy Worker
+  deploy:
+    needs: verify
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_live == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Cloudflare target and credentials
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.NMH_CF_ACCOUNT_ID }}
@@ -27,12 +42,15 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${CLOUDFLARE_API_TOKEN}" || -z "${CLOUDFLARE_ACCOUNT_ID}" ]]; then
-            echo "::error::Cloudflare credentials missing: NMH_CF_API_TOKEN and NMH_CF_ACCOUNT_ID are both required. No deployment performed."
+            echo "::error::Missing Cloudflare CI credentials. No deployment."
             exit 1
           fi
           if [[ "${CLOUDFLARE_ACCOUNT_ID}" != "769c2ab4af5ad50700039d473a72d48e" ]]; then
-            echo "::error::Configured Cloudflare account does not match the approved Magical Budget account ID. No deployment performed."
+            echo "::error::Cloudflare Account ID mismatch. No deployment."
             exit 1
           fi
-          echo "Deploying NMH Voice GPT to the configured persistent Cloudflare account"
-          npx --yes wrangler@4.102.0 deploy --config voice-deploy/wrangler.jsonc
+      - name: Deploy approved Cloudflare Worker only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.NMH_CF_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.102.0 deploy --config voice-deploy/wrangler.jsonc
