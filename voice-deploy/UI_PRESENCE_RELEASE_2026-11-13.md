@@ -14,3 +14,11 @@ Tệp người dùng cung cấp `Pasted text.txt`: mã Ngáo v0.6 08/11/2026, `s
 - Production baseline trước release: `004087d6-f0ea-4084-bd9b-3b09d5d076e2` (CI).
 - Workflow release tự chốt active version/healthy identity, phát hành vào đúng Worker `nmh-voice-gpt-test`, smoke kiểm tra /health `uiVersion=presence-canvas-v1`, Canvas, transcript, audio visualizer, UI/SECURITY/DOCS; tự rollback khi smoke fail.
 - Không kết luận kiểm thử iPhone hay phí mới đã đạt khi chưa có bằng chứng thực tế.
+
+## Release đã xác minh
+- GitHub Actions run **43435921467** SUCCESS (22/22 CI PASS).
+- Source release commit `ccfc91ef0d759849aeabe1e6c504fc0114ab9356`.
+- Cloudflare production new version `926e2435-0d19-4383-8b45-631f1107a032`; rollback snapshot `004087d6-f0ea-4084-bd9b-3b09d5d076e2` HEALTH_VERIFIED.
+- CI log: `DEPLOY_UI=PRESENCE_CANVAS_OK`, `DEPLOY_HEALTH=V2_OK`, `DEPLOY_DOCS=CANONICAL_OK`, `DEPLOY_SECURITY=VALIDATION_OK`, `DEPLOY_FINAL=SUCCESS`.
+- Guarded Operator runtime GET: `/health` và `/` HTTP 200; health `uiVersion=presence-canvas-v1`, HTML có Canvas, Nhật ký, Phụ đề, AnalyserNode, ba phong cách, testVoice.
+- Chưa kiểm thử cảm nhận trên iPhone thực hoặc đo billing thực.
