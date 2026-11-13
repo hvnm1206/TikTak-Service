@@ -22,3 +22,8 @@ Tệp người dùng cung cấp `Pasted text.txt`: mã Ngáo v0.6 08/11/2026, `s
 - CI log: `DEPLOY_UI=PRESENCE_CANVAS_OK`, `DEPLOY_HEALTH=V2_OK`, `DEPLOY_DOCS=CANONICAL_OK`, `DEPLOY_SECURITY=VALIDATION_OK`, `DEPLOY_FINAL=SUCCESS`.
 - Guarded Operator runtime GET: `/health` và `/` HTTP 200; health `uiVersion=presence-canvas-v1`, HTML có Canvas, Nhật ký, Phụ đề, AnalyserNode, ba phong cách, testVoice.
 - Chưa kiểm thử cảm nhận trên iPhone thực hoặc đo billing thực.
+
+## Sửa đồng bộ tài liệu BẢO TRÌ
+- Phát hiện GET /api/docs/handover đọc bản cũ vì GitHub raw CDN cache dù GitHub HEAD đã có nội dung mới.
+- Worker bổ sung query cache-busting `?v=Date.now()` cho request đọc tài liệu, giữ nguyên endpoint và quyền truy cập.
+- CI trước release sửa cache: run 43436730384, 22/22 PASS; production vẫn version `926e2435-0d19-4383-8b45-631f1107a032`.
