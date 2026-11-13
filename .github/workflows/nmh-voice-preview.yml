@@ -139,8 +139,8 @@ jobs:
               false
             fi
           done
-          curl --fail --silent --show-error --max-time 15 "${TARGET}/" \
-            | grep -q 'styleDanh' || { echo "::error::V2 persona UI missing"; false; }
+          curl --fail --silent --show-error --max-time 15 "${TARGET}/" -o /tmp/nmh-v2-page.html
+          grep -q 'styleDanh' /tmp/nmh-v2-page.html || { echo "::error::V2 persona UI missing"; false; }
           echo "DEPLOY_UI=V2_OK"
           curl --fail --silent --show-error --max-time 15 "${TARGET}/api/chat" \
             -X POST -H "Origin: ${TARGET}" -H 'Content-Type: application/json' \
