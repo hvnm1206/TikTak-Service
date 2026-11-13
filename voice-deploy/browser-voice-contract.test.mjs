@@ -25,7 +25,7 @@ class Element {
  remove(){}
 }
 function makeBrowser({search='off',micError='',apiFailure=''}={}){
- const elements=new Map(),writes=[],calls=[],recInstances=[];
+ const elements=new Map(),writes=[],calls=[],recInstances=[],longTimers=[];
  const $=id=>{if(!elements.has(id))elements.set(id,new Element(id));return elements.get(id)};
  const storage=new Map([['nmh_voice_api_key_v1','sk-'+'a'.repeat(40)],['nmh_voice_web_search_v1',search]]);
  class AudioContext{
@@ -65,11 +65,14 @@ function makeBrowser({search='off',micError='',apiFailure=''}={}){
  const document={hidden:false,getElementById:$,createElement:tag=>new Element(tag),addEventListener(){},body:new Element('body')};
  const sandbox={window,document,navigator:{onLine:true},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
   performance,fetch:fetchImpl,Response,Request,URL,AbortController,AbortSignal,SpeechSynthesisUtterance:window.SpeechSynthesisUtterance,
-  requestAnimationFrame:()=>0,cancelAnimationFrame(){},clearTimeout,setTimeout,clearInterval,setInterval,console,TextDecoder,TextEncoder,
+  requestAnimationFrame:()=>0,cancelAnimationFrame(){},
+  clearTimeout(handle){if(handle?.mockLongTimer){handle.cancelled=true;return}clearTimeout(handle)},
+  setTimeout(fn,ms,...args){if(ms>=18000){const handle={mockLongTimer:true,cancelled:false,run:()=>fn(...args)};longTimers.push(handle);return handle}return setTimeout(fn,ms,...args)},
+  clearInterval,setInterval,console,TextDecoder,TextEncoder,
   alert(){},confirm(){return false},prompt(){return null},location:{reload(){}}
  };
  window.window=window;
- return {sandbox,$,recInstances,writes,calls,storage};
+ return {sandbox,$,recInstances,writes,calls,storage,longTimers};
 }
 async function initialize(options){
  const app=await worker.fetch(new Request('https://example.test/'),{});
@@ -129,4 +132,26 @@ test('iOS final speech result must reach GPT even when recognition onend never f
  await microtaskFlush();
  assert.equal(h.writes.length,1,'Safari may not fire onend; final STT must still submit a chat request');
  assert.equal(h.writes[0].messages.at(-1).content,'Kiểm tra cảm biến máy');
+});
+
+test('microphone timeout produces visible error instead of endless listening when Safari goes silent',async()=>{
+ const h=await initialize();
+ h.$('start').onclick();
+ assert.equal(h.recInstances.length,1);
+ assert.equal(h.longTimers.length,1);
+ h.longTimers[0].run();
+ await microtaskFlush();
+ assert.match(h.$('error').textContent,/18 giây/);
+ assert.equal(h.$('resume').classList.contains('hidden'),false);
+ assert.equal(h.recInstances[0].aborted,true);
+});
+test('STOP cancels pending STT and cannot submit a stale result',async()=>{
+ const h=await initialize();
+ h.$('start').onclick();
+ const r=h.recInstances[0];
+ h.$('stop').onclick();
+ r.emit('Đừng gửi nữa');
+ await microtaskFlush();
+ assert.equal(h.writes.length,0);
+ assert.equal(h.longTimers[0].cancelled,true);
 });
