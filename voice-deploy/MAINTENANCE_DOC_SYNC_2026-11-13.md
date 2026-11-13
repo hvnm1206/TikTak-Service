@@ -17,3 +17,11 @@ Giữ nguyên NMH Presence production, cập nhật live tab BẢO TRÌ để hi
 - Worker /health vẫn là presence-canvas-v1, UI markers không mất.
 - Worker /api/docs/maintenance trả HTTP 200, bản mới 20.893 ký tự (có phần A, ghi nhận phản hồi người dùng).
 - Nếu không đạt: không công bố thành công, dựa vào rollback pre-deploy.
+
+## Bản sửa ổn định sau khi phát hiện HTTP 403
+- Đã bắt được lỗi chính xác: backend trả HTTP 502 vì GitHub Contents API ẩn danh trả HTTP 403 ở một số yêu cầu, không phải lỗi GPT/TTS.
+- Worker dùng cache tài liệu Cloudflare tại edge tối đa 120 giây để giảm yêu cầu GitHub, giữ output cho client no-store.
+- Khi GitHub API thất bại, tự thử GitHub Raw, **chỉ chấp nhận** tài liệu chứa marker hiện trạng mới (MAINTENANCE có `## A. HIỆN TRẠNG ĐANG CHẠY`, handover có `## CẬP NHẬT GIAO DIỆN NMH PRESENCE`); tài liệu quá cũ không được coi là thành công.
+- Nếu tất cả nguồn không sẵn sàng trả lỗi 502 có thông báo mở GitHub trực tiếp.
+- Thêm test API 403 → Raw fallback có kiểm tra nội dung, stale Raw → 502; 26/26 PASS, GitHub Actions verify `43440621730`, deploy SKIPPED; Cloudflare production trước release `e6cb6c6d-064c-413e-8a12-93cf4873fa00`.
+- Không sửa AI, voice, frontend hoặc setup. Phát hành vào Worker hiện tại với rollback trước khi đổi và smoke đọc MAINTENANCE mới.
