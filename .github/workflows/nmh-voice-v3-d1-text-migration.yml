@@ -1,0 +1,54 @@
+name: NMH Voice V3 - D1 text-only migration (no R2)
+on:
+  push:
+    branches: [nmh-voice-gpt-v1]
+    paths: ['.github/workflows/nmh-voice-v3-d1-text-migration.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  d1-text:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CF_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Idempotent remote D1 schema update with read-back
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CF_TOKEN" || { echo "::error::Missing scoped provisioning token"; exit 1; }
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.error
+          account='769c2ab4af5ad50700039d473a72d48e'
+          database='3ce295cb-a84d-4a50-abee-d14fdd903514'
+          url='https://api.cloudflare.com/client/v4/accounts/'+account+'/d1/database/'+database+'/query'
+          def query(sql):
+              data=json.dumps({'sql':sql}).encode('utf-8')
+              request=urllib.request.Request(url,method='POST',data=data,headers={'Authorization':'Bearer '+os.environ['CF_TOKEN'],'Content-Type':'application/json'})
+              try:
+                  with urllib.request.urlopen(request,timeout=25) as reply: payload=json.load(reply)
+              except urllib.error.HTTPError as e:
+                  try: codes=[v.get('code') for v in json.loads(e.read()).get('errors',[])]
+                  except Exception: codes=[]
+                  raise RuntimeError('D1 query HTTP '+str(e.code)+' error codes '+str(codes))
+              if not payload.get('success'):raise RuntimeError('D1 query refused')
+              result=payload['result']
+              parts=result if isinstance(result,list) else [result]
+              if not parts or not parts[0].get('success',True):raise RuntimeError('D1 SQL failed')
+              return parts[0].get('results',[])
+          rows=query('PRAGMA table_info(v3_documents)')
+          assert any(x.get('name')=='id' for x in rows),'Unexpected D1 documents schema'
+          if not any(x.get('name')=='raw_text' for x in rows):
+              sql=open('voice-deploy/migrations/0002_v3_d1_only.sql',encoding='utf8').read()
+              assert 'ALTER TABLE v3_documents ADD COLUMN raw_text TEXT;' in sql
+              query('ALTER TABLE v3_documents ADD COLUMN raw_text TEXT')
+              print('V3_D1_DOC_TEXT_COLUMN=CREATED')
+          else: print('V3_D1_DOC_TEXT_COLUMN=ALREADY_PRESENT')
+          rows=query('PRAGMA table_info(v3_documents)')
+          assert any(x.get('name')=='raw_text' for x in rows)
+          result=query('SELECT COUNT(*) AS n FROM v3_documents')
+          print('V3_D1_DOCUMENT_COUNT='+str(result[0]['n']))
+          print('V3_D1_TEXT_ONLY_MIGRATION=PASS')
+          PY
