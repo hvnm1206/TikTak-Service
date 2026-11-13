@@ -92,3 +92,9 @@ test('iPhone browser unlocks Web Audio from START and RESUME gestures; AI failur
  assert.doesNotMatch(html,/function speakFallback/);
  assert.doesNotMatch(html,/Giọng dự phòng Safari/);
 });
+
+test('V2.1 health identifies new iPhone AudioContext engine',async()=>{
+ const r=await worker.fetch(new Request(host+'/health'));
+ assert.equal(r.status,200);
+ assert.equal((await r.json()).version,'v2-tts-audioctx');
+});
