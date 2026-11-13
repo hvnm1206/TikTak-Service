@@ -1,5 +1,6 @@
 // NMH Voice Presence — no network calls, no external libraries.
 // Everything in this file is compiled into the existing Cloudflare Worker HTML.
+// Visual controls are local only; no additional chargeable APIs.
 export const CSS=String.raw`
 html,body{min-height:100%;overscroll-behavior:none}
 body{background:#050b16;background-image:radial-gradient(ellipse at 50% 20%,#12364b 0,transparent 60%),linear-gradient(#040b17,#071120);color:#e9faff}
