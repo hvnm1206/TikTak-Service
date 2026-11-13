@@ -51,3 +51,9 @@ https://cloud.google.com/text-to-speech/pricing
 - Source V3 đầy đủ vẫn lưu được trên GitHub tại commit trên; rollback Cloudflare vẫn chưa thử.
 - CI mới nhất https://github.com/hvnm1206/TikTak-Service/actions/runs/43419105881: verify 14/14 PASS, deploy SKIPPED, `CLOUDFLARE_API_TOKEN=NOT_CONFIGURED`.
 - Worker production GET /health HTTP 200, GET / HTTP 200, tab BẢO TRÌ hiện đúng V3. V2 chưa xuất hiện ở production.
+
+## 13/11/2026 — Production release gate prepared
+- Cloudflare token ACTIVE and deployments READ_OK (CI run 43424361555).
+- Stable rollback target pinned: `1cbf0dcc-a3a6-40e2-93af-e1a857400100`.
+- Release job is opt-in via exact release commit marker and requires existing V3 100% version, verifies V2 health/UI, and attempts automatic rollback upon failure.
+- This note is written before release; do not infer deploy success from this line.
