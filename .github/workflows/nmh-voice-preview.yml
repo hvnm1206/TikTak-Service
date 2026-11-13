@@ -32,6 +32,19 @@ jobs:
           node --check voice-deploy/v3-backend.js
           node --check voice-deploy/v3-ui.js
           node --test voice-deploy/v3-backend.test.mjs
+      - name: Validate V3 SQLite migration and guarded workflow YAML syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import sqlite3,pathlib
+          s=pathlib.Path('voice-deploy/migrations/0001_v3.sql').read_text()
+          db=sqlite3.connect(':memory:');db.executescript(s)
+          for table in ['v3_users','v3_sessions','v3_profiles','v3_memories','v3_documents','v3_chunks']:
+              assert db.execute('SELECT count(*) FROM sqlite_master WHERE type=? AND name=?',('table',table)).fetchone()[0]==1,table
+          print('V3_D1_SCHEMA_SQLITE=PASS')
+          PY
+          ruby -e "require 'yaml'; YAML.parse_file('.github/workflows/nmh-voice-v3-provision.yml'); YAML.parse_file('.github/workflows/nmh-voice-v3-release.yml'); puts 'V3_WORKFLOW_YAML=PASS'"
       - name: Check Cloudflare CI readiness without deploying or revealing secrets
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
