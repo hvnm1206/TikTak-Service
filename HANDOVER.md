@@ -69,3 +69,11 @@ Cửa chat mới cần đọc HANDOVER.md và MAINTENANCE.md ở nhánh này, sa
 ## 8. Tiêu chí nghiệm thu cho thay đổi
 Phải có file nguồn, commit SHA, workflow/deployment, URL đang chạy, ảnh/test thao tác thực (khi liên quan iPhone), kiểm tra hồi quy Voice và ghi rõ phần chưa đạt.
 KHÔNG tuyên bố hoàn thành chỉ dựa vào kế hoạch, ZIP, nguồn code, hay deploy thành công.
+
+## 13/11/2026 — NMH Voice V2 staged, CHƯA PHÁT HÀNH
+V2 theo kiến trúc Ngáo được phát triển trong cùng nhánh `nmh-voice-gpt-v1`. **Không dùng phần mô tả V1 phía trên để suy luận bản V2 đã lên Cloudflare.**
+- Source mới: `voice-deploy/worker.js`, `voice-deploy/agent-v2.js`.
+- Model V2: `gpt-6-luna` qua Responses API; 4 công cụ tự gọi, 3 phong cách; phát giọng Marin và dự phòng Safari. Không còn nút tra mạng thủ công.
+- CI: `43418450493`, 14/14 tests PASS, deployment SKIPPED theo thiết kế.
+- **Worker production trên Magical Budget vẫn là V3**, chưa cập nhật, chưa nghiệm thu iPhone V2.
+- Bằng chứng và toàn bộ giới hạn: `voice-deploy/V2_IMPLEMENTATION.md`. Không tự deploy trước khi xác minh credentials và rollback.
