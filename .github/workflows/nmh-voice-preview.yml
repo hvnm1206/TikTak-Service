@@ -151,12 +151,21 @@ jobs:
           grep -q 'styleDanh' /tmp/nmh-v2-page.html || { echo "::error::V2 persona UI missing"; false; }
           grep -q 'testVoice' /tmp/nmh-v2-page.html || { echo "::error::Marin diagnostic control missing"; false; }
           grep -q 'AUDIO_DECODE_FAILED' /tmp/nmh-v2-page.html || { echo "::error::New AudioContext engine missing"; false; }
+          grep -q 'usageSummary' /tmp/nmh-v2-page.html || { echo "::error::Cost usage UI missing"; false; }
           echo "DEPLOY_UI=V2_AUDIOCTX_OK"
+          curl --fail --silent --show-error --max-time 20 "${TARGET}/api/docs/handover" -o /tmp/nmh-v2-handover.md
+          grep -q 'ĐIỂM BÀN GIAO DUY NHẤT' /tmp/nmh-v2-handover.md || { echo "::error::Canonical handover not served"; false; }
+          echo "DEPLOY_DOCS=CANONICAL_OK"
           HTTP_STATUS=$(curl --silent --show-error --max-time 15 -o /tmp/nmh-bad-key.json -w '%{http_code}' "${TARGET}/api/chat" \
             -X POST -H "Origin: ${TARGET}" -H 'Content-Type: application/json' \
             --data '{"apiKey":"invalid","messages":[{"role":"user","content":"hi"}]}')
           test "${HTTP_STATUS}" = "400" || { echo "::error::Expected 400, got ${HTTP_STATUS}"; false; }
           python3 -c 'import json;d=json.load(open("/tmp/nmh-bad-key.json"));assert "error" in d'
+          TTS_STATUS=$(curl --silent --show-error --max-time 15 -o /tmp/nmh-bad-tts.json -w '%{http_code}' "${TARGET}/api/tts" \
+            -X POST -H "Origin: ${TARGET}" -H 'Content-Type: application/json' \
+            --data '{"apiKey":"invalid","text":"test"}')
+          test "${TTS_STATUS}" = "400" || { echo "::error::TTS validation expected 400"; false; }
+          python3 -c 'import json;assert "error" in json.load(open("/tmp/nmh-bad-tts.json"))'
           echo "DEPLOY_SECURITY=VALIDATION_OK"
           trap - ERR
           echo "DEPLOY_FINAL=SUCCESS"
