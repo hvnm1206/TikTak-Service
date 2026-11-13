@@ -1,0 +1,46 @@
+name: NMH Voice V3 — infrastructure capability read-only
+on:
+  push:
+    branches: [nmh-voice-gpt-v1]
+    paths:
+      - '.github/workflows/nmh-voice-v3-capability.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CF_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CF_ACCOUNT: '769c2ab4af5ad50700039d473a72d48e'
+      GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
+    steps:
+      - name: Read-only Cloudflare D1/R2 permissions and Google client config
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${CF_TOKEN}" ]]; then echo "V3_CLOUDFLARE_TOKEN=MISSING"; exit 0; fi
+          if [[ -z "${GOOGLE_CLIENT}" ]]; then echo "V3_GOOGLE_WEB_CLIENT=NOT_CONFIGURED"; else echo "V3_GOOGLE_WEB_CLIENT=CONFIGURED"; fi
+          for resource in D1 R2; do
+            if [[ "$resource" == "D1" ]]; then url="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/d1/database"; else url="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/r2/buckets"; fi
+            status=$(curl --silent --show-error --max-time 15 -o "/tmp/v3_${resource}.json" -w '%{http_code}' -H "Authorization: Bearer ${CF_TOKEN}" "$url" || true)
+            RESOURCE="$resource" STATUS="$status" python3 - <<'PY'
+          import json,os
+          name=os.environ['RESOURCE'];status=os.environ['STATUS']
+          try:
+              d=json.load(open('/tmp/v3_'+name+'.json'))
+              ok=bool(d.get('success'))
+              result=d.get('result')
+              if isinstance(result,list): count=len(result)
+              elif isinstance(result,dict): count=len(result.get('buckets',result.get('databases',[])))
+              else: count=0
+              codes=','.join(str(e.get('code','?')) for e in (d.get('errors') or []))[:150]
+              print('V3_'+name+'_LIST_STATUS='+str(status))
+              print('V3_'+name+'_LIST='+('AUTHORIZED' if ok else 'DENIED'))
+              print('V3_'+name+'_EXISTING_COUNT='+str(count))
+              if codes: print('V3_'+name+'_ERROR_CODES='+codes)
+          except Exception as e: print('V3_'+name+'_LIST=INVALID_RESPONSE:'+str(type(e).__name__))
+          PY
+          done
+          echo "V3_PREFLIGHT=FINISHED_NO_WRITES"
