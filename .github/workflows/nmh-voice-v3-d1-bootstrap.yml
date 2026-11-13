@@ -1,0 +1,88 @@
+name: NMH Voice V3 - one-time D1 bootstrap only
+on:
+  push:
+    branches: [nmh-voice-gpt-v1]
+    paths:
+      - '.github/workflows/nmh-voice-v3-d1-bootstrap.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  d1-bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CF_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate D1 schema and source without changing production
+        run: |
+          set -euo pipefail
+          node --check voice-deploy/worker.js
+          node --check voice-deploy/v3-backend.js
+          node --test voice-deploy/v3-backend.test.mjs
+          python3 - <<'PY'
+          import sqlite3,pathlib
+          d=sqlite3.connect(':memory:')
+          d.executescript(pathlib.Path('voice-deploy/migrations/0001_v3.sql').read_text())
+          assert d.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='v3_sessions'").fetchone()[0]==1
+          print('V3_D1_SCHEMA_LOCAL=PASS')
+          PY
+      - name: Idempotently create only NMH Voice V3 D1 database
+        id: create
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CF_TOKEN" || { echo "::error::NMH_V3_CF_PROVISION_TOKEN missing"; exit 1; }
+          python3 - <<'PY'
+          import json,os,urllib.request,urllib.error,re
+          account='769c2ab4af5ad50700039d473a72d48e'
+          url='https://api.cloudflare.com/client/v4/accounts/'+account+'/d1/database'
+          token=os.environ['CF_TOKEN']
+          def call(method,data=None):
+              body=json.dumps(data).encode() if data is not None else None
+              request=urllib.request.Request(url,method=method,data=body,headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
+              try:
+                  with urllib.request.urlopen(request,timeout=25) as response: payload=json.loads(response.read())
+              except urllib.error.HTTPError as e:
+                  try: errors=[x.get('code') for x in json.loads(e.read()).get('errors',[])]
+                  except Exception: errors=[]
+                  raise RuntimeError('D1 HTTP '+str(e.code)+' error codes '+str(errors))
+              if not payload.get('success'):raise RuntimeError('D1 API refused '+method)
+              return payload.get('result')
+          results=call('GET')
+          databases=results if isinstance(results,list) else results.get('databases',[])
+          matching=[x for x in databases if x.get('name')=='nmh-voice-v3']
+          if len(matching)>1:raise RuntimeError('Ambiguous matching D1 database names')
+          db=matching[0] if matching else call('POST',{'name':'nmh-voice-v3'})
+          state='EXISTING' if matching else 'CREATED'
+          uuid=db.get('uuid') or db.get('id')
+          if not isinstance(uuid,str) or not re.fullmatch(r'[0-9a-fA-F-]{36}',uuid):raise RuntimeError('Invalid D1 database UUID')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:out.write('dbid='+uuid+'\n')
+          print('V3_D1_PROVISION='+state)
+          print('V3_D1_NAME=nmh-voice-v3')
+          print('V3_D1_ID='+uuid)
+          PY
+      - name: Run V3 D1 migration on the created database
+        env:
+          DBID: ${{ steps.create.outputs.dbid }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os
+          uuid=os.environ['DBID']
+          assert len(uuid)==36
+          config={'name':'nmh-voice-gpt-test','main':'worker.js','compatibility_date':'2026-10-01',
+          'd1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':uuid}]}
+          with open('voice-deploy/wrangler-v3-d1.generated.jsonc','w') as out:json.dump(config,out)
+          PY
+          npx --yes wrangler@4.102.0 d1 execute nmh-voice-v3 --remote --config voice-deploy/wrangler-v3-d1.generated.jsonc --file voice-deploy/migrations/0001_v3.sql
+          npx --yes wrangler@4.102.0 d1 execute nmh-voice-v3 --remote --config voice-deploy/wrangler-v3-d1.generated.jsonc --command "SELECT COUNT(*) AS n FROM v3_sessions"
+          echo "V3_D1_MIGRATION=PASS"
+          echo "V3_D1_PROVISIONED_AND_VERIFIED=PASS"
