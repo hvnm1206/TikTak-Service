@@ -40,7 +40,7 @@ function db(){
    if(sql.startsWith('SELECT id,body,created_at FROM v3_memories'))return {results:[...memories.values()].filter(x=>x.user_id===args[0])};
    if(sql.startsWith('SELECT body FROM v3_memories'))return {results:[...memories.values()].filter(x=>x.user_id===args[0])};
    if(sql.startsWith('SELECT id,body FROM v3_memories'))return {results:[...memories.values()].filter(x=>x.user_id===args[0])};
-   if(sql.startsWith('SELECT c.body'))return {results:chunks.filter(c=>c.user_id===args[0]).map(c=>({...c,name:docs.get(c.doc_id)?.name||''}))};
+   if(sql.startsWith('SELECT c.body'))return {results:chunks.filter(c=>c.user_id===args[0]&&args.slice(1).some(v=>c.body.toLocaleLowerCase('vi').includes(String(v).replace(/%/g,'').toLocaleLowerCase('vi')))).map(c=>({...c,name:docs.get(c.doc_id)?.name||''}))};
    if(sql.startsWith('SELECT id,name,mime'))return {results:[...docs.values()].filter(x=>x.user_id===args[0])};
    throw Error('Unknown all SQL '+sql);
   }

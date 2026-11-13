@@ -89,7 +89,8 @@ export async function loadV3Context(req,env,question){
   const profile=await env.NMH_DB.prepare('SELECT prompt FROM v3_profiles WHERE user_id=?').bind(sub).first();
   const recent=await env.NMH_DB.prepare('SELECT body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 40').bind(sub).all();
   const ranked=(recent.results||[]).map(x=>({body:x.body,score:scoreSegment(question,x.body)})).sort((a,b)=>b.score-a.score).filter(x=>x.score>0).slice(0,6);
-  const rows=await env.NMH_DB.prepare('SELECT c.body, c.segment, d.name FROM v3_chunks c JOIN v3_documents d ON d.id=c.doc_id AND d.user_id=c.user_id WHERE c.user_id=? LIMIT 300').bind(sub).all();
+  const terms=extractTerms(question).slice(0,5);
+  const rows=terms.length?await env.NMH_DB.prepare('SELECT c.body, c.segment, d.name FROM v3_chunks c JOIN v3_documents d ON d.id=c.doc_id AND d.user_id=c.user_id WHERE c.user_id=? AND ('+terms.map(()=>'c.body LIKE ?').join(' OR ')+') LIMIT 80').bind(sub,...terms.map(x=>'%'+x+'%')).all():{results:[]};
   const docs=(rows.results||[]).map(x=>({...x,score:scoreSegment(question,x.body)})).filter(x=>x.score>=3).sort((a,b)=>b.score-a.score).slice(0,4).map(x=>({name:x.name,segment:x.segment,text:x.body.slice(0,900)}));
   return {personalPrompt:maxText(profile?.prompt,2500),memories:ranked.map(x=>x.body),documents:docs};
  }catch{return {personalPrompt:'',memories:[],documents:[],contextError:'Không truy cập được kho cá nhân, không thể xác minh tài liệu.'}}
