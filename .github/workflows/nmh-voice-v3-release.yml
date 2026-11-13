@@ -35,7 +35,7 @@ jobs:
           node --check voice-deploy/v3-backend.js
           node --check voice-deploy/v3-ui.js
           node --test voice-deploy/worker-v2.test.mjs voice-deploy/agent-v2.test.mjs voice-deploy/v3-backend.test.mjs
-      - name: Fail closed unless D1 R2 and Google client are configured
+      - name: Fail closed unless D1 and Google Web Client are configured
         id: resource
         shell: bash
         run: |
@@ -54,12 +54,12 @@ jobs:
               return data['result']
           a=get('/d1/database'); items=a if isinstance(a,list) else a.get('databases',[])
           db=next((d for d in items if d.get('name')=='nmh-voice-v3'),None)
-          b=get('/r2/buckets'); buckets=b.get('buckets',[]) if isinstance(b,dict) else b
-          assert db and any(d.get('name')=='nmh-voice-v3-docs' for d in buckets),'Missing provisioned D1 or R2'
+          assert db,'Missing Cloudflare D1 database'
           uuid=db.get('uuid',db.get('id',''))
           assert re.fullmatch(r'[a-f0-9A-F-]{36}',uuid),'Invalid database id'
           with open(os.environ['GITHUB_OUTPUT'],'a') as out:out.write('dbid='+uuid+'\n')
-          print('V3_RESOURCE_GATE=D1_R2_READY')
+          assert uuid=='3ce295cb-a84d-4a50-abee-d14fdd903514','Unexpected database target'
+          print('V3_RESOURCE_GATE=D1_ONLY_READY')
           PY
       - name: Verify D1 schema exists before modifying Worker
         env:
@@ -70,11 +70,11 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           import json,os
-          c={'name':'nmh-voice-gpt-test','main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'d1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':os.environ['DB_ID']}],'r2_buckets':[{'binding':'NMH_DOCS','bucket_name':'nmh-voice-v3-docs'}],'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT']}}
+          c={'name':'nmh-voice-gpt-test','main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'d1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':os.environ['DB_ID']}],'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT']}}
           with open('voice-deploy/wrangler-v3.generated.jsonc','w') as out:json.dump(c,out)
           PY
-          npx --yes wrangler@4.102.0 d1 execute nmh-voice-v3 --remote --config voice-deploy/wrangler-v3.generated.jsonc --command "SELECT COUNT(*) AS n FROM v3_sessions"
-          echo "V3_SCHEMA_GATE=PASS"
+          npx --yes wrangler@4.102.0 d1 execute nmh-voice-v3 --remote --config voice-deploy/wrangler-v3.generated.jsonc --command "SELECT raw_text FROM v3_documents LIMIT 1"
+          echo "V3_D1_ONLY_SCHEMA_GATE=PASS"
   deploy:
     needs: verify
     if: inputs.deploy_live == true
@@ -123,7 +123,7 @@ jobs:
           import json,os,re
           assert re.fullmatch('[a-f0-9-]{36}',os.environ['DB_ID'])
           assert re.fullmatch('[0-9]+-[a-z0-9-]+[.]apps[.]googleusercontent[.]com',os.environ['GOOGLE_CLIENT'])
-          c={'name':'nmh-voice-gpt-test','main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'observability':{'enabled':False},'d1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':os.environ['DB_ID']}],'r2_buckets':[{'binding':'NMH_DOCS','bucket_name':'nmh-voice-v3-docs'}],'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT']}}
+          c={'name':'nmh-voice-gpt-test','main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'observability':{'enabled':False},'d1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':os.environ['DB_ID']}],'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT']}}
           with open('voice-deploy/wrangler-v3.generated.jsonc','w') as f:json.dump(c,f)
           PY
           npx --yes wrangler@4.102.0 deploy --config voice-deploy/wrangler-v3.generated.jsonc

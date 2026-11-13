@@ -22,7 +22,7 @@ jobs:
           set -euo pipefail
           if [[ -z "${CF_TOKEN}" ]]; then echo "V3_CLOUDFLARE_TOKEN=MISSING"; exit 0; fi
           if [[ -z "${GOOGLE_CLIENT}" ]]; then echo "V3_GOOGLE_WEB_CLIENT=NOT_CONFIGURED"; else echo "V3_GOOGLE_WEB_CLIENT=CONFIGURED"; fi
-          for resource in D1 R2; do
+          for resource in D1; do
             if [[ "$resource" == "D1" ]]; then url="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/d1/database"; else url="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/r2/buckets"; fi
             status=$(curl --silent --show-error --max-time 15 -o "/tmp/v3_${resource}.json" -w '%{http_code}' -H "Authorization: Bearer ${CF_TOKEN}" "$url" || true)
             RESOURCE="$resource" STATUS="$status" python3 - <<'PY'
@@ -43,4 +43,5 @@ jobs:
           except Exception as e: print('V3_'+name+'_LIST=INVALID_RESPONSE:'+str(type(e).__name__))
           PY
           done
+          echo "V3_R2=NOT_REQUIRED_D1_ONLY"
           echo "V3_PREFLIGHT=FINISHED_NO_WRITES"

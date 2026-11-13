@@ -1,9 +1,9 @@
-name: NMH Voice V3 — D1 R2 provision with explicit approval
+name: NMH Voice V3 — D1-only provision with explicit approval
 on:
   workflow_dispatch:
     inputs:
       stage:
-        description: inspect is read-only; provision creates D1 and R2 if authorized
+        description: inspect is read-only; provision creates D1 if authorized
         type: choice
         required: true
         default: inspect
@@ -37,11 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "$CF_TOKEN" ]]; then
-            echo "::error::NMH_V3_CF_PROVISION_TOKEN not configured (Cloudflare Account D1 Edit + R2 Edit required)"
-            exit 1
-          fi
-          if [[ "$MODE" == "provision" && ! "$GOOGLE_CLIENT" =~ ^[0-9]+-[a-z0-9-]+\.apps\.googleusercontent\.com$ ]]; then
-            echo "::error::NMH_V3_GOOGLE_CLIENT_ID missing or invalid"
+            echo "::error::NMH_V3_CF_PROVISION_TOKEN not configured (Cloudflare Account D1 Edit required)"
             exit 1
           fi
           python3 - <<'PY'
@@ -62,23 +58,16 @@ jobs:
           databases=api('GET','/d1/database')
           options=databases if isinstance(databases,list) else databases.get('databases',[])
           database=next((x for x in options if x.get('name')=='nmh-voice-v3'),None)
-          buckets=api('GET','/r2/buckets')
-          bucketItems=buckets.get('buckets',[]) if isinstance(buckets,dict) else buckets
-          bucketExists=any(x.get('name')=='nmh-voice-v3-docs' for x in bucketItems)
           print('V3_D1_PERMISSION=AUTHORIZED; EXISTS='+str(bool(database)))
-          print('V3_R2_PERMISSION=AUTHORIZED; EXISTS='+str(bucketExists))
+          print('V3_R2=NOT_REQUIRED')
           if mode=='provision':
               if database is None:
                   database=api('POST','/d1/database',{'name':'nmh-voice-v3'})
                   print('V3_D1_CREATE=SUCCESS')
-              if not bucketExists:
-                  api('POST','/r2/buckets',{'name':'nmh-voice-v3-docs'})
-                  print('V3_R2_CREATE=SUCCESS')
-              bucketExists=True
           dbid=database.get('uuid',database.get('id','')) if database else ''
           if dbid and not re.fullmatch('[a-fA-F0-9-]{36}',dbid):raise RuntimeError('Unexpected D1 ID')
           with open(os.environ['GITHUB_OUTPUT'],'a') as out:out.write('database_id='+dbid+'\n')
-          print('V3_INFRA='+('READY' if dbid and bucketExists else 'NOT_PROVISIONED'))
+          print('V3_INFRA='+('D1_ONLY_READY' if dbid else 'NOT_PROVISIONED'))
           PY
       - name: Initialize D1 schema (only provision mode)
         if: inputs.stage == 'provision'
@@ -90,9 +79,9 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           import json,os
-          conf={'name':'nmh-voice-gpt-test','main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'d1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':os.environ['V3_DB_ID']}],'r2_buckets':[{'binding':'NMH_DOCS','bucket_name':'nmh-voice-v3-docs'}],'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT']}}
+          conf={'name':'nmh-voice-gpt-test','main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'d1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':os.environ['V3_DB_ID']}],'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT']}}
           with open('voice-deploy/wrangler-v3.generated.jsonc','w') as f:json.dump(conf,f)
           PY
           npx --yes wrangler@4.102.0 d1 execute nmh-voice-v3 --remote --config voice-deploy/wrangler-v3.generated.jsonc --file voice-deploy/migrations/0001_v3.sql
-          npx --yes wrangler@4.102.0 d1 execute nmh-voice-v3 --remote --config voice-deploy/wrangler-v3.generated.jsonc --command "SELECT COUNT(*) AS n FROM v3_sessions"
+          npx --yes wrangler@4.102.0 d1 execute nmh-voice-v3 --remote --config voice-deploy/wrangler-v3.generated.jsonc --command "SELECT raw_text FROM v3_documents LIMIT 1"
           echo "V3_D1_MIGRATION=PASS"
