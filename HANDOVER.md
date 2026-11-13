@@ -77,3 +77,11 @@ V2 theo kiến trúc Ngáo được phát triển trong cùng nhánh `nmh-voice-
 - CI: `43418450493`, 14/14 tests PASS, deployment SKIPPED theo thiết kế.
 - **Worker production trên Magical Budget vẫn là V3**, chưa cập nhật, chưa nghiệm thu iPhone V2.
 - Bằng chứng và toàn bộ giới hạn: `voice-deploy/V2_IMPLEMENTATION.md`. Không tự deploy trước khi xác minh credentials và rollback.
+
+## 13/11/2026 — V2 DEPLOYED on official Cloudflare Worker
+- Update any prior note claiming "V2 not deployed": production changed following approved release.
+- Official URL: https://nmh-voice-gpt-test.magical-budget.workers.dev/
+- Source release commit: `4e1a84b697f1bc9c9e7246ad39b670d2361937da`. Actions run `43425337401`: SUCCESS; 14/14 tests PASS; smoke health/UI/security PASS; production HTTP 200.
+- Health: `NMH Voice GPT V2`, `v2-ngao-reference`, `gpt-6-luna`.
+- Previous V3 Cloudflare rollback version: `1cbf0dcc-a3a6-40e2-93af-e1a857400100`; rollback was actually executed and verified during two CI smoke-script errors before successful final release.
+- Production readiness **limited**: iPhone continuous voice, live OpenAI API calls, subjective voice likeness to Ngáo, actual costs not yet verified; user must run voice test on their device.
