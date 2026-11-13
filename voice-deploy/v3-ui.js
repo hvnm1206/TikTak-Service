@@ -2,10 +2,6 @@
 const panel=String.raw`
 <section id="v3Personal" class="panel" style="margin:16px 0;display:grid;gap:10px">
  <h3 style="margin:0">CÁ NHÂN HÓA & ĐỒNG BỘ</h3>
- <div class="panel" style="padding:12px;border:1px solid #64748b;border-radius:12px">
-  <label for="v3WebSearch" style="display:flex;gap:10px;align-items:center"><input type="checkbox" id="v3WebSearch" style="width:24px;height:24px"><strong>TRA WEB NÂNG CAO (CÓ PHÍ)</strong></label>
-  <p class="hint">Bật để GPT được dùng OpenAI Web Search cho thông tin mới, giá cả, sản phẩm và tra cứu chuyên ngành. Mặc định TẮT. Phí API khoảng 0,01 USD cho mỗi lượt tìm kiếm, cộng token; chỉ phát sinh nếu AI thực sự gọi công cụ. Không bật nếu không đồng ý chi phí.</p>
- </div>
  <p id="v3State" class="hint" role="status">Đang kiểm tra dịch vụ đồng bộ...</p>
  <div id="v3Login" style="display:none"><div id="v3GoogleBtn"></div><p class="hint">Đăng nhập Google để dùng chung dữ liệu trên nhiều thiết bị. OpenAI API key vẫn nằm trên từng thiết bị.</p></div>
  <div id="v3App" style="display:none">
@@ -36,8 +32,6 @@ const script=String.raw`
 (()=>{
  const $=id=>document.getElementById(id);
  const msg=s=>{$('v3Msg').textContent=String(s)};
- try{$('v3WebSearch').checked=localStorage.getItem('nmh_voice_web_search_v1')==='on'}catch{}
- $('v3WebSearch').onchange=()=>{try{localStorage.setItem('nmh_voice_web_search_v1',$('v3WebSearch').checked?'on':'off');msg($('v3WebSearch').checked?'Web Search nâng cao đã bật: có thể phát sinh phí tìm kiếm.':'Đã tắt Web Search có phí.')}catch(e){$('v3WebSearch').checked=false;msg('Không lưu được tùy chọn tìm kiếm.')}};
  let rev=0,loginClient='';
  const req=async(path,method='GET',payload)=>{
   const opts={method,credentials:'same-origin',headers:{'content-type':'application/json'}};

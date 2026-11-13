@@ -100,13 +100,13 @@ test('real page START binds mic, STT end reaches /api/chat, web defaults OFF',as
  assert.equal(h.writes[0].webSearch,false);
  assert.ok(h.calls.some(x=>x.url==='/api/tts'),'AI must continue to Marin TTS');
 });
-test('web toggle ON never breaks mic-to-API request; only changes opt-in flag',async()=>{
+test('inactive experimental search setting cannot alter stable voice-to-GPT payload',async()=>{
  const h=await initialize({search:'on'});
  h.$('start').onclick();
  h.recInstances[0].emit('Giá vàng hôm nay?');
  await microtaskFlush();
  assert.equal(h.writes.length,1);
- assert.equal(h.writes[0].webSearch,true);
+ assert.equal(h.writes[0].webSearch,undefined);
  assert.match(h.writes[0].messages.at(-1).content,/Giá vàng/);
 });
 test('permission denial is visibly reported and offers resume, not silent freeze',async()=>{
