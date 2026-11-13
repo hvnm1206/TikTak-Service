@@ -1,4 +1,32 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
+
+## NMH VOICE V3 — TRẠNG THÁI THỰC HIỆN 13/11/2026 (CHƯA RELEASE)
+
+**Mục tiêu đã được người dùng duyệt:** đồng bộ Google Sign-In → D1/R2 → chỉnh Prompt tính cách → chỉ ghi nhớ khi nhập tay/ra lệnh rõ → tra cứu tài liệu riêng có nguồn. Giữ URL/Voice/Presence.
+
+**Đợt 0 — kiểm tra quyền thật: CHƯA ĐẠT.** NMH Guarded Operator preflight PASS (Operator 0.5.16), Google OAuth Operator READY nhưng **không phải Google Web Client của NMH Voice**. [CI preflight 43451910768](https://github.com/hvnm1206/TikTak-Service/actions/runs/43451910768): token Workers vẫn deploy được, nhưng **D1 list HTTP 401 mã 10000**, **R2 list HTTP 403 mã 10000**, GitHub secret `NMH_V3_GOOGLE_CLIENT_ID` **NOT_CONFIGURED**. Không thể khẳng định database/bucket hoặc người dùng Google Sign-In đã tồn tại.
+
+**Đã làm ở mã nguồn (staged, KHÔNG deploy):**
+- `v3-backend.js`: Google ID token RS256 kiểm chữ ký JWKS, `aud/iss/exp/sub`; phiên HttpOnly Secure SameSite=Lax, mã phiên sinh ngẫu nhiên chỉ lưu hash SHA-256 trong D1, logout thu hồi phiên; D1 luôn giới hạn dữ liệu theo Google `sub`, không tin `user_id` từ client.
+- `v3-ui.js`: SETUP mới với Prompt tính cách tự do + 3 mẫu chỉnh tiếp; ghi nhớ xem/thêm/sửa/xóa; đăng nhập và danh mục tài liệu; tự báo **chưa kích hoạt** nếu thiếu hạ tầng.
+- `worker.js` + `agent-v2.js`: nối UI/API V3 vào Worker V2, quy tắc chỉ ghi nhớ từ lệnh rõ, không tự tích lũy chat; khi hỏi đưa Prompt + ghi nhớ liên quan + tối đa 4 đoạn tài liệu phù hợp vào GPT, gắn tên file/đoạn; lỗi DB không được giả vờ đã tra cứu.
+- `migrations/0001_v3.sql`: users/sessions/profiles/memories/documents/chunks; `v3_documents` và `v3_chunks` tách theo chủ tài khoản.
+- Tài liệu **TXT/Markdown**: nội dung lưu R2, chia đoạn và lập chỉ mục D1; **PDF/DOCX/OCR chưa đạt**, giao diện ghi rõ, không nhận vơ đã xử lý.
+- `.github/workflows/nmh-voice-v3-capability.yml` kiểm tra quyền chỉ đọc; `nmh-voice-v3-provision.yml` chuẩn bị cấp phát khi token có quyền; `nmh-voice-v3-release.yml` chỉ chạy chủ động, snapshot active version/health + rollback.
+- **CI cuối đã xem:** [GitHub Actions 43456270025](https://github.com/hvnm1206/TikTak-Service/actions/runs/43456270025), 26/26 Voice V2 PASS + 6/6 V3 PASS, schema SQLite PASS, cú pháp 2 workflow YAML PASS, token deploy ACTIVE, **ACTIVE_VERSION_ID=abcac5e5-0749-45ac-8c94-1d1bed49df82**; deploy SKIPPED. Đây là **mock tests**, không phải Google/iPhone E2E.
+
+**Điều kiện khách quan đang chặn:**
+1. Cấp API token Cloudflare đúng account Magical Budget có **D1 Edit và R2 Edit**, lưu vào GitHub Actions secret `NMH_V3_CF_PROVISION_TOKEN` (không gửi token trong chat); giữ token Worker đang chạy.
+2. Tạo **Google OAuth Web Application Client** với Authorized JavaScript Origin `https://nmh-voice-gpt-test.magical-budget.workers.dev`, lưu client ID tại GitHub Actions secret `NMH_V3_GOOGLE_CLIENT_ID` (không tự lấy OAuth client của Operator làm web-client).
+3. Sau đó mới chạy gate **inspect → provision/migrate → release** trên workflow V3 và test thực iPhone + máy tính, sửa Prompt, lưu/sửa/xóa ghi nhớ, hỏi đúng tài liệu với nguồn, thử cách ly hai tài khoản, kiểm phí và rollback.
+4. **Không được** deploy trước khi đủ quyền hoặc tự thay thế D1/R2 bằng backend khác mà chưa được người dùng chấp thuận.
+
+**Mức đạt hiện tại:** đã tạo source + kiểm thử tiền triển khai; **chưa có đồng bộ thật**, chưa có Google Sign-In chạy thật, chưa upload/tra cứu file thật, chưa nghiệm thu PDF/DOCX. Production Presence V2 được giữ nguyên.
+
+Bằng chứng/chi tiết: [V3_STATUS_2026-11-13.md](voice-deploy/V3_STATUS_2026-11-13.md).
+
+---
+
 **Chốt cập nhật: 13/11/2026.** Đây là phần tổng hợp hiện trạng *mới nhất*, phải đọc trước các bản ghi V1/V2 cũ bên dưới. Mọi kết luận quan trọng phải đối chiếu source, GitHub Actions và Worker thực tế.
 
 ## A. HIỆN TRẠNG ĐANG CHẠY — NMH PRESENCE V2.1

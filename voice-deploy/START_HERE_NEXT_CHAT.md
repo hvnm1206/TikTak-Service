@@ -1,5 +1,12 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## CẬP NHẬT NHÁNH V3 13/11/2026 — CHƯA DEPLOY
+- Người dùng chốt Google Sign-In + D1/R2 đồng bộ, Prompt chỉnh tự do, ghi nhớ **chỉ theo lệnh/nhập tay**, kho tài liệu có nguồn. ĐÃ VIẾT SOURCE + PASS MOCK CI, CHƯA CÓ PROD V3.
+- Đọc đầu file `MAINTENANCE.md` và `voice-deploy/V3_STATUS_2026-11-13.md` để có bằng chứng. Cloudflare token hiện tại D1 HTTP 401 / R2 HTTP 403, `NMH_V3_GOOGLE_CLIENT_ID` thiếu; Operator Google OAuth không tự đồng nghĩa Google Web Client trên workers.dev.
+- Code mới: `v3-backend.js`, `v3-ui.js`, `migrations/0001_v3.sql`; tích hợp vào Worker source trên nhánh `nmh-voice-gpt-v1` và CI. **Không** có PDF/DOCX/OCR hoàn chỉnh, chỉ TXT/Markdown.
+- Không deploy Worker V3 trước khi khắc phục scope, cấu hình Google OAuth và test trên thiết bị; chuẩn hóa bằng workflow V3 provision/release có rollback.
+
+
 
 ## BẢO TRÌ MỚI NHẤT — 13/11/2026 (ƯU TIÊN HƠN GHI CHÚ CŨ)
 - Chính thức `https://nmh-voice-gpt-test.magical-budget.workers.dev/`, Worker `nmh-voice-gpt-test`, `/health` trả `uiVersion=presence-canvas-v1`. AI và giọng giữ `gpt-6-luna` / `marin`.
