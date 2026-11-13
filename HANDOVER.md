@@ -85,3 +85,9 @@ V2 theo kiến trúc Ngáo được phát triển trong cùng nhánh `nmh-voice-
 - Health: `NMH Voice GPT V2`, `v2-ngao-reference`, `gpt-6-luna`.
 - Previous V3 Cloudflare rollback version: `1cbf0dcc-a3a6-40e2-93af-e1a857400100`; rollback was actually executed and verified during two CI smoke-script errors before successful final release.
 - Production readiness **limited**: iPhone continuous voice, live OpenAI API calls, subjective voice likeness to Ngáo, actual costs not yet verified; user must run voice test on their device.
+
+## 13/11/2026 — V2.1 TTS diagnosis and playback update
+- Official URL unchanged https://nmh-voice-gpt-test.magical-budget.workers.dev/. Run 43427854906 deploy **SUCCESS**, live GET /health HTTP 200 version `v2-tts-audioctx`, live HTML includes TTS test and AudioContext engine.
+- Removed silent Safari fallback after iPhone screenshot proved it was masking the problem. Actual OpenAI TTS HTTP codes visible, no API key stored server-side.
+- New required acceptance: user opens SETUP → THỬ GIỌNG AI MARIN on their iPhone. Hearing Marin and seeing `MARIN ĐÃ PHÁT XONG` proves path; errors must be diagnosed by code.
+- Source baseline older V2 rollback version `9f10411e-79b9-420b-b826-e3e6be8a08b5`; V3 baseline `1cbf0dcc-a3a6-40e2-93af-e1a857400100`.
