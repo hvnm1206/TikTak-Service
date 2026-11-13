@@ -55,3 +55,40 @@ test('audio speech is chunked rather than truncating long answers',async()=>{
   assert.ok(chunks.every(c=>c.length>0&&c.length<=440));
   assert.ok(chunks.join(' ').length>=input.trim().length-5);
 });
+
+test('Marin TTS reports upstream errors instead of hiding them behind Safari fallback',async()=>{
+ const previous=globalThis.fetch;
+ globalThis.fetch=async()=>Response.json({error:{message:'Voice model unavailable'}},{status:400});
+ try{
+  const r=await worker.fetch(request('/api/tts',{apiKey:key,text:'Xin chào',style:'danh_da'}));
+  assert.equal(r.status,400);
+  const data=await r.json();
+  assert.equal(data.code,'TTS_INVALID_REQUEST');
+  assert.match(data.detail,/Voice model unavailable/);
+ }finally{globalThis.fetch=previous}
+});
+test('Marin route refuses non-audio content and preserves source header on valid MP3',async()=>{
+ const previous=globalThis.fetch;
+ globalThis.fetch=async()=>new Response('unexpected text',{status:200,headers:{'content-type':'text/html'}});
+ try{
+  const r=await worker.fetch(request('/api/tts',{apiKey:key,text:'Xin chào'}));
+  assert.equal((await r.json()).code,'TTS_NON_AUDIO_RESPONSE');
+ }finally{globalThis.fetch=previous}
+ await withMock(async()=>{
+   const r=await worker.fetch(request('/api/tts',{apiKey:key,text:'Xin chào'}));
+   assert.equal(r.headers.get('x-nmh-tts-source'),'openai-marin');
+ });
+});
+test('iPhone browser unlocks Web Audio from START and RESUME gestures; AI failure is explicit',async()=>{
+ const r=await worker.fetch(new Request(host+'/'));
+ const html=await r.text();
+ assert.match(html,/id="testVoice"/);
+ assert.match(html,/id="ttsDiagnostic"/);
+ assert.match(html,/id="voiceStatus"/);
+ assert.match(html,/\$\("start"\)\.onclick=\(\)=>\{try\{audioUnlock\(\)/);
+ assert.match(html,/\$\("resume"\)\.onclick=\(\)=>\{if\(active\)\{try\{audioUnlock\(\)/);
+ assert.match(html,/AUDIO_CONTEXT_SUSPENDED/);
+ assert.match(html,/AUDIO_DECODE_FAILED/);
+ assert.doesNotMatch(html,/function speakFallback/);
+ assert.doesNotMatch(html,/Giọng dự phòng Safari/);
+});
