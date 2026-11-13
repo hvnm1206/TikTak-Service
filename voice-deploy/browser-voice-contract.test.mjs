@@ -120,3 +120,13 @@ test('API failure is reported as an error after successful speech recognition',a
  await microtaskFlush();
  assert.match(h.$('error').textContent,/Mock API 502/);
 });
+
+test('iOS final speech result must reach GPT even when recognition onend never fires',async()=>{
+ const h=await initialize();
+ h.$('start').onclick();
+ const recognition=h.recInstances[0];
+ recognition.onresult?.({results:[{isFinal:true,0:{transcript:'Kiểm tra cảm biến máy'}}]});
+ await microtaskFlush();
+ assert.equal(h.writes.length,1,'Safari may not fire onend; final STT must still submit a chat request');
+ assert.equal(h.writes[0].messages.at(-1).content,'Kiểm tra cảm biến máy');
+});
