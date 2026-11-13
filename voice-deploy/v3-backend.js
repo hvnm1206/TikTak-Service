@@ -135,7 +135,11 @@ function splitText(text){
 }
 export async function handleV3(req,env){
  const u=new URL(req.url),path=u.pathname,method=req.method.toUpperCase();
- if(path==='/api/v3/config'&&method==='GET')return json({ready:productionReady(env),googleClientId:validClientId(env),storage:'Cloudflare D1/R2',sync:productionReady(env)});
+ if(path==='/api/v3/config'&&method==='GET'){
+  let ready=productionReady(env);
+  if(ready){try{await env.NMH_DB.prepare('SELECT COUNT(*) AS n FROM v3_users').first()}catch{ready=false}}
+  return json({ready,googleClientId:validClientId(env),storage:'Cloudflare D1/R2',sync:ready});
+ }
  if(!productionReady(env))return fail('NMH Voice V3 chưa được kích hoạt: cần D1, R2, Google Web Client và session secret',503);
  if(['POST','PUT','DELETE','PATCH'].includes(method)&&!originAllowed(req,u))return fail('Origin/JSON không hợp lệ',403);
  if(path==='/api/v3/auth/google'&&method==='POST'){

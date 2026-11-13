@@ -25,6 +25,7 @@ function db(){
    throw Error('Unknown run SQL '+sql);
   },
   async first(){
+   if(sql.startsWith('SELECT COUNT(*) AS n FROM v3_users'))return {n:users.size};
    if(sql.startsWith('SELECT name FROM v3_users'))return users.get(args[0])||null;
    if(sql.startsWith('SELECT prompt, revision FROM v3_profiles'))return profiles.get(args[0])||null;
    if(sql.startsWith('SELECT prompt FROM v3_profiles'))return profiles.get(args[0])||null;
@@ -97,6 +98,9 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   const cookie=(login.headers.get('set-cookie')||'').split(';')[0];
   assert.match(cookie,/__Host-nmhv3=/);
   assert.equal((await asBody(await handleV3(req('/api/v3/me','GET',null,cookie),e))).body.userId,'user_123456789');
+  assert.equal((await asBody(await handleV3(req('/api/v3/config'),e))).body.ready,true);
+  // Cross-device test: a second browser with the same Google session reads changes and conflicts safely.
+  assert.equal((await asBody(await handleV3(req('/api/v3/profile','GET',null,cookie),e))).body.revision,0);
   assert.equal((await asBody(await handleV3(req('/api/v3/profile','PUT',{prompt:'Nói ngắn gọn, có căn cứ',revision:0},cookie),e))).body.revision,1);
   assert.equal((await handleV3(req('/api/v3/profile','PUT',{prompt:'stale edit',revision:0},cookie),e)).status,409);
   const mem=await asBody(await handleV3(req('/api/v3/memories','POST',{body:'Ưu tiên báo cáo ngắn'},cookie),e));
@@ -113,6 +117,19 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   const context=await loadV3Context(req('/api/chat','POST',{},cookie),e,'Lỗi E12 cần làm gì?');
   assert.equal(context.personalPrompt,'Nói ngắn gọn, có căn cứ');
   assert.ok(context.documents.some(x=>x.name==='quytrinh.txt'));
+  // A different Google account cannot see, delete or retrieve user one's records.
+  const head=b64(JSON.stringify({alg:'RS256',kid:'mockkid'}));
+  const payload=b64(JSON.stringify({sub:'other_123456',name:'Other',aud:config,iss:'https://accounts.google.com',exp:Math.floor(Date.now()/1000)+3600}));
+  const material=head+'.'+payload;
+  const otherSig=await webcrypto.subtle.sign({name:'RSASSA-PKCS1-v1_5'},google.keyPair.privateKey,new TextEncoder().encode(material));
+  const token2=material+'.'+Buffer.from(otherSig).toString('base64url');
+  const login2=await handleV3(req('/api/v3/auth/google','POST',{credential:token2}),e);
+  assert.equal(login2.status,200);
+  const cookie2=(login2.headers.get('set-cookie')||'').split(';')[0];
+  assert.deepEqual((await asBody(await handleV3(req('/api/v3/documents','GET',null,cookie2),e))).body.documents,[]);
+  assert.deepEqual((await asBody(await handleV3(req('/api/v3/memories','GET',null,cookie2),e))).body.memories,[]);
+  assert.equal((await handleV3(req('/api/v3/documents/'+doc.body.id,'DELETE',{},cookie2),e)).status,404);
+  assert.deepEqual((await loadV3Context(req('/api/chat','POST',{},cookie2),e,'E12')).documents,[]);
   const del=await handleV3(req('/api/v3/memories/'+mem.body.id,'DELETE',{},cookie),e);
   assert.equal(del.status,200);
   const removed=await handleV3(req('/api/v3/documents/'+doc.body.id,'DELETE',{},cookie),e);
