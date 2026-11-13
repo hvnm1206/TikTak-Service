@@ -60,7 +60,7 @@ const script=String.raw`
  async function refresh(){
   try{
    const conf=await req('/api/v3/config');
-   if(!conf.ready){$('v3State').textContent='Đồng bộ chưa kích hoạt: cần quyền Cloudflare D1/R2, Google Web Client và khóa phiên. Dữ liệu chưa được lưu.';return}
+   if(!conf.ready){$('v3State').textContent='Đồng bộ chưa kích hoạt: cần quyền Cloudflare D1/R2 và Google Web Client. Dữ liệu chưa được lưu.';return}
    loginClient=conf.googleClientId;
    const me=await req('/api/v3/me').catch(()=>null);
    if(me?.signedIn){

@@ -4,14 +4,15 @@ import {webcrypto} from 'node:crypto';
 import {handleV3,loadV3Context,handleVoiceMemory,memoryIntent} from './v3-backend.js';
 const host='https://voice.local.test';
 const config='792345678901-test-oauth.apps.googleusercontent.com';
-const secret='secret-for-mock-tests-32-characters-minimum-only';
 function db(){
- const users=new Map(),profiles=new Map(),memories=new Map(),docs=new Map(),chunks=[];
- return {users,profiles,memories,docs,chunks,
+ const users=new Map(),profiles=new Map(),memories=new Map(),docs=new Map(),sessions=new Map(),chunks=[];
+ return {users,profiles,memories,docs,sessions,chunks,
  async batch(stmts){const out=[];for(const s of stmts)out.push(await s.run());return out},
  prepare(sql){let args=[];return {
   bind(...p){args=p;return this},
   async run(){
+   if(sql.startsWith('INSERT INTO v3_sessions')){sessions.set(args[0],{user_id:args[1],expires_at:args[2]});return {meta:{changes:1}}}
+   if(sql.startsWith('DELETE FROM v3_sessions')){const deleted=sessions.delete(args[0]);return {meta:{changes:Number(deleted)}}}
    if(sql.startsWith('INSERT INTO v3_users')){users.set(args[0],{id:args[0],name:args[1]});return {success:true}}
    if(sql.startsWith('INSERT INTO v3_profiles')){profiles.set(args[0],{prompt:args[1],revision:1});return {success:true,meta:{changes:1}}}
    if(sql.startsWith('UPDATE v3_profiles')){const p=profiles.get(args[2]);if(!p||p.revision!==args[3])return {meta:{changes:0}};p.prompt=args[0];p.revision++;return {meta:{changes:1}}}
@@ -26,6 +27,8 @@ function db(){
   },
   async first(){
    if(sql.startsWith('SELECT COUNT(*) AS n FROM v3_users'))return {n:users.size};
+   if(sql.startsWith('SELECT COUNT(*) AS n FROM v3_sessions'))return {n:sessions.size};
+   if(sql.startsWith('SELECT user_id,expires_at FROM v3_sessions'))return sessions.get(args[0])||null;
    if(sql.startsWith('SELECT name FROM v3_users'))return users.get(args[0])||null;
    if(sql.startsWith('SELECT prompt, revision FROM v3_profiles'))return profiles.get(args[0])||null;
    if(sql.startsWith('SELECT prompt FROM v3_profiles'))return profiles.get(args[0])||null;
@@ -44,7 +47,7 @@ function db(){
  }}};
 }
 const r2=()=>{const store=new Map();return {store,async put(k,v){store.set(k,v)},async delete(k){store.delete(k)}}};
-const env=()=>({NMH_DB:db(),NMH_DOCS:r2(),NMH_V3_GOOGLE_CLIENT_ID:config,NMH_V3_SESSION_SECRET:secret});
+const env=()=>({NMH_DB:db(),NMH_DOCS:r2(),NMH_V3_GOOGLE_CLIENT_ID:config});
 function req(path,method='GET',body=null,cookie=''){
  const headers={};
  if(method!=='GET'){headers.origin=host;headers['content-type']='application/json'}
@@ -97,6 +100,8 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   assert.equal(login.status,200);
   const cookie=(login.headers.get('set-cookie')||'').split(';')[0];
   assert.match(cookie,/__Host-nmhv3=/);
+  assert.equal(e.NMH_DB.sessions.size,1);
+  assert.doesNotMatch(JSON.stringify([...e.NMH_DB.sessions.values()]),/__Host-nmhv3/);
   assert.equal((await asBody(await handleV3(req('/api/v3/me','GET',null,cookie),e))).body.userId,'user_123456789');
   assert.equal((await asBody(await handleV3(req('/api/v3/config'),e))).body.ready,true);
   // Cross-device test: a second browser with the same Google session reads changes and conflicts safely.
@@ -135,6 +140,9 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   const removed=await handleV3(req('/api/v3/documents/'+doc.body.id,'DELETE',{},cookie),e);
   assert.equal(removed.status,200);assert.equal(e.NMH_DOCS.store.size,0);
   const noSession=await loadV3Context(req('/api/chat'),e,'E12');assert.deepEqual(noSession.documents,[]);
+  const logout=await handleV3(req('/api/v3/logout','POST',{},cookie),e);assert.equal(logout.status,200);
+  assert.equal(e.NMH_DB.sessions.size,1);
+  assert.equal((await handleV3(req('/api/v3/me','GET',null,cookie),e)).status,401);
  }finally{globalThis.fetch=old}
 });
 

@@ -11,30 +11,31 @@ const b64url=bytes=>btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').repla
 const un64=s=>Uint8Array.from(atob(String(s).replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((String(s).length+3)%4)),c=>c.charCodeAt(0));
 let jwksCache=null;
 let jwksTime=0;
-function productionReady(env){return !!(env?.NMH_DB&&env?.NMH_DOCS&&env?.NMH_V3_GOOGLE_CLIENT_ID&&env?.NMH_V3_SESSION_SECRET&&String(env.NMH_V3_SESSION_SECRET).length>=32)}
+function productionReady(env){return !!(env?.NMH_DB&&env?.NMH_DOCS&&validClientId(env))}
 function validClientId(env){const s=String(env?.NMH_V3_GOOGLE_CLIENT_ID||'');return /^\d+-[a-z0-9-]+\.apps\.googleusercontent\.com$/.test(s)?s:''}
-async function hmac(payload,secret){
- const key=await crypto.subtle.importKey('raw',enc.encode(String(secret)),{name:'HMAC',hash:'SHA-256'},false,['sign']);
- return new Uint8Array(await crypto.subtle.sign('HMAC',key,enc.encode(payload)));
+async function sessionHash(raw){
+ const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(raw)));
+ return [...bytes].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
-async function signSession(subject,env){
- const payload=b64url(enc.encode(JSON.stringify({sub:subject,exp:Math.floor(Date.now()/1000)+7*86400})));
- return payload+'.'+b64url(await hmac(payload,env.NMH_V3_SESSION_SECRET));
+async function createSession(subject,env){
+ const raw=b64url(crypto.getRandomValues(new Uint8Array(32)));
+ const hash=await sessionHash(raw);
+ const expiry=Date.now()+7*86400000;
+ await env.NMH_DB.prepare('INSERT INTO v3_sessions (token_hash,user_id,expires_at,created_at) VALUES (?,?,?,?)').bind(hash,subject,expiry,Date.now()).run();
+ return raw;
+}
+async function readSessionCookie(req){
+ const m=(req.headers.get('cookie')||'').match(/(?:^|;\s*)__Host-nmhv3=([^;\s]+)/);
+ const value=m?.[1]||'';
+ return /^[A-Za-z0-9_-]{42,44}$/.test(value)?value:null;
 }
 async function sessionSubject(req,env){
- const text=req.headers.get('cookie')||'';
- const m=text.match(/(?:^|;\s*)__Host-nmhv3=([^;\s]+)/);
- if(!m||!env?.NMH_V3_SESSION_SECRET)return null;
- const [payload,signature]=m[1].split('.');
- if(!payload||!signature||payload.length>1024||signature.length>200)return null;
+ if(!env?.NMH_DB)return null;
+ const raw=await readSessionCookie(req);if(!raw)return null;
+ const hash=await sessionHash(raw);
  try{
-  const actual=un64(signature),expected=await hmac(payload,env.NMH_V3_SESSION_SECRET);
-  if(actual.length!==expected.length)return null;
-  let mismatch=0;for(let i=0;i<actual.length;i++)mismatch|=actual[i]^expected[i];
-  if(mismatch!==0)return null;
-  const session=JSON.parse(dec.decode(un64(payload)));
-  if(!Number.isFinite(session.exp)||session.exp<=Date.now()/1000||session.exp>Date.now()/1000+7*86400+90)return null;
-  return typeof session.sub==='string'&&/^[A-Za-z0-9_-]{6,200}$/.test(session.sub)?session.sub:null;
+  const session=await env.NMH_DB.prepare('SELECT user_id,expires_at FROM v3_sessions WHERE token_hash=?').bind(hash).first();
+  return session&&session.expires_at>Date.now()?session.user_id:null;
  }catch{return null}
 }
 async function verifiedGoogleIdentity(jwt,client,fetchImpl=fetch){
@@ -137,7 +138,7 @@ export async function handleV3(req,env){
  const u=new URL(req.url),path=u.pathname,method=req.method.toUpperCase();
  if(path==='/api/v3/config'&&method==='GET'){
   let ready=productionReady(env);
-  if(ready){try{await env.NMH_DB.prepare('SELECT COUNT(*) AS n FROM v3_users').first()}catch{ready=false}}
+  if(ready){try{await env.NMH_DB.prepare('SELECT COUNT(*) AS n FROM v3_users').first();await env.NMH_DB.prepare('SELECT COUNT(*) AS n FROM v3_sessions').first()}catch{ready=false}}
   return json({ready,googleClientId:validClientId(env),storage:'Cloudflare D1/R2',sync:ready});
  }
  if(!productionReady(env))return fail('NMH Voice V3 chưa được kích hoạt: cần D1, R2, Google Web Client và session secret',503);
@@ -147,11 +148,15 @@ export async function handleV3(req,env){
    const data=await readJson(req,14000);
    const person=await verifiedGoogleIdentity(data.credential,validClientId(env));
    await env.NMH_DB.prepare('INSERT INTO v3_users (id,name,created_at) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name').bind(person.sub,person.name,Date.now()).run();
-   const token=await signSession(person.sub,env);
+   const token=await createSession(person.sub,env);
    return json({ok:true,name:person.name},200,{'set-cookie':cookie(token,604800)});
   }catch(e){return fail('Đăng nhập không thành công: '+maxText(e?.message,100),401)}
  }
- if(path==='/api/v3/logout'&&method==='POST')return json({ok:true},200,{'set-cookie':cookie('',0)});
+ if(path==='/api/v3/logout'&&method==='POST'){
+  const raw=await readSessionCookie(req);
+  if(raw){try{await env.NMH_DB.prepare('DELETE FROM v3_sessions WHERE token_hash=?').bind(await sessionHash(raw)).run()}catch{return fail('Chưa thể đăng xuất trên máy chủ',503)}}
+  return json({ok:true},200,{'set-cookie':cookie('',0)});
+ }
  const {sub,error}=await ensureAuth(req,env);if(error)return error;
  if(path==='/api/v3/me'&&method==='GET'){
   const person=await env.NMH_DB.prepare('SELECT name FROM v3_users WHERE id=?').bind(sub).first();

@@ -35,3 +35,11 @@ CREATE TABLE IF NOT EXISTS v3_chunks (
  PRIMARY KEY(doc_id,segment)
 );
 CREATE INDEX IF NOT EXISTS idx_v3_chunks_owner ON v3_chunks(user_id,doc_id);
+
+CREATE TABLE IF NOT EXISTS v3_sessions (
+ token_hash TEXT PRIMARY KEY,
+ user_id TEXT NOT NULL REFERENCES v3_users(id) ON DELETE CASCADE,
+ expires_at INTEGER NOT NULL,
+ created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_v3_session_user ON v3_sessions(user_id,expires_at);
