@@ -86,3 +86,6 @@ https://cloud.google.com/text-to-speech/pricing
 - Worker returns clear classified OpenAI TTS errors (400, 401, 403, 429) and rejects non-audio replies; no API key is logged.
 - New health marker `v2-tts-audioctx`; CI 18 test cases expected. Deployment gate pins current V2 version `9f10411e-79b9-420b-b826-e3e6be8a08b5` and automatically rolls back on failure.
 - Not a confirmed iPhone audio test; requires real `THỬ GIỌNG AI MARIN` playback to establish device proof.
+
+## Release V2.1 — iPhone AudioContext fix
+- Baseline locked: `9f10411e-79b9-420b-b826-e3e6be8a08b5`; CI [43427730110](https://github.com/hvnm1206/TikTak-Service/actions/runs/43427730110) = success 18/18 tests. Initiating guarded release; outcome requires deployment run plus independent production probe.
