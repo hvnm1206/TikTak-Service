@@ -163,6 +163,10 @@ test('V3 Setup panel is attached without removing NMH Presence or exposing secre
  const inline=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x=>x[1]);
  assert.equal(inline.length,2);
  for(const js of inline)new Function(js);
+ const htmlWithGoogle=await (await voice.fetch(new Request(host+'/'),{NMH_V3_GOOGLE_CLIENT_ID:config})).text();
+ assert.match(htmlWithGoogle,/accounts\.google\.com\/gsi\/client/);
+ assert.match(htmlWithGoogle,/nmhV3GoogleReady\?\.\(\)/);
+ assert.match(htmlWithGoogle,/window\.nmhV3GoogleReady=/);
  const configBody=await (await voice.fetch(new Request(host+'/api/v3/config'))).json();
  assert.equal(configBody.ready,false);
  const g=await voice.fetch(new Request(host+'/health'));
