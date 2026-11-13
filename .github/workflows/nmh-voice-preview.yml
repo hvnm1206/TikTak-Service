@@ -55,6 +55,24 @@ jobs:
           except Exception:
               print('CLOUDFLARE_TOKEN=INVALID_RESPONSE')
           PY
+          curl --silent --show-error --max-time 15 --output /tmp/nmh-voice-deployments.json \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/nmh-voice-gpt-test/deployments"
+          python3 - <<'PY'
+          import json
+          try:
+              d=json.load(open('/tmp/nmh-voice-deployments.json'))
+              items=d.get('result',{}).get('deployments',[]) if isinstance(d.get('result'),dict) else []
+              print('CLOUDFLARE_DEPLOYMENTS='+('READ_OK' if d.get('success') and items else 'NOT_VERIFIED'))
+              if items:
+                  current=items[0]
+                  versions=current.get('versions') or []
+                  version=versions[0].get('version_id','') if versions else ''
+                  print('ACTIVE_VERSION_ID='+version)
+                  print('DEPLOYMENT_ID='+str(current.get('id','')))
+          except Exception:
+              print('CLOUDFLARE_DEPLOYMENTS=INVALID_RESPONSE')
+          PY
   deploy:
     needs: verify
     if: github.event_name == 'workflow_dispatch' && inputs.deploy_live == true
