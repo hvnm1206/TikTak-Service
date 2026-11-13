@@ -7,11 +7,18 @@
 - URL chính thức: https://nmh-voice-gpt-test.magical-budget.workers.dev/ (giữ nguyên URL cũ trên iPhone).
 - Cloudflare account: **Magical Budget**; Account ID `769c2ab4af5ad50700039d473a72d48e`; Worker `nmh-voice-gpt-test`. Không tạo Worker temporary.
 - GitHub `hvnm1206/TikTak-Service`, chỉ cập nhật nhánh `nmh-voice-gpt-v1`, không động `main`.
-- **Production đang chạy:** Cloudflare version `7ea82e92-5933-4421-be9d-39c5ca00351e`; release source commit `121629381f7fb298f57c70c36ab51f28c8c2f52a`. [Actions run 43436827356](https://github.com/hvnm1206/TikTak-Service/actions/runs/43436827356): **SUCCESS**, CI **22/22 PASS**, smoke HEALTH / UI PRESENCE / DOCS / SECURITY **PASS**.
-- Rollback baseline trước release: `926e2435-0d19-4383-8b45-631f1107a032`, được ghi nhận **HEALTH_VERIFIED**. Workflow có đường `wrangler rollback` nếu lỗi; **chưa có bằng chứng diễn tập rollback của đúng bản Presence hiện hành**, do không phát sinh lỗi trong release.
+- **Production đang chạy sau sửa đồng bộ tài liệu:** Cloudflare version `e6cb6c6d-064c-413e-8a12-93cf4873fa00`; source release commit `a96d4d795e7eb0e23faaa6cb58c90a9a8c5e9afd`. [Actions run 43439620111](https://github.com/hvnm1206/TikTak-Service/actions/runs/43439620111): **SUCCESS**, CI **24/24 PASS**, smoke HEALTH / UI PRESENCE / DOCS mới nhất / SECURITY **PASS**. Release Presence trước đó: [43436827356](https://github.com/hvnm1206/TikTak-Service/actions/runs/43436827356), version `7ea82e92-5933-4421-be9d-39c5ca00351e`.
+- Rollback baseline trước release gần nhất: `7ea82e92-5933-4421-be9d-39c5ca00351e` được xác nhận **HEALTH_VERIFIED**. Workflow có đường `wrangler rollback` nếu lỗi; chưa có bằng chứng diễn tập rollback của đúng bản Presence hiện hành, do release đạt smoke.
 - GitHub HEAD được đối chiếu trước cập nhật bảo trì: `911bde3f4cd9365d27c4ef2ee1ab718f1fddbdf1` (commit tài liệu, **không phải** version triển khai). Actions `43437150330` verify SUCCESS, deploy SKIPPED.
 - NMH Guarded Operator preflight `0.5.16`: PASS. Đã trực tiếp kiểm tra `GET /health`, `GET /`, `GET /api/docs/maintenance` và cả ba trả **HTTP 200**.
 - Health xác thực: `ok=true`, `app=NMH Voice GPT V2`, `voice=browser-stt+marin-tts`, `agent=gpt-6-luna`, `version=v2-tts-audioctx`, `uiVersion=presence-canvas-v1`. Trang chính có các marker `avatar`, `journalBtn`, `subsBtn`, `getByteTimeDomainData`.
+
+### 1b. Đồng bộ tài liệu BẢO TRÌ sau lần cập nhật này
+- File `MAINTENANCE.md` được cập nhật đầy đủ trên GitHub commit `e79913ba4cce262fc63ce64de929e389bbad0815` (20.893 ký tự, giữ lịch sử cũ). GitHub Contents API và Raw đều xác nhận có phần tổng hợp A và F01–F16.
+- Phát hiện: sau khi commit tài liệu, Worker `/api/docs/maintenance` còn trả bản cũ 12.302 ký tự dù HTTP 200. Đã thay nguồn đọc từ GitHub Raw CDN sang GitHub Contents API (UTF-8/base64), bổ sung test Unicode, payload base64 có xuống dòng, lỗi trả 502 thay vì giả vờ tài liệu mới.
+- CI `43439488614` **24/24 PASS** trước release. Release `43439620111` smoke xác minh **bản bảo trì mới** (`DEPLOY_DOCS=CANONICAL_AND_CURRENT_OK`) và không thay STT/GPT/TTS/Face.
+- **Bằng chứng live bổ sung:** sau release, probe độc lập `GET /api/docs/maintenance` từng trả **HTTP 502** (chưa xác định được lỗi mạng/API GitHub), lần kiểm tra sau trả **HTTP 200** và đúng phần A bản mới. Vì vậy **không khẳng định đường đọc tài liệu ổn định tuyệt đối** nếu chưa đo lặp lại; sự cố HTTP 502 đã ghi nhận để tiếp tục điều tra, không đánh dấu resolved.
+- Nội dung bên trong ứng dụng lấy trực tiếp từ GitHub nên commit chỉ sửa tài liệu `MAINTENANCE.md` tiếp theo **không cần deploy Worker**. Sau update phải kiểm tra app thực tế trả phiên bản mới; không lấy HTTP 200 đơn lẻ làm bằng chứng cập nhật thành công.
 
 ### 2. Giao diện NMH Presence — đã phát hành
 - **Thay chat chữ chính bằng khuôn mặt điện tử Canvas 2D**. Khuôn mặt có mắt, con ngươi, nháy mắt, hướng nhìn khi chạm và vòng sáng theo trạng thái `idle/listening/processing/speaking/paused/error`.
