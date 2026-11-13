@@ -57,3 +57,6 @@ https://cloud.google.com/text-to-speech/pricing
 - Stable rollback target pinned: `1cbf0dcc-a3a6-40e2-93af-e1a857400100`.
 - Release job is opt-in via exact release commit marker and requires existing V3 100% version, verifies V2 health/UI, and attempts automatic rollback upon failure.
 - This note is written before release; do not infer deploy success from this line.
+
+## Release authorization
+- 13/11/2026: Người dùng đã cấu hình Cloudflare token và yêu cầu làm theo kế hoạch cho đến khi V2 chạy. GitHub Actions release gate đã PASS thử CI ở run 43424742122. Kích hoạt deploy lần đầu, có chốt V3 version và rollback tự động.
