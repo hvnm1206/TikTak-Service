@@ -107,11 +107,11 @@ test('maintenance handover uses canonical source and cost ledger is estimate-onl
   assert.doesNotMatch(page,/sẽ dùng giọng Safari dự phòng/);
   const previous=globalThis.fetch;
   let fetched='';
-  globalThis.fetch=async(url)=>{fetched=String(url);return new Response('canonical doc',{status:200})};
+  globalThis.fetch=async(url)=>{fetched=String(url);return Response.json({encoding:'base64',content:Buffer.from('canonical doc','utf8').toString('base64')})};
   try{
     const r=await worker.fetch(new Request(host+'/api/docs/handover'));
     assert.equal(r.status,200);
-    assert.match(fetched,/voice-deploy\/START_HERE_NEXT_CHAT\.md\?v=\d+$/);
+    assert.match(fetched,/contents\/voice-deploy\/START_HERE_NEXT_CHAT\.md\?ref=nmh-voice-gpt-v1&v=\d+$/);
   }finally{globalThis.fetch=previous}
 });
 
@@ -142,3 +142,28 @@ test('NMH Presence has no external JavaScript/CSS and no new upstream API calls'
 });
 
 // NMH Presence release verification: live deploy remains separately gated by the workflow.
+
+test('live maintenance documents use GitHub Contents API and decode Unicode reliably',async()=>{
+ const original=globalThis.fetch;
+ let path='';
+ const md='# BẢO TRÌ — NMH PRESENCE\n## A. HIỆN TRẠNG ĐANG CHẠY\n“Tao thấy khá tốt đấy”\n';
+ globalThis.fetch=async(url)=>{
+   path=String(url);
+   return Response.json({encoding:'base64',content:Buffer.from(md,'utf8').toString('base64')});
+ };
+ try{
+   const response=await worker.fetch(new Request(host+'/api/docs/maintenance'));
+   assert.equal(response.status,200);
+   assert.equal(response.headers.get('x-nmh-doc-source'),'github-contents-api');
+   assert.equal(await response.text(),md);
+   assert.match(path,/api.github.com\/repos\/hvnm1206\/TikTak-Service\/contents\/MAINTENANCE\.md/);
+ }finally{globalThis.fetch=original}
+});
+test('invalid Github docs API result fails visibly instead of presenting stale maintenance',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async()=>Response.json({encoding:'unknown',content:'stale'});
+ try{
+   const response=await worker.fetch(new Request(host+'/api/docs/maintenance'));
+   assert.equal(response.status,502);
+ }finally{globalThis.fetch=original}
+});

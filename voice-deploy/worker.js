@@ -15,11 +15,17 @@ const names={"handover":"voice-deploy/START_HERE_NEXT_CHAT.md","maintenance":"MA
 const file=names[u.pathname.slice("/api/docs/".length)];
 if(!file)return respond({error:"Not found"},404);
 try{
- const target="https://raw.githubusercontent.com/hvnm1206/TikTak-Service/nmh-voice-gpt-v1/"+file+"?v="+Date.now();
- const r=await fetch(target,{headers:{"Accept":"text/plain"}});
- if(!r.ok)return respond({error:"Không tải được tài liệu GitHub"},502);
- const data=await r.text();if(data.length>60000)return respond({error:"Tài liệu quá dài"},502);
- return new Response(data,{headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff","referrer-policy":"no-referrer"}});
+ const target="https://api.github.com/repos/hvnm1206/TikTak-Service/contents/"+file+"?ref=nmh-voice-gpt-v1&v="+Date.now();
+ const r=await fetch(target,{headers:{"Accept":"application/vnd.github+json","User-Agent":"NMH-Voice-GPT","Cache-Control":"no-cache"}});
+ if(!r.ok)return respond({error:"Không tải được tài liệu GitHub API (HTTP "+r.status+")"},502);
+ const record=await r.json();
+ if(record?.encoding!=="base64"||typeof record.content!=="string")return respond({error:"Tài liệu GitHub API không hợp lệ"},502);
+ const encoded=record.content.replace(/\\s/g,"");
+ if(encoded.length>85000)return respond({error:"Tài liệu quá dài"},502);
+ const bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));
+ const data=new TextDecoder("utf-8",{fatal:true}).decode(bytes);
+ if(data.length>60000)return respond({error:"Tài liệu quá dài"},502);
+ return new Response(data,{headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff","referrer-policy":"no-referrer","x-nmh-doc-source":"github-contents-api"}});
 }catch{return respond({error:"Không kết nối được GitHub"},502)}
 }
 if(!["/api/test","/api/chat","/api/tts"].includes(u.pathname))return respond({error:"Not found"},404);

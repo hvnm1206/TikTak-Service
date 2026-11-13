@@ -160,7 +160,10 @@ jobs:
           echo "DEPLOY_UI=PRESENCE_CANVAS_OK"
           curl --fail --silent --show-error --max-time 20 "${TARGET}/api/docs/handover" -o /tmp/nmh-v2-handover.md
           grep -q 'ĐIỂM BÀN GIAO DUY NHẤT' /tmp/nmh-v2-handover.md || { echo "::error::Canonical handover not served"; false; }
-          echo "DEPLOY_DOCS=CANONICAL_OK"
+          curl --fail --silent --show-error --max-time 20 "${TARGET}/api/docs/maintenance" -o /tmp/nmh-v2-maintenance.md
+          grep -q '## A. HIỆN TRẠNG ĐANG CHẠY' /tmp/nmh-v2-maintenance.md || { echo "::error::Stale maintenance document"; false; }
+          grep -q 'F16' /tmp/nmh-v2-maintenance.md || { echo "::error::Maintenance audit findings missing"; false; }
+          echo "DEPLOY_DOCS=CANONICAL_AND_CURRENT_OK"
           HTTP_STATUS=$(curl --silent --show-error --max-time 15 -o /tmp/nmh-bad-key.json -w '%{http_code}' "${TARGET}/api/chat" \
             -X POST -H "Origin: ${TARGET}" -H 'Content-Type: application/json' \
             --data '{"apiKey":"invalid","messages":[{"role":"user","content":"hi"}]}')
