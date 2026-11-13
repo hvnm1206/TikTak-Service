@@ -8,7 +8,7 @@ const MODEL_V2="gpt-6-luna";
 export default {async fetch(request){
 const u=new URL(request.url);
 if(request.method==="GET"&&u.pathname==="/")return new Response(PAGE,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'","x-frame-options":"DENY","referrer-policy":"no-referrer"}});
-if(request.method==="GET"&&u.pathname==="/health")return respond({ok:true,app:"NMH Voice GPT V2",voice:"browser-stt+marin-tts",agent:"gpt-6-luna",version:"v2-ngao-reference"});
+if(request.method==="GET"&&u.pathname==="/health")return respond({ok:true,app:"NMH Voice GPT V2",voice:"browser-stt+marin-tts",agent:"gpt-6-luna",version:"v2-tts-audioctx"});
 if(request.method==="GET"&&u.pathname.startsWith("/api/docs/")){
 const names={"handover":"HANDOVER.md","maintenance":"MAINTENANCE.md"};
 const file=names[u.pathname.slice("/api/docs/".length)];
