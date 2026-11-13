@@ -17,7 +17,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   verify:
-    if: (github.event_name == 'workflow_dispatch' && inputs.deploy_live == true) || (github.event_name == 'push' && github.event.head_commit.message == 'release(voice-v3): deploy D1-only Google OAuth after verified secret')
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_live == true) ||
+      (github.event_name == 'push' && github.event.head_commit.message == 'release(voice-v3): deploy D1-only Google OAuth after verified secret')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     outputs:
@@ -80,7 +82,9 @@ jobs:
           echo "V3_D1_ONLY_SCHEMA_GATE=PASS"
   deploy:
     needs: verify
-    if: (github.event_name == 'workflow_dispatch' && inputs.deploy_live == true) || (github.event_name == 'push' && github.event.head_commit.message == 'release(voice-v3): deploy D1-only Google OAuth after verified secret')
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_live == true) ||
+      (github.event_name == 'push' && github.event.head_commit.message == 'release(voice-v3): deploy D1-only Google OAuth after verified secret')
     runs-on: ubuntu-latest
     timeout-minutes: 18
     env:
