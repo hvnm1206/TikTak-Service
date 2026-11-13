@@ -1,7 +1,8 @@
-name: Deploy NMH Voice temporary Cloudflare
+name: Deploy NMH Voice GPT to Cloudflare
 on:
   push:
     branches: [nmh-voice-gpt-v1]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -13,22 +14,34 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Deploy free Cloudflare temporary account
+      - name: Verify Worker JavaScript syntax
+        run: node --check voice-deploy/worker.js
+      - name: Deploy Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.NMH_CF_ACCOUNT_ID }}
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes wrangler@4.102.0 deploy --temporary --config voice-deploy/wrangler.jsonc > /tmp/voice_deploy.log 2>&1 || { sed -E 's/(claimToken=)[^ &]+/\1REDACTED/g' /tmp/voice_deploy.log; exit 1; }
-          python3 - <<'PY'
+          if [[ -n "${CLOUDFLARE_API_TOKEN}" && -n "${CLOUDFLARE_ACCOUNT_ID}" ]]; then
+            echo "Deploying to configured persistent Cloudflare account"
+            npx --yes wrangler@4.102.0 deploy --config voice-deploy/wrangler.jsonc
+          else
+            echo "WARNING: No Cloudflare CI credentials; temporary preview only, NOT a persistent production update"
+            npx --yes wrangler@4.102.0 deploy --temporary --config voice-deploy/wrangler.jsonc > /tmp/voice_deploy.log 2>&1 || { sed -E 's/(claimToken=)[^ &]+/\1REDACTED/g' /tmp/voice_deploy.log; exit 1; }
+            python3 - <<'PY'
           import re
           t=open('/tmp/voice_deploy.log').read()
           print(re.sub(r'claimToken=[^\s&]+','claimToken=REDACTED',t))
           urls=re.findall(r'https://[^\s\x1b]+\.workers\.dev',t)
           if urls: print('NMH_VOICE_PUBLIC_URL='+urls[-1])
           PY
-      - name: Upload private claim link evidence
+          fi
+      - name: Save temporary account claim evidence
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: nmh-voice-cloudflare-claim
+          name: nmh-voice-claim
           path: /tmp/voice_deploy.log
           retention-days: 1
+          if-no-files-found: ignore
