@@ -78,3 +78,11 @@ https://cloud.google.com/text-to-speech/pricing
 - Verified rollback V3 version `1cbf0dcc-a3a6-40e2-93af-e1a857400100` in previous two release attempts. Those attempts rolled back automatically after **smoke-test script issues**, not proven V2 functional defects. Final release passed all smoke checks.
 - **Still not verified**: genuine OpenAI GPT-6 Luna response with the user's own key, audio quality and continuous voice interaction on a real iPhone, real cost per exchange. Never call those PASS until tested.
 - Warning: `gpt-4o-mini-tts` Speech API is deprecated with planned retirement 2027-01-06; migration will be required.
+
+## 13/11/2026 — Diagnosis and repair of confirmed Safari fallback
+- Screenshot from iPhone shows `Đang trả lời — Giọng dự phòng Safari`: Marin playback did not succeed in that user session. Exact failing step is still unknown because V2 swallowed errors.
+- New source explicitly uses Web AudioContext unlocked inside iPhone START and RESUME gestures; decodes MP3 in Web Audio and plays using AudioBufferSourceNode, removing asynchronous HTMLAudioElement autoplay dependence.
+- Removed automatic silent fallback to Safari: TTS errors now show a specific failure code, display `Nguồn giọng`, and can be separately tested via SETUP → THỬ GIỌNG AI MARIN.
+- Worker returns clear classified OpenAI TTS errors (400, 401, 403, 429) and rejects non-audio replies; no API key is logged.
+- New health marker `v2-tts-audioctx`; CI 18 test cases expected. Deployment gate pins current V2 version `9f10411e-79b9-420b-b826-e3e6be8a08b5` and automatically rolls back on failure.
+- Not a confirmed iPhone audio test; requires real `THỬ GIỌNG AI MARIN` playback to establish device proof.
