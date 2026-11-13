@@ -97,7 +97,7 @@ test('real page START binds mic, STT end reaches /api/chat, web defaults OFF',as
  await microtaskFlush();
  assert.equal(h.writes.length,1,'Speech transcription must trigger chat');
  assert.equal(h.writes[0].messages.at(-1).content,'Xin chào');
- assert.equal(h.writes[0].webSearch,false);
+ assert.equal(h.writes[0].webSearch,undefined);
  assert.ok(h.calls.some(x=>x.url==='/api/tts'),'AI must continue to Marin TTS');
 });
 test('inactive experimental search setting cannot alter stable voice-to-GPT payload',async()=>{
