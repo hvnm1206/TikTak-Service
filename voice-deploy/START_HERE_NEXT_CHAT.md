@@ -1,5 +1,15 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## 14/11/2026 — AUDIT MIC / WEB SEARCH, PRODUCTION ĐÃ ROLLBACK, KHÔNG TỰ DEPLOY
+
+**ƯU TIÊN ĐỌC TRƯỚC CÁC MỤC RELEASE TÌM KIẾM CŨ.** Người dùng báo NÓI trên iPhone không phản ứng sau nâng cấp search. Đã rollback thành công Worker version `6fde090a-6b0e-46e5-b922-4e20f2c8b2f6` → bản được dùng trước tìm kiếm **`8cc6032c-0035-414c-8217-7ea5e91825e5`**, [run 43483716480](https://github.com/hvnm1206/TikTak-Service/actions/runs/43483716480). GET /health, trang Presence, D1 config đều hoạt động, web-search toggle vắng mặt. **Chưa kiểm tra mic trên thiết bị thật sau rollback.**
+
+Audit source phát hiện hai nguy cơ treo Voice trên Safari: STT nhận `isFinal` nhưng chờ `onend`; TTS AudioContext không nhận `onended` và watchdog `speechWatch` bỏ trống. Tạo RED tests rồi sửa `presence-ui.js` để phát câu hỏi khi `isFinal` kể cả thiếu `onend`, chống gọi trùng, thêm watchdog mic 18s và watchdog phát audio. Source hotfix **CHƯA DEPLOY**, CI [43485493753](https://github.com/hvnm1206/TikTak-Service/actions/runs/43485493753) 26 Voice + 8 browser mock + 7 V3 test PASS, migration/workflows PASS; CI deployment SKIPPED.
+
+**Tìm kiếm web có phí đã tách hẳn sang `nmh-voice-search-lab`**, branch `nmh-voice-gpt-v1` phục hồi source core đã ổn định cùng hotfix riêng. Cấm đưa source mới lên production nếu chưa có người dùng xác nhận iPhone thật và gate rollback. Xem [AUDIT_VOICE_2026-11-14.md](voice-deploy/AUDIT_VOICE_2026-11-14.md) để xem đầy đủ bằng chứng, phạm vi, trạng thái và việc chưa đạt.
+
+---
+
 ## 14/11/2026 — NÂNG CẤP TÌM KIẾM WEB TÙY CHỌN (ĐÃ DEPLOY, CHƯA ĐO API CÓ PHÍ)
 
 **Vấn đề người dùng báo:** "Ok rồi, nhưng tìm kiếm có vẻ kém". Audit source `agent-v2.js` xác định NMH Voice trước đó **không có tìm kiếm web tổng quát**; chỉ có Wikipedia, Google News RSS, Open-Meteo và thời gian máy chủ. Không suy diễn lỗi GPT hay micro.
