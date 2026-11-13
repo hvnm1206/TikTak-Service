@@ -1,0 +1,75 @@
+name: NMH Voice — emergency rollback search regression to last user-working V3
+on:
+  push:
+    branches: [nmh-voice-gpt-v1]
+    paths: ['.github/workflows/nmh-voice-rollback-search.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nmh-voice-gpt-production-deploy
+  cancel-in-progress: false
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+      EXPECTED_BAD: '6fde090a-6b0e-46e5-b922-4e20f2c8b2f6'
+      TARGET_GOOD: '8cc6032c-0035-414c-8217-7ea5e91825e5'
+      URL: 'https://nmh-voice-gpt-test.magical-budget.workers.dev'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check exact Worker and snapshot before emergency rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          curl --fail --silent --show-error --max-time 20 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/nmh-voice-gpt-test/deployments" -o /tmp/nmh-current.json
+          python3 - <<'PY'
+          import os,json
+          j=json.load(open('/tmp/nmh-current.json'))
+          assert j['success'],'Cannot confirm Cloudflare identity'
+          versions=j['result']['deployments'][0]['versions']
+          assert len(versions)==1 and versions[0]['percentage']==100,'Ambiguous active deployment'
+          current=versions[0]['version_id']
+          print('NMH_ROLLBACK_PREVIOUS_VERSION='+current)
+          if current==os.environ['TARGET_GOOD']:
+              print('NMH_ROLLBACK=ALREADY_RESTORED')
+          else:
+              assert current==os.environ['EXPECTED_BAD'],'Unexpected production version, fail closed'
+          PY
+      - name: Restore last known working V3 Worker only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json
+          data=json.load(open('/tmp/nmh-current.json'))
+          versions=data['result']['deployments'][0]['versions']
+          with open('/tmp/rollback-needed','w') as f:
+              f.write('no' if versions[0]['version_id']==os.environ['TARGET_GOOD'] else 'yes')
+          PY
+          if [[ "$(cat /tmp/rollback-needed)" == 'yes' ]]; then
+            npx --yes wrangler@4.102.0 rollback "$TARGET_GOOD" --name nmh-voice-gpt-test --config voice-deploy/wrangler.jsonc
+          fi
+          for i in 1 2 3 4 5 6 7 8; do
+            sleep 3
+            if curl --fail --silent --show-error --max-time 15 "$URL/health" -o /tmp/health.json && \
+              python3 -c 'import json;v=json.load(open("/tmp/health.json"));assert v.get("ok") and v.get("uiVersion")=="presence-canvas-v1" and v.get("v3Version")=="d1-only-google-v3"'; then break; fi
+            if [[ $i == 8 ]]; then echo "::error::Rollback health never converged"; exit 1; fi
+          done
+          curl --fail --silent --show-error --max-time 15 "$URL/" -o /tmp/live.html
+          grep -q 'id="avatar"' /tmp/live.html
+          grep -q 'id="start"' /tmp/live.html
+          grep -q 'id="resume"' /tmp/live.html
+          if grep -q 'id="v3WebSearch"' /tmp/live.html; then echo "::error::Search update still live"; exit 1; fi
+          curl --fail --silent --show-error --max-time 15 "$URL/api/v3/config" | python3 -c 'import sys,json;x=json.load(sys.stdin);assert x.get("ready") and x.get("storage")=="Cloudflare D1"'
+          echo "NMH_ROLLBACK_VERSION=$TARGET_GOOD"
+          echo "NMH_ROLLBACK_SMOKE=PASS"
+          echo "NMH_IPHONE_MIC_E2E=NOT_TESTED_BY_CI"
