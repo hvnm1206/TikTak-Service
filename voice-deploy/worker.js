@@ -15,7 +15,7 @@ const names={"handover":"voice-deploy/START_HERE_NEXT_CHAT.md","maintenance":"MA
 const file=names[u.pathname.slice("/api/docs/".length)];
 if(!file)return respond({error:"Not found"},404);
 try{
- const target="https://raw.githubusercontent.com/hvnm1206/TikTak-Service/nmh-voice-gpt-v1/"+file;
+ const target="https://raw.githubusercontent.com/hvnm1206/TikTak-Service/nmh-voice-gpt-v1/"+file+"?v="+Date.now();
  const r=await fetch(target,{headers:{"Accept":"text/plain"}});
  if(!r.ok)return respond({error:"Không tải được tài liệu GitHub"},502);
  const data=await r.text();if(data.length>60000)return respond({error:"Tài liệu quá dài"},502);
