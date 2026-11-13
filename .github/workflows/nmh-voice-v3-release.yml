@@ -1,9 +1,12 @@
 name: NMH Voice V3 — same Worker release, rollback guarded
 on:
+  push:
+    branches: [nmh-voice-gpt-v1]
+    paths: ['.github/workflows/nmh-voice-v3-release.yml']
   workflow_dispatch:
     inputs:
       deploy_live:
-        description: Deploy V3 to existing nmh-voice-gpt-test Worker, only after D1/R2/GIS approved
+        description: Deploy D1-only V3 to existing nmh-voice-gpt-test Worker, only after D1, Google OAuth and CI pass
         type: boolean
         required: true
         default: false
@@ -14,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   verify:
-    if: inputs.deploy_live == true
+    if: (github.event_name == 'workflow_dispatch' && inputs.deploy_live == true) || (github.event_name == 'push' && github.event.head_commit.message == 'release(voice-v3): deploy D1-only Google OAuth after verified secret')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     outputs:
@@ -77,7 +80,7 @@ jobs:
           echo "V3_D1_ONLY_SCHEMA_GATE=PASS"
   deploy:
     needs: verify
-    if: inputs.deploy_live == true
+    if: (github.event_name == 'workflow_dispatch' && inputs.deploy_live == true) || (github.event_name == 'push' && github.event.head_commit.message == 'release(voice-v3): deploy D1-only Google OAuth after verified secret')
     runs-on: ubuntu-latest
     timeout-minutes: 18
     env:
@@ -146,8 +149,9 @@ jobs:
           test "$(curl --silent --max-time 15 -o /tmp/v3-fake.json -w '%{http_code}' -X POST \
             -H "Origin: $TARGET" -H 'Content-Type: application/json' \
             --data '{"credential":"fake"}' "$TARGET/api/v3/auth/google")" = 401
-          curl --fail --silent --show-error --max-time 20 "$TARGET/api/docs/maintenance" | grep -q 'HIỆN TRẠNG ĐANG CHẠY'
-          echo "V3_SMOKE=HEALTH_PERSONA_LOGIN_STORAGE_ISOLATION_DOCS_OK"
+          curl --fail --silent --show-error --max-time 20 "$TARGET/api/docs/maintenance" -o /tmp/v3-maintenance.md
+          grep -q 'HIỆN TRẠNG ĐANG CHẠY' /tmp/v3-maintenance.md
+          echo "V3_SMOKE=HEALTH_UI_D1_CONFIG_UNAUTH_LOGIN_INVALID_TOKEN_DOCS_OK"
           echo "V3_REAL_GOOGLE_LOGIN_IPHONE=REQUIRES_DEVICE_E2E"
           trap - ERR
           echo "V3_DEPLOY_FINAL=SUCCESS"
