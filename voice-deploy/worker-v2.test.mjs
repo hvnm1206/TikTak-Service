@@ -114,3 +114,29 @@ test('maintenance handover uses canonical source and cost ledger is estimate-onl
     assert.match(fetched,/voice-deploy\/START_HERE_NEXT_CHAT\.md$/);
   }finally{globalThis.fetch=previous}
 });
+
+test('NMH Presence makes expressive Canvas primary, transcript optional and keeps all production controls',async()=>{
+ const page=await (await worker.fetch(new Request(host+'/'))).text();
+ for(const id of ['avatar','stateHint','journalBtn','closeJournal','subsBtn','transcriptPanel','history','status','start','stop','interrupt','resume','styleDanh','styleChem','styleNghiem','setupbtn','maintbtn','usageSummary','testVoice','key','clear']){
+  assert.match(page,new RegExp('id="'+id+'"'),id+' present');
+ }
+ assert.match(page,/class PresenceFace/);
+ assert.match(page,/getByteTimeDomainData/);
+ assert.match(page,/new PresenceFace/);
+ assert.match(page,/captionRefresh/);
+ assert.match(page,/avatarFace\?\.setState/);
+ assert.match(page,/aria-expanded="false"/);
+ assert.match(page,/PHỤ ĐỀ: TẮT/);
+ assert.match(page,/function speechParts/);
+ const s=page.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+ assert.ok(s,'inline UI script');
+ new Function(s);
+});
+test('NMH Presence has no external JavaScript/CSS and no new upstream API calls',async()=>{
+ const r=await worker.fetch(new Request(host+'/'));
+ const page=await r.text();
+ assert.doesNotMatch(page,/<script[^>]+src=/);
+ assert.doesNotMatch(page,/<link[^>]+stylesheet/);
+ assert.match(page,/Marin/);
+ assert.match(r.headers.get('content-security-policy'),/connect-src 'self'/);
+});
