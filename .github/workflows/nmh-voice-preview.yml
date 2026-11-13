@@ -1,0 +1,34 @@
+name: Deploy NMH Voice temporary Cloudflare
+on:
+  push:
+    branches: [nmh-voice-gpt-v1]
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Deploy free Cloudflare temporary account
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.102.0 deploy --temporary --config voice-deploy/wrangler.jsonc > /tmp/voice_deploy.log 2>&1 || { sed -E 's/(claimToken=)[^ &]+/\1REDACTED/g' /tmp/voice_deploy.log; exit 1; }
+          python3 - <<'PY'
+          import re
+          t=open('/tmp/voice_deploy.log').read()
+          print(re.sub(r'claimToken=[^\s&]+','claimToken=REDACTED',t))
+          urls=re.findall(r'https://[^\s\x1b]+\.workers\.dev',t)
+          if urls: print('NMH_VOICE_PUBLIC_URL='+urls[-1])
+          PY
+      - name: Upload private claim link evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nmh-voice-cloudflare-claim
+          path: /tmp/voice_deploy.log
+          retention-days: 1
