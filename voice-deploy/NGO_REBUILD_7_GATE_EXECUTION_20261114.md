@@ -62,3 +62,12 @@ Không dùng hardcode câu, tên, quan hệ, ngành hoặc regex nhận diện n
 - Source `worker.js` đọc GitHub Contents API, rồi fallback Raw. Fallback **khóa vào đúng tiêu đề** `## A. HIỆN TRẠNG ĐANG CHẠY`. Sau khi MAINTENANCE chính đã được thu gọn, tiêu đề này không còn; khi GitHub API bị hạn mức, fallback từ chối tài liệu Markdown hiện hành → 502. Đây là lỗi hardcode có thật của phụ thuộc tài liệu, không phải GPT.
 - Fix: fallback chỉ validate kích thước, định dạng Markdown tổng quát, không HTML/script; trả header `x-nmh-doc-source=github-raw-fallback-freshness-unverified` để không tự nhận độ mới khi API chính thất bại. Test GitHub HTTP 403 với tiêu đề mới và kiểm tra phản hồi; không bỏ smoke `/api/docs/maintenance`.
 - Cần chạy lại sandbox và production release; rollback version `d0622605-7d01-47ba-a5aa-bbb7e5262ee9` đã xác minh thành công.
+
+## Final release verified — 14/11/2026
+- Sau phát hiện bug fail ACK, hai lần đầu production smoke bị rollback an toàn vì tài liệu BẢO TRÌ không đạt endpoint hoặc vì workflow đòi tiêu đề cũ. Cả hai là hardcode tại đường đọc GitHub docs, không nằm ở GPT. Đã bỏ xác thực tiêu đề cố định trong Worker fallback và trong smoke; chỉ xác thực HTTP 200, cấu trúc Markdown tổng quát và nhãn nguồn `github-raw-fallback-freshness-unverified`.
+- Bản đã phát hành: **`fa391d70-0eaa-4e7d-8643-1943e119619e`** (Cloudflare Worker `nmh-voice-gpt-test`, URL không đổi).
+- Production release **PASS**: https://github.com/hvnm1206/TikTak-Service/actions/runs/43586216466 . Automated test **99/99 PASS** (72 core + 27 reminder/theme), version pin, D1 time travel artifact, postdeploy health, UI control markers, unauth checks, docs HTTP 200, exact version check.
+- Real D1/Worker sandbox **PASS**: https://github.com/hvnm1206/TikTak-Service/actions/runs/43586024270 .
+- Rollback target hiện tại: **`d0622605-7d01-47ba-a5aa-bbb7e5262ee9`**, backup D1 bookmark lưu artifact release 30 ngày. Khả năng rollback mã không có nghĩa rollback D1.
+- Guarded Operator độc lập sau deploy: canonical /health và cache-busted /health đều HTTP 200 `writeVersion=semantic-actions-d1-readback-v1`; /api/v3/config HTTP 200 READY D1; /api/reminders/capabilities 200 `enabled:true`; /api/docs/maintenance 200.
+- Gate 7 iPhone thật và OpenAI Responses API bằng key người dùng chưa có dữ liệu test; **không được tuyên bố 7/7 PASS**.
