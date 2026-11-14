@@ -1,6 +1,6 @@
 // NGỐ: independently injected visual-only theme layer.
 // Never hooks speech, TTS, reminders, memory, navigation, or microphone events.
-const css=String.raw\`<style id="ngoThemeCSS">
+const css=String.raw`<style id="ngoThemeCSS">
 :root[data-ngo-theme="duck"]{--ngo-accent:#ed9418;--ngo-panel:#29313e;--ngo-stage:#423628}
 :root[data-ngo-theme="corgi"]{--ngo-accent:#d98736;--ngo-panel:#26383a;--ngo-stage:#40352f}
 :root[data-ngo-theme="duck"] body,:root[data-ngo-theme="corgi"] body{background:linear-gradient(155deg,#141d30,#17283a)}
@@ -23,8 +23,8 @@ const css=String.raw\`<style id="ngoThemeCSS">
 @keyframes ngoMascotListen{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(3deg)}}
 @keyframes ngoMascotThink{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
 @media(prefers-reduced-motion:reduce){#ngoMascotStage svg{animation:none!important}}
-</style>\`;
-const script=String.raw\`<script id="ngoThemeScript">
+</style>`;
+const script=String.raw`<script id="ngoThemeScript">
 (()=>{
   const status=document.getElementById('status');
   const setup=document.getElementById('setup');
@@ -59,7 +59,7 @@ const script=String.raw\`<script id="ngoThemeScript">
   new MutationObserver(state).observe(status,{childList:true,characterData:true,subtree:true});
   setTheme(theme);state();
 })();
-</script>\`;
+</script>`;
 export function enhanceThemePage(original){
   if(typeof original!=='string'||!original.includes('</head>')||!original.includes('</body>'))throw Error('NGO_THEME_HTML_INVALID');
   return original.replace('</head>',css+'</head>').replace('</body>',script+'</body>');
