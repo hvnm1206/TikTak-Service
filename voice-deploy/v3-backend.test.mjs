@@ -222,5 +222,7 @@ test('explicit natural voice write is routed to memory; file-note directives rou
  assert.equal(memoryIntent('Ghi vào file ghi chú ngày mai kiểm tra máy'),null);
  assert.equal(voiceNoteIntent('Ghi vào file ghi chú ngày mai kiểm tra máy'),'ngày mai kiểm tra máy');
  assert.equal(voiceNoteIntent('Lưu vào sổ ghi chú: kiểm tra máy bơm'),'kiểm tra máy bơm');
+ assert.equal(voiceNoteIntent('Ghi chú: sáng mai họp phòng sản xuất'),'sáng mai họp phòng sản xuất');
+ assert.equal(voiceNoteIntent('Lưu ghi chú kiểm tra an toàn'),'kiểm tra an toàn');
  assert.equal(voiceNoteIntent('Tôi hỏi về file ghi chú'),null);
 });
