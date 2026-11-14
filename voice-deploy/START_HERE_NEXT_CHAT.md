@@ -1,5 +1,20 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## CẬP NHẬT CHỐT 14/11/2026 — NGỐ / NMH VOICE GPT (ĐỌC TRƯỚC CÁC MỐC LỊCH SỬ)
+
+**Đây là nguồn bàn giao MỚI NHẤT, chỉ ghi kế hoạch và nguồn kỹ thuật; CHƯA triển khai nhắc việc.**
+
+- **Bàn giao thực thi — phạm vi đã chọn, nguồn thật, điều kiện nghiệm thu, D1/Worker, rollback:** https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-gpt-v1/voice-deploy/NGO_SELECTED_SCOPE_HANDOVER_20261114.md
+- **Prompt cửa mới (sao chép nguyên bản):** https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-gpt-v1/voice-deploy/NGO_NEXT_CHAT_PROMPT_20261114.md
+- **Chốt chỉ 3 việc:** ActionRegistry/ACK thống nhất; nhắc việc trong app đang mở (đặt/xem/hủy, D1, không lặp, xác nhận sau readback); chẩn đoán + kiểm thử hồi quy. KHÔNG chọn VAD, TTS streaming, Web Push/nhắc khi app đóng, clip, luật giao thông trong đợt này.
+- **Hiện trạng production đã xác nhận 14/11:** Worker nmh-voice-gpt-test, URL https://nmh-voice-gpt-test.magical-budget.workers.dev/, version fb2bacc5-b26e-4abc-9ee1-78cc222ac221, API health HTTP 200. Bằng chứng deploy https://github.com/hvnm1206/TikTak-Service/actions/runs/43569160880 và ghi D1 thật https://github.com/hvnm1206/TikTak-Service/actions/runs/43569516448. Phải truy vấn version lại khi mở cửa mới.
+- **Cảnh báo nguồn:** Tab BẢO TRÌ lấy Markdown từ nhánh nmh-voice-gpt-v1, nhưng CODE mới lấy từ nhánh nmh-voice-memory-v2-stage-20261114. Các mốc 51bd/cleanup cũ bên dưới là LỊCH SỬ, không phải căn cứ để rollback/deploy source cũ.
+- **Ngáo tuyệt đối CHỈ ĐỌC để tham khảo**, không sửa/deploy/hạ tầng/dữ liệu. Không cập nhật code hoặc production khi chỉ làm bàn giao tài liệu.
+- Giới hạn tài liệu /api/docs/maintenance tối đa 60.000 ký tự; cập nhật ngắn, nội dung dài lưu ở file bàn giao bên trên.
+
+---
+
+
 ## 14/11/2026 — DỌN BỎ TOÀN BỘ LUỒNG GHI FILE BẰNG GIỌNG NÓI THỬ NGHIỆM (TRẠNG THÁI CHỐT MỚI NHẤT)
 
 **Yêu cầu:** Người dùng yêu cầu dọn sạch những chức năng thử nghiệm làm hỏng hội thoại, cấm làm mất các chức năng đang chạy. Giữ nguyên dữ liệu lưu trong D1, không xóa ghi nhớ hay tài liệu người dùng.
