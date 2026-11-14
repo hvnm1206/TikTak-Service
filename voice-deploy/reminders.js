@@ -6,7 +6,7 @@ const stamp=(ms)=>new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',d
 const fail=(code,answer)=>({ok:false,status:'failed',errorCode:code,answer});
 export const remindersEnabled=(env)=>env?.NMH_REMINDERS_MODE==='active';
 export const reminderToolSchemas=[
- {type:'function',name:'set_reminder',description:'ĐẶT lời nhắc khi ứng dụng Ngố đang mở. Chỉ gọi khi lượt người dùng này rõ ràng yêu cầu nhắc. Thời gian tương đối dùng delay_seconds; giờ cụ thể dùng local_at theo giờ Việt Nam. Nếu thời gian mơ hồ, hỏi lại thay vì đoán.',parameters:{type:'object',properties:{text:{type:'string',description:'Nội dung cần nhắc, không chứa cụm ra lệnh hay tên giờ'},utterance_quote:{type:'string',description:'Trích nguyên văn ít nhất 5 ký tự từ YÊU CẦU HIỆN TẠI chứng minh đây là lệnh nhắc việc, không từ lịch sử'},mode:{type:'string',enum:['relative','absolute']},delay_seconds:{type:'integer',description:'Số giây từ bây giờ nếu relative, nếu absolute là 0'},local_at:{type:'string',description:'YYYY-MM-DDTHH:mm:ss giờ Việt Nam nếu absolute; nếu relative là chuỗi rỗng'},timezone:{type:'string',enum:['Asia/Ho_Chi_Minh']}},required:['text','utterance_quote','mode','delay_seconds','local_at','timezone'],additionalProperties:false},strict:true},
+ {type:'function',name:'set_reminder',description:'ĐẶT lời nhắc khi ứng dụng Ngố đang mở. Chỉ gọi khi lượt người dùng này rõ ràng yêu cầu nhắc. Thời gian tương đối dùng delay_seconds; giờ cụ thể dùng local_at theo giờ Việt Nam. Nếu thời gian mơ hồ, hỏi lại thay vì đoán.',parameters:{type:'object',properties:{text:{type:'string',description:'Nội dung cần nhắc, không chứa cụm ra lệnh hay tên giờ'},utterance_quote:{type:'string',description:'Trích nguyên văn ít nhất 5 ký tự từ YÊU CẦU HIỆN TẠI chứng minh đây là lệnh nhắc việc, không từ lịch sử'},mode:{type:'string',enum:['relative','absolute']},delay_seconds:{type:'integer',description:'Số giây từ bây giờ nếu relative, nếu absolute là 0'},local_at:{type:'string',description:'Ngày giờ Việt Nam GPT đã hiểu từ câu nói hiện tại, ưu tiên YYYY-MM-DDTHH:mm:ss; chấp nhận YYYY-MM-DDTHH:mm hoặc HH:mm khi chỉ định hôm nay. KHÔNG yêu cầu người dùng đọc định dạng này.'},timezone:{type:'string',enum:['Asia/Ho_Chi_Minh']}},required:['text','utterance_quote','mode','delay_seconds','local_at','timezone'],additionalProperties:false},strict:true},
  {type:'function',name:'list_reminders',description:'Xem các lời nhắc chưa hủy đang chờ, chỉ khi người dùng hiện tại hỏi về lời nhắc.',parameters:{type:'object',properties:{status:{type:'string',enum:['pending']},utterance_quote:{type:'string',description:'Trích nguyên văn từ câu hiện tại hỏi về lời nhắc'}},required:['status','utterance_quote'],additionalProperties:false},strict:true},
  {type:'function',name:'cancel_reminder',description:'Hủy lời nhắc đang chờ theo mã ID hoặc một phần nội dung do người dùng nêu. Nếu trùng nhiều lời nhắc, yêu cầu làm rõ.',parameters:{type:'object',properties:{query:{type:'string'},utterance_quote:{type:'string',description:'Trích nguyên văn từ câu hiện tại yêu cầu hủy lời nhắc'}},required:['query','utterance_quote'],additionalProperties:false},strict:true}
 ];
@@ -14,6 +14,20 @@ export const reminderActionNames=new Set(reminderToolSchemas.map(x=>x.name));
 async function digest(s){
  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
  return [...new Uint8Array(bytes)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+// Generic machine-time normalization. GPT interprets conversational Vietnamese;
+ // the backend only validates the resulting clock value, not a list of user phrases.
+export function normalizeReminderLocalAt(input,now){
+ if(typeof input!=='string')return null;
+ const raw=input.trim();
+ const date=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now));
+ let local=raw.replace(' ','T');
+ if(/^\d{2}:\d{2}(?::\d{2})?$/.test(local))local=date+'T'+local;
+ if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local))local+=':00';
+ if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(local))return null;
+ const epoch=Date.parse(local+'+07:00');
+ if(!Number.isFinite(epoch)||new Date(epoch+25200000).toISOString().slice(0,19)!==local)return null;
+ return epoch;
 }
 const validate=(args,now)=>{
  if(!args||typeof args!=='object'||Array.isArray(args))return fail('SCHEMA','Chưa đặt: yêu cầu không hợp lệ.');
@@ -25,9 +39,9 @@ const validate=(args,now)=>{
   if(!Number.isSafeInteger(args.delay_seconds)||args.delay_seconds<2||args.delay_seconds>2592000||args.local_at!=='')return fail('TIME','Chưa đặt: khoảng thời gian không hợp lệ.');
   due=now+args.delay_seconds*1000;
  }else if(args.mode==='absolute'){
-  if(args.delay_seconds!==0||typeof args.local_at!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(args.local_at))return fail('TIME','Chưa đặt: cần ngày và giờ cụ thể.');
-  due=Date.parse(args.local_at+'+07:00');
-  if(!Number.isFinite(due)||new Date(due+25200000).toISOString().slice(0,19)!==args.local_at)return fail('TIME','Chưa đặt: ngày giờ không tồn tại.');
+  if(args.delay_seconds!==0)return fail('TIME','Chưa lưu được lời nhắc vì thời điểm chưa hợp lệ.');
+  due=normalizeReminderLocalAt(args.local_at,now);
+  if(due===null)return fail('TIME','Chưa hiểu đúng thời điểm nhắc. Bạn nói lại giờ muốn nhắc nhé.');
  }else return fail('TIME','Chưa đặt: chưa rõ thời gian muốn nhắc.');
  if(due<=now+1000||due>now+2592000000)return fail('TIME_RANGE','Chưa đặt: giờ đã qua hoặc vượt quá 30 ngày.');
  return {ok:true,text,due};
