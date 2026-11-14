@@ -36,7 +36,7 @@ jobs:
            assert d.get('success') is True,d.get('errors')
            return d['result']
           versions=call(a+'/workers/scripts/nmh-voice-gpt-test/deployments',os.environ['CLOUDFLARE_API_TOKEN'])['deployments'][0]['versions']
-          assert len(versions)==1 and versions[0]['percentage']==100 and versions[0]['version_id']=='d0622605-7d01-47ba-a5aa-bbb7e5262ee9','Production drift; refuse sandbox'
+          assert len(versions)==1 and versions[0]['percentage']==100 and versions[0]['version_id']=='fa391d70-0eaa-4e7d-8643-1943e119619e','Production drift; refuse sandbox'
           base=a+'/d1/database'
           response=call(base+'?per_page=100',os.environ['CLOUDFLARE_D1_TOKEN'])
           items=response if isinstance(response,list) else response.get('databases',[])
@@ -221,7 +221,7 @@ jobs:
           assert not any(x.get('name')==name for x in entries)
           assert call('GET',base+'/d1/database/'+os.environ['PROD_DB'],os.environ['CLOUDFLARE_D1_TOKEN'])['success']
           versions=call('GET',base+'/workers/scripts/nmh-voice-gpt-test/deployments',os.environ['CLOUDFLARE_API_TOKEN'])['result']['deployments'][0]['versions']
-          assert len(versions)==1 and versions[0]['version_id']=='d0622605-7d01-47ba-a5aa-bbb7e5262ee9'
+          assert len(versions)==1 and versions[0]['version_id']=='fa391d70-0eaa-4e7d-8643-1943e119619e'
           print('NGO_SANDBOX_WORKER_DELETED=PASS')
           print('NGO_SANDBOX_D1_DELETED=PASS')
           print('NGO_PRODUCTION_WORKER_AND_D1_INTACT=PASS')
