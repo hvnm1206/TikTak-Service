@@ -232,7 +232,7 @@ test('a Vietnamese personal fact is a memory, never a reminder; Google session s
  const action=buildActionRuntime({request,env,utterance,requestId:'mem-unit'});
  assert.ok(action.tools.some(x=>x.name==='save_memory'));
  const saved=await action.execute('save_memory',{body:'Mẹ của Minh mèo tên là Thanh Vịt',utterance_quote:'mẹ của Minh mèo tên là Thanh Vịt'});
- assert.equal(saved.ok,true);
+ assert.equal(saved.ok,true,JSON.stringify(saved));
  assert.equal(saved.status,'verified');
  const m=sqlite.prepare('SELECT user_id,body FROM v3_memories').all();
  assert.deepEqual(m,[{user_id:subject,body:'Mẹ của Minh mèo tên là Thanh Vịt'}]);
