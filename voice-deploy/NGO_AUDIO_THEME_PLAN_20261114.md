@@ -1,5 +1,14 @@
 # NGỐ Audio + Theme V1 — kế hoạch khóa phạm vi (14/11/2026)
 
+## CHỐT HOTFIX SAU AUDIT — KẾ HOẠCH ĐÃ THỰC HIỆN
+- Bản V1 đã deploy trước là version `cd66b9f6-b7a7-4970-abf8-ce1ef19e1446`, nhưng source audit thấy mascot mới nằm trong ghi chú, chồng với canvas cũ. Đã sửa ngay.
+- Regression 71 cũ + 20 mới PASS, kiểm chứng sandbox D1 thật/rollback/cleanup: https://github.com/hvnm1206/TikTak-Service/actions/runs/43580057061 .
+- Hotfix release lên đúng Worker chính, giữ nguyên URL: https://github.com/hvnm1206/TikTak-Service/actions/runs/43580162153 SUCCESS, version cuối `253c198a-5af6-4a98-9776-ebe9b06aa424`. Chức năng cũ smoke PASS, Guarded Operator HTTP 200 sau release.
+- Rollback hotfix: `cd66b9f6-b7a7-4970-abf8-ce1ef19e1446`; rollback toàn bộ audio/theme về `08e0bbf2-a2e5-4b98-94dc-0cfee882e5b6`. Lưu bookmark D1 artifact 30 ngày.
+- Bước nghiệm thu thiết bị thật: CHƯA CÓ. User thử tiếng và bố cục iPhone để chốt.
+- Bản ghi ở dưới là các mốc đã thực thi trước hotfix này, không phải version hiện tại.
+
+
 ## KẾT QUẢ THỰC THI / ĐỐI CHIẾU KẾ HOẠCH
 - Bước 1 kiểm tra nguồn Presence/Marin: HOÀN THÀNH.
 - Bước 2 WebAudio gain mặc định 1.55x, giới hạn 1–2.5 + compressor và slider lưu localStorage: HOÀN THÀNH, qua test.
