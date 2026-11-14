@@ -17,12 +17,15 @@ test('theme is an additive visual layer with default old appearance',()=>{
 test('theme does not touch core Voice or storage of keys',()=>{
  const source=fs.readFileSync(new URL('./theme-ui.js',import.meta.url),'utf8');
  assert.ok(!/speechRecognition|SpeechRecognition|\/api\/tts|\/api\/chat|\/api\/reminders|nmh_voice_api_key_v1/.test(source));
- for(const key of ['theme','avatar','status','MutationObserver','prefers-reduced-motion'])assert.ok(source.includes(key));
+ for(const key of ['theme','Mascot','status','MutationObserver','prefers-reduced-motion'])assert.ok(source.includes(key));
 });
 test('Marin volume uses WebAudio gain, compressor and persisted bounded input, not microphone replacement',()=>{
  const src=fs.readFileSync(new URL('./worker.js',import.meta.url),'utf8');
- assert.ok(src.includes('audioCtx.createGain()')&&src.includes('audioCtx.createDynamicsCompressor()'));
- assert.ok(src.includes('gain.connect(limiter);limiter.connect(audioCtx.destination)'));
+ const patch=fs.readFileSync(new URL('./volume-ui.js',import.meta.url),'utf8');
+ assert.ok(patch.includes('audioCtx.createGain()')&&patch.includes('audioCtx.createDynamicsCompressor()'));
+ assert.ok(patch.includes('meter.connect(gain)')&&patch.includes('avatarFace?.setAudio(meter)'));
+ assert.ok(src.includes('enhanceVolumePage(enhanceVoicePage('));
+ assert.ok(patch.includes('gain.connect(limiter);limiter.connect(audioCtx.destination)'));
  assert.ok(src.includes('nmh_voice_gain_v1')&&src.includes('id=\\\"gain\\\"'));
  assert.ok(src.includes('clamp(load(\\\"nmh_voice_gain_v1\\\",\\\"1.55\\\"),1,2.5,1.55)'));
  assert.ok(src.includes('enhanceThemePage(enhanceReminderPage(enhanceV3Page(PAGE,env),env))'));
