@@ -134,7 +134,7 @@ jobs:
           code,anon_profile=http('/api/v3/profile',login=False);assert code==401
           code,before_profile=http('/api/v3/profile');assert code==200 and before_profile['revision']==0
           code,created_profile=http('/api/v3/profile','PUT',{'prompt':initial_prompt,'revision':0})
-          assert code==200 and created_profile=={'ok':True,'prompt':initial_prompt,'revision':1,'verified':True},(code,created_profile)
+          assert code==200 and created_profile.get('ok') is True and created_profile.get('verified') is True and created_profile.get('prompt')==initial_prompt and created_profile.get('revision')==1 and created_profile.get('presets')=={} and created_profile.get('activePreset')=='',(code,created_profile)
           code,got_profile=http('/api/v3/profile')
           assert code==200 and got_profile['prompt']==initial_prompt and got_profile['revision']==1,got_profile
           code,edited_profile=http('/api/v3/profile','PUT',{'prompt':edited_prompt,'revision':1})
