@@ -36,7 +36,7 @@ jobs:
           versions=deployment['result']['deployments'][0]['versions']
           assert len(versions)==1 and versions[0]['percentage']==100
           actual=versions[0]['version_id']
-          assert actual=='51bd4dde-0d73-455c-b1ed-6bac8965de66','Production version drift: no release'
+          assert actual=='7aeddff7-ccf8-4b70-ae83-b27a67a98743','Production version drift: no release'
           d1='3ce295cb-a84d-4a50-abee-d14fdd903514'
           url=api+'/d1/database/'+d1+'/query'
           queries={
@@ -44,6 +44,9 @@ jobs:
             'sessions':'SELECT COUNT(*) AS n FROM v3_sessions',
             'memories':'SELECT COUNT(*) AS n FROM v3_memories',
             'documents':'SELECT COUNT(*) AS n FROM v3_documents',
+            'memory_v2_opted_in':'SELECT COUNT(*) AS n FROM v3_memory_v2_preferences WHERE enabled=1',
+            'memory_v2_turns':'SELECT COUNT(*) AS n FROM v3_memory_v2_turns',
+            'note_files':'SELECT COUNT(*) AS n FROM v3_documents WHERE name=\'GHI_CHU.md\'',
           }
           for key,sql in queries.items():
            reply=http(url,os.environ['CLOUDFLARE_D1_TOKEN'],{'sql':sql,'params':[]})
