@@ -313,6 +313,7 @@ test('generic relational two-hop recall connects a mother with a child and the s
  assert.ok(got.memories.includes('Thanh Vịt là mẹ của Minh mèo.'));
  assert.ok(got.memories.includes('Minh mèo là con của tao.'));
  // Other user memory is never leaked into the subject's context.
+ sqlite.prepare('INSERT INTO v3_users(id,name,created_at) VALUES(?,?,?)').run('other-user','Other User',Date.now());
  sqlite.prepare('INSERT INTO v3_memories(id,user_id,body,created_at) VALUES(?,?,?,?)').run('foreign','other-user','Thông tin người dùng khác',Date.now());
  const after=await loadV3Context(req,env,'Thanh Vịt là ai?');
  assert.ok(!after.memories.includes('Thông tin người dùng khác'));
