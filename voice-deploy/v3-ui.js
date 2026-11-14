@@ -1,4 +1,18 @@
 // NMH Voice V3 private setup pane. No new public endpoint/secret is exposed here.
+const memoryPanel=String.raw`
+  <details id="v3MemoryV2Section" style="display:none"><summary><strong>GHI NHỚ THÔNG MINH (TỰ CHỌN)</strong></summary>
+   <p class="hint">Khi bật, GPT có thể đề xuất ghi nhớ điều bền vững sau lượt hội thoại. Không ghi mọi lời nói. Ký ức tự học được xem và xóa trong mục này. Có thể tắt bất cứ lúc nào.</p>
+   <p id="v3MemoryV2Status" class="hint" role="status">Đang kiểm tra cài đặt ghi nhớ…</p>
+   <button type="button" id="v3MemoryV2Toggle" disabled>BẬT GHI NHỚ THÔNG MINH</button>
+   <button type="button" id="v3LearnedReload" hidden>CẬP NHẬT KẾT QUẢ</button>
+   <p class="hint" id="v3LearnedRun" role="status"></p>
+   <div id="v3LearnedPanel" hidden>
+    <p class="hint">Những gì Ngố đã học và tín hiệu đang chờ thêm căn cứ.</p>
+    <div id="v3LearnedItems"></div>
+    <button type="button" id="v3LearnedMore" hidden>XEM TIẾP</button>
+   </div>
+  </details>
+`;
 const panel=String.raw`
 <section id="v3Personal" class="panel" style="margin:16px 0;display:grid;gap:10px">
  <h3 style="margin:0">CÁ NHÂN HÓA & ĐỒNG BỘ</h3>
@@ -14,18 +28,7 @@ const panel=String.raw`
    <button type="button" class="primary" id="v3SavePrompt">LƯU PROMPT</button>
    <p id="v3PromptSaveStatus" class="hint" role="status" aria-live="polite" style="margin:8px 0 0;white-space:pre-wrap">Chỉnh sửa Prompt rồi bấm LƯU PROMPT. Chỉ xác nhận thành công sau khi đọc lại D1.</p>
   </details>
-  <details id="v3MemoryV2Section" style="display:none"><summary><strong>GHI NHỚ THÔNG MINH (TỰ CHỌN)</strong></summary>
-   <p class="hint">Khi bật, GPT có thể đề xuất ghi nhớ điều bền vững sau lượt hội thoại. Không ghi mọi lời nói. Được xem/sửa/xóa tại GHI NHỚ CHỦ ĐỘNG. Có thể tắt bất cứ lúc nào.</p>
-   <p id="v3MemoryV2Status" class="hint">Chưa kích hoạt.</p>
-   <button type="button" id="v3MemoryV2Toggle">BẬT GHI NHỚ THÔNG MINH</button>
-   <div id="v3LearnedPanel" hidden>
-    <p class="hint" id="v3LearnedRun" role="status"></p>
-    <button type="button" id="v3LearnedReload">CẬP NHẬT KẾT QUẢ</button>
-    <p class="hint">Những gì Ngố đã học và tín hiệu đang chờ thêm căn cứ.</p>
-    <div id="v3LearnedItems"></div>
-    <button type="button" id="v3LearnedMore" hidden>XEM TIẾP</button>
-   </div>
-  </details>
+  ${memoryPanel}
   <details><summary><strong>GHI NHỚ CHỦ ĐỘNG</strong></summary>
    <p class="hint">Chỉ ghi khi bạn nhập ở đây hoặc ra lệnh bằng giọng “Nhớ rằng...”. Không tự ghi lại mọi hội thoại.</p>
    <textarea id="v3MemoryText" rows="3" maxlength="500" style="width:100%;background:#111827;color:white;border:1px solid #64748b;border-radius:12px;padding:12px;font:inherit"></textarea>
@@ -78,6 +81,7 @@ const script=String.raw`
  const markPromptDirty=()=>{promptDirty=true;promptStatus('Chưa lưu thay đổi. Bấm LƯU PROMPT để đồng bộ.')};
  $('v3Prompt').addEventListener('input',markPromptDirty);
  let memoryV2={available:false,enabled:false,revision:0,mode:'off'};
+ let signedIn=false;
  const req=async(path,method='GET',payload)=>{
   const opts={method,credentials:'same-origin',headers:{'content-type':'application/json'}};
   if(payload!==undefined)opts.body=JSON.stringify(payload);
@@ -115,9 +119,11 @@ const script=String.raw`
  const aspectLabels={attitude:'thái độ',skill:'kỹ năng',knowledge:'kiến thức',D:'D',I:'I',S:'S',C:'C'};
  async function showLearned(reset){
   const host=$('v3LearnedItems'),more=$('v3LearnedMore');
-  more.disabled=true;
+  const reload=$('v3LearnedReload');
+  more.disabled=true;reload.disabled=true;
   try{
    const data=await req('/api/v3/personal-memory?offset='+(reset?0:learnedOffset));
+   $('v3LearnedPanel').hidden=false;
    if(reset){
     host.replaceChildren();
     const r=data.lastRun;
@@ -135,23 +141,27 @@ const script=String.raw`
    if(reset&&!data.entries?.length)host.textContent='Chưa có mục nào.';
    learnedOffset=data.nextOffset;
    more.hidden=learnedOffset===null;
-  }finally{more.disabled=false}
+  }finally{more.disabled=false;reload.disabled=false}
  }
- $('v3LearnedReload').onclick=()=>showLearned(true).catch(e=>{$('v3LearnedRun').textContent='Chưa đọc được kết quả: '+e.message});
+ $('v3LearnedReload').onclick=async()=>{
+  if(!signedIn){await refresh();return}
+  await refreshMemoryV2();
+ };
+ const showMemoryError=e=>{$('v3LearnedRun').textContent='Chưa đọc được kết quả: '+e.message};
  $('v3LearnedMore').onclick=()=>showLearned(false).catch(e=>msg(e.message));
  async function refreshMemoryV2(){
   try{
    const p=await req('/api/v3/memory-v2-preference');
    memoryV2=p;
    $('v3MemoryV2Section').style.display=p.available||pilotMemory?'block':'none';
-   $('v3LearnedPanel').hidden=!p.personalMemory;
+   $('v3LearnedPanel').hidden=!(p.personalMemory||pilotMemory);
    $('v3MemoryV2Toggle').disabled=!p.available;
    if(!p.available){$('v3MemoryV2Status').textContent='Ghi nhớ thông minh chưa được bật trên máy chủ.';return}
-   if(p.personalMemory)await showLearned(true).catch(e=>{$('v3LearnedRun').textContent='Chưa đọc được kết quả: '+e.message});
    $('v3MemoryV2Status').textContent=p.mode==='shadow'
     ? 'ĐANG THỬ NGHIỆM KHÔNG GHI DỮ LIỆU — '+(p.enabled?'Đã đồng ý phân tích':'Chưa đồng ý phân tích')
     : (p.enabled?'ĐANG BẬT — bộ nhớ có thể cập nhật sau mỗi lượt':'ĐANG TẮT — không tự ghi nhớ');
    $('v3MemoryV2Toggle').textContent=p.enabled?'TẮT GHI NHỚ THÔNG MINH':'BẬT GHI NHỚ THÔNG MINH';
+   if(p.personalMemory||pilotMemory)await showLearned(true).catch(showMemoryError);
   }catch(e){
    if(pilotMemory){
     $('v3MemoryV2Section').style.display='block';
@@ -161,6 +171,7 @@ const script=String.raw`
   }
  }
  $('v3MemoryV2Toggle').onclick=async()=>{
+  if(!signedIn||!memoryV2.available)return;
   const want=!memoryV2.enabled;
   if(want&&!confirm('Cho phép GPT phân tích các lượt hội thoại của tài khoản này để đề xuất ghi nhớ lâu dài? Có thể tắt bất cứ lúc nào.'))return;
   try{
@@ -173,12 +184,20 @@ const script=String.raw`
  async function refresh(){
   try{
    const conf=await req('/api/v3/config');
-   if(!conf.ready){$('v3State').textContent='Đồng bộ chưa kích hoạt: cần D1 và Google Web Client. Không cần R2. Dữ liệu chưa được lưu.';return}
+   if(!conf.ready){if(pilotMemory)$('v3MemoryV2Status').textContent='Máy chủ chưa sẵn sàng để đọc ghi nhớ.';$('v3State').textContent='Đồng bộ chưa kích hoạt: cần D1 và Google Web Client. Không cần R2. Dữ liệu chưa được lưu.';return}
    loginClient=conf.googleClientId;
    const me=await req('/api/v3/me').catch(()=>null);
-   if(me?.signedIn){
+   signedIn=!!me?.signedIn;
+   if(signedIn){
     $('v3Login').style.display='none';$('v3App').style.display='grid';$('v3State').textContent='Đã đồng bộ — chỉ bạn truy cập dữ liệu tài khoản này.';$('v3User').textContent=me.name||'Tài khoản Google';await Promise.all([populate().catch(e=>msg('Chưa tải đủ hồ sơ: '+e.message)),refreshMemoryV2()]);
    }else{
+    if(pilotMemory){
+     $('v3MemoryV2Toggle').disabled=true;
+     $('v3MemoryV2Status').textContent='Đăng nhập Google để bật ghi nhớ và xem kết quả.';
+     $('v3LearnedPanel').hidden=true;
+     $('v3LearnedItems').replaceChildren();
+     $('v3LearnedRun').textContent='';
+    }
     $('v3Login').style.display='block';$('v3App').style.display='none';$('v3State').textContent='Chưa đăng nhập Google — ghi nhớ và tài liệu chưa đồng bộ.';
     if(window.google?.accounts?.id&&loginClient){
      $('v3GoogleBtn').replaceChildren();
@@ -188,7 +207,7 @@ const script=String.raw`
      google.accounts.id.renderButton($('v3GoogleBtn'),{theme:'outline',size:'large',text:'signin_with',width:240});
     }else msg('Đang tải đăng nhập Google; nếu không hiện nút, kiểm tra trình duyệt và cấu hình.');
    }
-  }catch(e){msg('Đồng bộ chưa sẵn sàng: '+e.message)}
+  }catch(e){if(pilotMemory)$('v3MemoryV2Status').textContent='Chưa kiểm tra được phiên đăng nhập: '+e.message;msg('Đồng bộ chưa sẵn sàng: '+e.message)}
  }
  $('v3Logout').onclick=async()=>{try{await req('/api/v3/logout','POST',{});location.reload()}catch(e){msg(e.message)}};
  const presets={
@@ -261,6 +280,9 @@ export function enhanceV3Page(original,env={}){
  const authorized=/^\d+-[a-z0-9-]+\.apps\.googleusercontent\.com$/.test(id);
  const pilot=env.NMH_PERSONAL_MEMORY==='pilot';
  const google=authorized?'<script src="https://accounts.google.com/gsi/client" async defer onload="window.nmhV3GoogleReady?.()"></script>':'';
- return original.replace('<button id="back">QUAY LẠI</button></section>', (pilot?panel.replace('id="v3MemoryV2Section" style="display:none"','id="v3MemoryV2Section" open'):panel)+'<button id="back">QUAY LẠI</button></section>')
+ const layout=pilot?panel.replace(memoryPanel,'').replace(' <div id="v3App"',memoryPanel
+  .replace('id="v3MemoryV2Section" style="display:none"','id="v3MemoryV2Section" open')
+  .replace('id="v3LearnedReload" hidden','id="v3LearnedReload"')+' <div id="v3App"'):panel;
+ return original.replace('<button id="back">QUAY LẠI</button></section>',layout+'<button id="back">QUAY LẠI</button></section>')
   .replace('</body>',google+'<script>'+(pilot?script.replace('const pilotMemory=false','const pilotMemory=true'):script)+'</script></body>');
 }

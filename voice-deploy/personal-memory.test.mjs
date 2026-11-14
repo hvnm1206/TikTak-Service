@@ -145,3 +145,42 @@ test('pilot exposes the section before loading and records only account-scoped s
   assert.equal(done.reason,'no-proposal');
  }finally{globalThis.fetch=before}
 });
+
+test('pilot refresh is visible clear of the login and result wrappers and can retry settings',async()=>{
+ const {default:vm}=await import('node:vm');
+ const f=fixture();
+ const html=await (await worker.fetch(new Request(origin),f.env)).text();
+ const button=html.indexOf('<button type="button" id="v3LearnedReload">');
+ assert.ok(button>0 && button<html.indexOf('id="v3LearnedPanel" hidden') && button<html.indexOf('id="v3App"'));
+ const code=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
+ const nodes=new Map();
+ const el=id=>{
+  if(!nodes.has(id))nodes.set(id,{style:{},hidden:id==='v3LearnedPanel',addEventListener(){},replaceChildren(){},append(){}});
+  return nodes.get(id);
+ };
+ let available=false,results=0;
+ const get=async path=>{
+  if(path==='/api/v3/config')return {ready:true};
+  if(path==='/api/v3/me')return {signedIn:true};
+  if(path==='/api/v3/memory-v2-preference'){
+   if(!available)throw Error('settings server unavailable');
+   return {available:true,mode:'active',enabled:true,revision:1};
+  }
+  if(path.startsWith('/api/v3/personal-memory')){
+   results++;
+   return {entries:[],nextOffset:null,lastRun:{state:'no-change',reason:'no-proposal',learned_at:1}};
+  }
+  if(path==='/api/v3/documents')throw Error('documents unavailable');
+  return {};
+ };
+ const ctx={window:{},document:{getElementById:el},fetch:async path=>Response.json(await get(path))};
+ vm.runInNewContext(code,ctx);
+ await ctx.window.nmhV3Refresh();
+ assert.match(el('v3MemoryV2Status').textContent,/settings server unavailable/);
+ assert.equal(el('v3MemoryV2Toggle').disabled,true);
+ available=true;
+ await el('v3LearnedReload').onclick();
+ assert.equal(results,1);
+ assert.equal(el('v3LearnedPanel').hidden,false);
+ assert.match(el('v3LearnedRun').textContent,/GPT không đề xuất mục nào/);
+});
