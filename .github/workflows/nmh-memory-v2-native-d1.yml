@@ -46,9 +46,19 @@ jobs:
           set -euo pipefail
           cd voice-deploy
           config=wrangler-memory-v2-native-probe.generated.jsonc
-          cleanup(){
-            npx --yes wrangler@4.102.0 delete --config "$config" --force >/tmp/memory-probe-cleanup.log 2>&1 || { echo 'MEMORY_NATIVE_PROBE_WORKER_CLEANUP=FAILED';cat /tmp/memory-probe-cleanup.log; }
+          probe_url="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/nmh-memory-v2-native-probe-20261114?force=true"
+          delete_probe(){
+            status=$(curl --silent --show-error --max-time 25 -X DELETE -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -o /tmp/memory-probe-delete.json -w '%{http_code}' "$probe_url") || return 1
+            if [ "$status" = 404 ];then return 0;fi
+            [ "$status" = 200 ] || [ "$status" = 204 ] || return 1
+            python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/memory-probe-delete.json'))
+          assert d.get('success') is True
+          PY
           }
+          delete_probe || { echo 'MEMORY_NATIVE_PROBE_PREEXISTING_CLEANUP=FAILED';exit 1; }
+          cleanup(){ if delete_probe;then echo 'MEMORY_NATIVE_PROBE_WORKER_CLEANUP=PASS';else echo 'MEMORY_NATIVE_PROBE_WORKER_CLEANUP=FAILED';fi; }
           trap cleanup EXIT
           npx --yes wrangler@4.102.0 deploy --config "$config"
           python3 - <<'PY'
