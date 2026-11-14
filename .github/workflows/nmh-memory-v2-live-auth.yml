@@ -1,0 +1,87 @@
+name: NMH Memory V2 sandbox live D1 owner-isolation
+on:
+  push:
+    branches: [nmh-voice-memory-v2-stage-20261114]
+permissions:
+  contents: read
+jobs:
+  sandbox-live-auth:
+    if: >-
+      startsWith(github.event.head_commit.message, 'sandbox(memory-v2): verify live opt-in and isolation')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test authenticated owner opt-in on isolated sandbox Worker and real D1
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.error,hashlib,secrets,uuid,time
+          acct=os.environ['CLOUDFLARE_ACCOUNT_ID']
+          token=os.environ['CLOUDFLARE_API_TOKEN']
+          root='https://api.cloudflare.com/client/v4/accounts/'+acct+'/d1/database'
+          base='https://nmh-memory-v2-sandbox-20261114.magical-budget.workers.dev'
+          def cf(url,data=None):
+           headers={'Authorization':'Bearer '+token,'Content-Type':'application/json','User-Agent':'NMH-Memory-V2-Sandbox/1'}
+           request=urllib.request.Request(url,data=None if data is None else json.dumps(data).encode(),headers=headers,method='GET' if data is None else 'POST')
+           with urllib.request.urlopen(request,timeout=25) as r: reply=json.load(r)
+           assert reply.get('success') is True, 'Cloudflare API unsuccessful'
+           return reply['result']
+          databases=cf(root+'?per_page=100')
+          databases=databases if isinstance(databases,list) else databases.get('databases',[])
+          items=[d for d in databases if d.get('name')=='nmh-memory-v2-sandbox-20261114']
+          assert len(items)==1,'Sandbox D1 not found'
+          db_id=items[0].get('uuid') or items[0].get('id')
+          assert db_id and db_id!='3ce295cb-a84d-4a50-abee-d14fdd903514','Never touch production D1'
+          def query(sql,args=[]):
+           result=cf(root+'/'+db_id+'/query',{'sql':sql,'params':args})
+           assert isinstance(result,list) and result and result[0].get('success') is True,'D1 query unsuccessful'
+           return result[0].get('results',[])
+          def http(path,session,method='GET',body=None):
+           headers={'Cookie':'__Host-nmhv3='+session,'Origin':base,'Content-Type':'application/json','Accept':'application/json','User-Agent':'Mozilla/5.0 (compatible; NMH-Memory-Sandbox/1.0)'}
+           data=None if body is None else json.dumps(body).encode()
+           request=urllib.request.Request(base+path,data=data,headers=headers,method=method)
+           try:
+            with urllib.request.urlopen(request,timeout=25) as r:return r.status,json.load(r)
+           except urllib.error.HTTPError as e:
+            return e.code,json.load(e)
+          nonce=uuid.uuid4().hex
+          owners=['nmh_memv2_ci_a_'+nonce,'nmh_memv2_ci_b_'+nonce]
+          sessions=[secrets.token_urlsafe(32),secrets.token_urlsafe(32)]
+          now=int(time.time()*1000)
+          before=query('SELECT COUNT(*) AS n FROM v3_memories')[0]['n']
+          try:
+           for user,sess in zip(owners,sessions):
+            query('INSERT INTO v3_users (id,name,created_at) VALUES (?,?,?)',[user,'Synthetic sandbox',now])
+            query('INSERT INTO v3_sessions (token_hash,user_id,expires_at,created_at) VALUES (?,?,?,?)',[hashlib.sha256(sess.encode()).hexdigest(),user,now+600000,now])
+           path='/api/v3/memory-v2-preference'
+           status,a=http(path,sessions[0]);assert status==200 and a['mode']=='shadow' and a['enabled'] is False and a['revision']==0
+           status,b=http(path,sessions[1]);assert status==200 and b['enabled'] is False
+           status,on=http(path,sessions[0],'PUT',{'enabled':True,'revision':0})
+           assert status==200 and on['enabled'] is True and on['revision']==1,('enable rejected',status,on)
+           status,stale=http(path,sessions[0],'PUT',{'enabled':False,'revision':0})
+           assert status==409,'stale revision not rejected'
+           status,independent=http(path,sessions[1]);assert status==200 and independent['enabled'] is False,'owner B saw owner A settings'
+           saved=query('SELECT enabled,revision FROM v3_memory_v2_preferences WHERE user_id=?',[owners[0]])
+           assert len(saved)==1 and saved[0]['enabled']==1 and saved[0]['revision']==1,'D1 read-back mismatch'
+           status,off=http(path,sessions[0],'PUT',{'enabled':False,'revision':1})
+           assert status==200 and off['enabled'] is False and off['revision']==2,'opt-out unsuccessful'
+           status,again=http(path,sessions[0]);assert status==200 and again['enabled'] is False
+           assert query('SELECT COUNT(*) AS n FROM v3_memories')[0]['n']==before,'Shadow wrote to memory without prompt'
+           print('SANDBOX_LIVE_OWNER_AUTH_AND_ISOLATION=PASS')
+           print('SANDBOX_LIVE_D1_OPT_IN_READBACK=PASS')
+           print('SANDBOX_LIVE_SHADOW_MEMORY_UNCHANGED=PASS')
+          finally:
+           for user in owners:
+            query('DELETE FROM v3_memory_v2_preferences WHERE user_id=?',[user])
+            query('DELETE FROM v3_memory_v2_turns WHERE user_id=?',[user])
+            query('DELETE FROM v3_sessions WHERE user_id=?',[user])
+            query('DELETE FROM v3_users WHERE id=?',[user])
+           assert not query('SELECT id FROM v3_users WHERE id=?',[owners[0]]),'Sandbox cleanup failed'
+           print('SANDBOX_LIVE_SYNTHETIC_CLEANUP=PASS')
+          PY
