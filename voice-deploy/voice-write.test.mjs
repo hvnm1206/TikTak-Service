@@ -62,7 +62,7 @@ function dbMock(){
 const req=(text,authenticated=true)=>new Request(base+'/api/chat',{method:'POST',headers:{origin:base,'content-type':'application/json',...(authenticated?{cookie:'__Host-nmhv3='+cookie}:{})},body:JSON.stringify({apiKey:key,messages:[{role:'user',content:text}],style:'nghiem_tuc'})});
 const env=db=>({NMH_DB:db,NMH_V3_GOOGLE_CLIENT_ID:'1234567890-voice-test.apps.googleusercontent.com',NMH_MEMORY_V2_MODE:'off'});
 test('natural commands are recognized after vocatives, informational questions are not',()=>{
- for(const v of ['Ê Ngáo, mày chép giúp tao: mai kiểm tra máy bơm','Em lưu hộ anh việc này','Ghi vào sổ ghi chú mai gọi điện','Hãy ghi lại việc này','Ngáo, nhớ cho tôi chuyện này'])assert.equal(isWriteCommand(v),true,v);
+ for(const v of ['Ê Ngáo, mày chép giúp tao: mai kiểm tra máy bơm','Em lưu hộ anh việc này','Ghi vào sổ ghi chú mai gọi điện','Hãy ghi lại việc này','Ngáo, nhớ cho tôi chuyện này','Tao muốn mày ghi lại công việc ngày mai','Tôi cần em lưu lại ghi chú này','Mày có thể ghi hộ tôi vài việc'])assert.equal(isWriteCommand(v),true,v);
  for(const v of ['Tại sao GPT không có công cụ ghi nhớ?','Cách ghi chú trên iPhone như thế nào?','Hôm nay trời thế nào?'])assert.equal(isWriteCommand(v),false,v);
 });
 test('structured classifier does not expose any tools or web search',async()=>{
