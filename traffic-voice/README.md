@@ -1,6 +1,6 @@
 # NMH Traffic Voice AI V1 — bản thử độc lập
 
-**Trạng thái 14/11/2026: mã nguồn và 14 kiểm thử mô phỏng đạt. CHƯA triển khai production, CHƯA xác nhận khóa Google/OpenAI, CHƯA có bằng chứng iPhone.**
+**Trạng thái 14/11/2026: mã nguồn và 16 kiểm thử mô phỏng đạt. CHƯA triển khai production, CHƯA xác nhận khóa Google/OpenAI, CHƯA có bằng chứng iPhone.**
 
 Đây là ứng dụng **riêng**. Không import source, không đổi Worker, route, database, secrets, workflow hoặc deployment của Ngố/Ngáo/Mendo.
 
