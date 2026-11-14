@@ -283,3 +283,5 @@ jobs:
           trap - ERR
           echo "DEPLOY_FINAL=SUCCESS"
 
+
+# Web Search production release explicitly authorized 2026-11-14. Same Worker, safeguarded rollback.
