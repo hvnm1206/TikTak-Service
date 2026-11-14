@@ -1,5 +1,13 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## BẢN CHÍNH NGỐ — SỬA THỜI GIAN NHẮC TỰ NHIÊN 14/11/2026
+- Worker chính `nmh-voice-gpt-test` URL https://nmh-voice-gpt-test.magical-budget.workers.dev/ bản đang chạy `b4b18bd1-3562-4bab-9d59-2cee3c3a399c`.
+- Người dùng nói “7 giờ tối nay gọi tao dậy xem bóng đá”, Ngố bị ép ngày/giờ ISO, yêu cầu lặp lại. Đã sửa prompt cho GPT tự hiểu ngày/giờ theo ngữ cảnh và giờ Việt Nam; backend validate máy `HH:mm`, `YYYY-MM-DDTHH:mm`, `YYYY-MM-DDTHH:mm:ss`; không ép hỏi ngày khi nói tối nay. Không hardcode router theo câu nói.
+- 71 legacy + 23 new tests PASS, sandbox thật Cloudflare+D1+rollback https://github.com/hvnm1206/TikTak-Service/actions/runs/43581134027 SUCCESS. Production release https://github.com/hvnm1206/TikTak-Service/actions/runs/43581221209 SUCCESS, lưu backup Worker version + D1 Time Travel bookmark.
+- Rollback chính xác về trước bản sửa: `253c198a-5af6-4a98-9776-ebe9b06aa424`. Không thay Ngáo/mic/Marin/Theme/Memory V2/OAuth.
+- Người dùng đã làm lệnh thành công bằng cách đổi cách nói trên bản cũ; chưa có UAT bản mới trên iPhone. Phân biệt tự động PASS và trải nghiệm thực.
+
+
 ## TRẠNG THÁI PHÁT HÀNH MỚI NHẤT — NGỐ VOLUME + THEME 14/11/2026
 - Production URL giữ nguyên: https://nmh-voice-gpt-test.magical-budget.workers.dev/ ; phiên bản hotfix cuối **`253c198a-5af6-4a98-9776-ebe9b06aa424`**.
 - Volume: SETUP slider GainNode 1–2.5x default 1.55x, DynamicsCompressor. NMH Presence Audio Analyser còn hoạt động; không thay microphone/Marin API.
