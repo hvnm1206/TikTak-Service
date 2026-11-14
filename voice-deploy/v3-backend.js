@@ -204,30 +204,43 @@ export async function handleV3(req,env){
   }
  }
  if(path==='/api/v3/profile'){
+  const parsePresets=value=>{
+   try{
+    const data=JSON.parse(value||'{}');
+    if(!data||typeof data!=='object'||Array.isArray(data))return {};
+    return Object.fromEntries(['danh','chem','nghiem'].filter(k=>typeof data[k]==='string'&&data[k].length<=2500).map(k=>[k,data[k]]));
+   }catch{return {}}
+  };
+  const getProfile=()=>env.NMH_DB.prepare('SELECT prompt,revision,presets_json,active_preset FROM v3_profiles WHERE user_id=?').bind(sub).first();
   if(method==='GET'){
-   const data=await env.NMH_DB.prepare('SELECT prompt, revision FROM v3_profiles WHERE user_id=?').bind(sub).first();
-   return json({prompt:data?.prompt||'',revision:data?.revision||0});
+   try{
+    const data=await getProfile();
+    return json({prompt:data?.prompt||'',revision:data?.revision||0,presets:parsePresets(data?.presets_json),activePreset:data?.active_preset||''});
+   }catch{return fail('Không đọc được Prompt đã lưu từ D1.',503)}
   }
   if(method==='PUT'){
-   let body;try{body=await readJson(req,4500)}catch(e){return fail(e.message)}
-   if(typeof body.prompt!=='string'||body.prompt.length>2500||!Number.isInteger(body.revision)||body.revision<0)return fail('Prompt hoặc phiên bản không hợp lệ');
+   let body;try{body=await readJson(req,12000)}catch(e){return fail(e.message)}
+   const presetKey=body?.presetKey??'';
+   if(typeof body.prompt!=='string'||body.prompt.length>2500||!Number.isInteger(body.revision)||body.revision<0||!['','danh','chem','nghiem'].includes(presetKey))return fail('Prompt, tên mẫu hoặc phiên bản không hợp lệ');
    try{
-    const row=await env.NMH_DB.prepare('SELECT revision FROM v3_profiles WHERE user_id=?').bind(sub).first();
-    if((row?.revision||0)!==body.revision)return fail('Dữ liệu đã thay đổi ở thiết bị khác. Prompt đang nhập chưa bị xóa; vui lòng kiểm tra trước khi lưu lại.',409);
+    const row=await getProfile();
+    if((row?.revision||0)!==body.revision)return fail('Dữ liệu đã thay đổi ở thiết bị khác. Nội dung đang nhập được giữ nguyên.',409);
+    const presets=parsePresets(row?.presets_json);
+    if(presetKey)presets[presetKey]=body.prompt;
+    const encoded=JSON.stringify(presets);
     if(row){
-     const updated=await env.NMH_DB.prepare('UPDATE v3_profiles SET prompt=?,revision=revision+1,updated_at=? WHERE user_id=? AND revision=?').bind(body.prompt,Date.now(),sub,body.revision).run();
+     const updated=await env.NMH_DB.prepare('UPDATE v3_profiles SET prompt=?,presets_json=?,active_preset=?,revision=revision+1,updated_at=? WHERE user_id=? AND revision=?').bind(body.prompt,encoded,presetKey,Date.now(),sub,body.revision).run();
      if(Number(updated.meta?.changes||0)!==1)return fail('Prompt đã thay đổi ở thiết bị khác. Nội dung đang nhập được giữ nguyên.',409);
     }else{
-     try{await env.NMH_DB.prepare('INSERT INTO v3_profiles (user_id,prompt,revision,updated_at) VALUES (?,?,1,?)').bind(sub,body.prompt,Date.now()).run()}
+     try{await env.NMH_DB.prepare('INSERT INTO v3_profiles (user_id,prompt,revision,updated_at,presets_json,active_preset) VALUES (?,?,1,?,?,?)').bind(sub,body.prompt,Date.now(),encoded,presetKey).run()}
      catch{return fail('Prompt đã thay đổi ở thiết bị khác. Nội dung đang nhập được giữ nguyên.',409)}
     }
-    // D1 readback is the sole success receipt, including correct owner and revision.
-    const saved=await env.NMH_DB.prepare('SELECT prompt, revision FROM v3_profiles WHERE user_id=?').bind(sub).first();
-    if(saved?.prompt!==body.prompt||saved?.revision!==body.revision+1)return fail('Chưa xác minh được Prompt đã lưu trên D1. Không thể báo thành công.',503);
-    return json({ok:true,prompt:saved.prompt,revision:saved.revision,verified:true});
-   }catch(e){
-    return fail('Lỗi truy cập kho Prompt. Chưa xác nhận được thao tác lưu.',503);
-   }
+    // The Prompt and selected preset are stored atomically in the same owner-scoped D1 row.
+    const saved=await getProfile();
+    const verifiedPresets=parsePresets(saved?.presets_json);
+    if(saved?.prompt!==body.prompt||saved?.revision!==body.revision+1||saved?.active_preset!==presetKey||(presetKey&&verifiedPresets[presetKey]!==body.prompt))return fail('D1 chưa xác nhận cả Prompt và mẫu đã lưu.',503);
+    return json({ok:true,prompt:saved.prompt,revision:saved.revision,presets:verifiedPresets,activePreset:presetKey,verified:true});
+   }catch{return fail('Lỗi truy cập kho Prompt hoặc cấu trúc mẫu chưa sẵn sàng.',503)}
   }
  }
  if(path==='/api/v3/memories'){
