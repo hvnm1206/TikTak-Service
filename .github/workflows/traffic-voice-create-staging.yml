@@ -1,0 +1,51 @@
+name: NMH Traffic V1 - create independent Cloudflare staging Worker
+on:
+  push:
+    branches: [nmh-traffic-voice-v1-20261114]
+    paths: ['.github/workflows/traffic-voice-create-staging.yml']
+permissions:
+  contents: read
+jobs:
+  create-new-worker-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Verify isolated worker and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const x=JSON.parse(require('fs').readFileSync('traffic-voice/wrangler.jsonc','utf8'));if(x.name!=='nmh-traffic-voice-v1'||x.main!=='worker.mjs'||!x.workers_dev)process.exit(1)"
+          (cd traffic-voice && npm run check && npm test)
+      - name: Verify Cloudflare auth and no pre-existing Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'CF_TOKEN_NOT_CONFIGURED'; exit 1; }
+          curl --fail-with-body -sS --max-time 20 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts" -o /tmp/traffic-scripts.json
+          python3 -c 'import json; d=json.load(open("/tmp/traffic-scripts.json")); assert d.get("success"); names={x.get("id") for x in (d.get("result") or []) if isinstance(x,dict)}; assert "nmh-traffic-voice-v1" not in names, "TRAFFIC_WORKER_ALREADY_EXISTS_REFUSE_OVERWRITE"; assert "nmh-voice-gpt-test" in names, "NGO_BASELINE_NOT_VISIBLE"; print("CF_NEW_WORKER_PRECHECK=PASS")'
+      - name: Deploy only new Traffic Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.102.0 deploy --config traffic-voice/wrangler.jsonc
+      - name: Verify new independent URL and unchanged Ngố endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET='https://nmh-traffic-voice-v1.magical-budget.workers.dev'
+          for i in 1 2 3 4 5; do
+            if curl --fail -sS --max-time 10 "$TARGET/health" -o /tmp/traffic-health.json; then break; fi
+            sleep 3
+          done
+          python3 -c 'import json;d=json.load(open("/tmp/traffic-health.json"));assert d.get("ok") is True and d.get("app")=="NMH Traffic Voice V1"; print("TRAFFIC_HEALTH=PASS"); print("TRAFFIC_CREDENTIALS_COMPLETE="+str(d.get("mapsConfigured") and d.get("aiConfigured") and d.get("accessConfigured")))'
+          curl --fail -sS --max-time 15 "$TARGET/" -o /tmp/traffic-page.html
+          grep -q 'TRAFFIC' /tmp/traffic-page.html
+          curl --fail -sS --max-time 15 'https://nmh-voice-gpt-test.magical-budget.workers.dev/health' -o /tmp/ngo-health.json
+          python3 -c 'import json;d=json.load(open("/tmp/ngo-health.json"));assert d.get("ok") is True and d.get("app")=="NMH Voice GPT V2";print("NGO_UNCHANGED_HEALTH=PASS")'
+          echo "TRAFFIC_URL=$TARGET"
