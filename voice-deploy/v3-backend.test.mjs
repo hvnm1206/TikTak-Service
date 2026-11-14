@@ -100,8 +100,21 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   assert.equal((await asBody(await handleV3(req('/api/v3/config'),e))).body.ready,true);
   // Cross-device test: a second browser with the same Google session reads changes and conflicts safely.
   assert.equal((await asBody(await handleV3(req('/api/v3/profile','GET',null,cookie),e))).body.revision,0);
-  assert.equal((await asBody(await handleV3(req('/api/v3/profile','PUT',{prompt:'Nói ngắn gọn, có căn cứ',revision:0},cookie),e))).body.revision,1);
+  const firstPrompt='Chuyên nghiệp, rõ ràng, đi thẳng trọng tâm; phản biện có căn cứ.';
+  const created=await asBody(await handleV3(req('/api/v3/profile','PUT',{prompt:firstPrompt,revision:0},cookie),e));
+  assert.equal(created.body.revision,1);
+  assert.equal(created.body.prompt,firstPrompt);
+  assert.equal(created.body.verified,true);
+  const readback=await asBody(await handleV3(req('/api/v3/profile','GET',null,cookie),e));
+  assert.equal(readback.body.prompt,firstPrompt);
+  const changed='Chuyên nghiệp, rõ ràng, đi thẳng trọng tâm; phản biện có căn cứ, không đồng tình vô điều kiện.';
+  const updated=await asBody(await handleV3(req('/api/v3/profile','PUT',{prompt:changed,revision:1},cookie),e));
+  assert.equal(updated.body.revision,2);
+  assert.equal(updated.body.prompt,changed);
+  assert.equal(updated.body.verified,true);
+  assert.equal((await asBody(await handleV3(req('/api/v3/profile','GET',null,cookie),e))).body.prompt,changed);
   assert.equal((await handleV3(req('/api/v3/profile','PUT',{prompt:'stale edit',revision:0},cookie),e)).status,409);
+  assert.equal((await asBody(await handleV3(req('/api/v3/profile','GET',null,cookie),e))).body.prompt,changed);
   const mem=await asBody(await handleV3(req('/api/v3/memories','POST',{body:'Ưu tiên báo cáo ngắn'},cookie),e));
   assert.equal(mem.status,201);
   const edited=await asBody(await handleV3(req('/api/v3/memories/'+mem.body.id,'PUT',{body:'Chỉ báo cáo đúng trọng tâm'},cookie),e));
