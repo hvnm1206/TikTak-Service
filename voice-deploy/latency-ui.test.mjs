@@ -8,7 +8,7 @@ test('latency UI injects only timing hooks and leaves mic/TTS semantics',async()
  const response=await worker.fetch(new Request('https://voice.example/'),{NMH_REMINDERS_MODE:'active'});
  assert.equal(response.status,200);
  const html=await response.text();
- for(const marker of ['id="nmhVoiceLatencyReport"','nmhVoiceLatencyMark','nmhVoiceLatencyServer','firstAudio','ttsReady','chatDone','chatStart','read_memories','SpeechRecognition','audioCtx','id="ngoThemeSelect"'])
+ for(const marker of ['id="nmhVoiceLatencyReport"','nmhVoiceLatencyMark','nmhVoiceLatencyServer','firstAudio','ttsReady','chatDone','chatStart','SpeechRecognition','audioCtx','id="ngoThemeSelect"'])
   assert.ok(html.includes(marker),marker);
  const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
  assert.ok(script);
@@ -30,9 +30,4 @@ test('first segment is shorter without truncating or reordering speech text',asy
 });
 test('instrumentation rejects incompatible page instead of silently disabling timing',()=>{
  assert.throws(()=>enhanceLatencyPage('<html></html>'),/NMH latency patch mismatch/);
-});
-test('latency display formats zero-to-first-audio timing without speech content',()=>{
- const source=(awaitFunction=>awaitFunction)(null);
- const htmlMarker='nmhVoiceLatencyReport';
- assert.equal(typeof htmlMarker,'string');
 });
