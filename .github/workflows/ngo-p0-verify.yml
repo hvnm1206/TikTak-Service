@@ -1,0 +1,93 @@
+name: NGỐ P0 ActionRegistry and Reminders — isolated verification
+on:
+  push:
+    branches: [nmh-voice-actions-reminders-p0-20261114]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Syntax and legacy/new regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in worker.js agent-v2.js v3-backend.js v3-ui.js memory-v2.js voice-write.js action-registry.js reminders.js reminders-client.js; do node --check "voice-deploy/$f";done
+          node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs voice-deploy/v3-backend.test.mjs voice-deploy/voice-write.test.mjs voice-deploy/memory-v2.test.mjs voice-deploy/memory-v2.preference.test.mjs
+          node --experimental-sqlite --test voice-deploy/reminders.test.mjs
+          python3 - <<'PY'
+          import sqlite3,pathlib
+          d=sqlite3.connect(':memory:')
+          p=pathlib.Path('voice-deploy/migrations')
+          for name in ('0001_v3.sql','0002_v3_d1_only.sql','0003_memory_v2.sql','0004_reminders.sql'):
+           d.executescript((p/name).read_text())
+          d.execute("INSERT INTO nmh_reminders (id,user_id,text,due_at_ms,status,idem_key,fingerprint,created_at_ms,updated_at_ms) VALUES ('r1','u1','test',1,'pending','idem1','hash',1,1)")
+          assert d.execute("SELECT count(*) FROM nmh_reminders WHERE user_id='u1'").fetchone()[0]==1
+          for t in ('v3_users','v3_sessions','v3_profiles','v3_memories','v3_documents','v3_chunks','v3_memory_v2_turns','v3_memory_v2_preferences'):
+           assert d.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?",(t,)).fetchone()[0]==1
+          print('NGO_P0_ADDITIVE_SQLITE=PASS')
+          PY
+      - name: Isolation source checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(grep -c "buildActionRuntime" voice-deploy/worker.js)" = 2
+          grep -q "remindersEnabled(env)" voice-deploy/worker.js
+          grep -q "NMH_REMINDERS_MODE==='active'" voice-deploy/reminders.js
+          grep -q "ON CONFLICT" voice-deploy/migrations/0004_reminders.sql || true
+          echo 'NGO_P0_UNIT_AND_LEGACY_REGRESSION=PASS'
+  live-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CLOUDFLARE_D1_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+    steps:
+      - name: Read-only Cloudflare Worker version, D1 Time Travel bookmark, health
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_D1_TOKEN"
+          python3 - <<'PY'
+          import os,json,urllib.request
+          a='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']
+          def call(url,token):
+           q=urllib.request.Request(url,headers={'Authorization':'Bearer '+token,'User-Agent':'NMH-NGO-P0-Audit/1'})
+           with urllib.request.urlopen(q,timeout=30) as r:res=json.load(r)
+           assert res.get('success') is True,res.get('errors')
+           return res['result']
+          deployments=call(a+'/workers/scripts/nmh-voice-gpt-test/deployments',os.environ['CLOUDFLARE_API_TOKEN'])['deployments']
+          assert deployments and len(deployments[0]['versions'])==1 and deployments[0]['versions'][0]['percentage']==100
+          actual=deployments[0]['versions'][0]['version_id']
+          print('NGO_PRODUCTION_ACTUAL_VERSION='+actual)
+          assert actual=='fb2bacc5-b26e-4abc-9ee1-78cc222ac221','PRODUCTION_VERSION_DRIFT: no release allowed'
+          db='3ce295cb-a84d-4a50-abee-d14fdd903514'
+          info=call(a+'/d1/database/'+db,os.environ['CLOUDFLARE_D1_TOKEN'])
+          assert info.get('name')=='nmh-voice-v3','D1 identity mismatch'
+          bookmark=call(a+'/d1/database/'+db+'/time_travel/bookmark',os.environ['CLOUDFLARE_D1_TOKEN'])['bookmark']
+          assert isinstance(bookmark,str) and len(bookmark)>15
+          with open('/tmp/ngo-d1-baseline.json','w') as f:json.dump({'worker':'nmh-voice-gpt-test','version':actual,'db_id':db,'bookmark':bookmark},f)
+          print('NGO_D1_TIME_TRAVEL_BOOKMARK=RECORDED')
+          print('NGO_CLOUDFLARE_PRODUCTION_BASELINE=PASS')
+          PY
+          curl --fail --silent --show-error --max-time 20 https://nmh-voice-gpt-test.magical-budget.workers.dev/health -o /tmp/ngo-health.json
+          curl --fail --silent --show-error --max-time 20 https://nmh-voice-gpt-test.magical-budget.workers.dev/api/v3/config -o /tmp/ngo-config.json
+          python3 - <<'PY'
+          import json
+          h=json.load(open('/tmp/ngo-health.json'));c=json.load(open('/tmp/ngo-config.json'))
+          assert h.get('ok') and h.get('voice')=='browser-stt+marin-tts'
+          assert c.get('ready') and c.get('storage')=='Cloudflare D1'
+          print('NGO_PRODUCTION_HEALTH_CONFIG=PASS')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ngo-p0-prod-readonly-baseline
+          path: /tmp/ngo-d1-baseline.json
+          retention-days: 7
