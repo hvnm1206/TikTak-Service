@@ -107,6 +107,9 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     ...personal
   ].join("\n");
   const input=messages.slice(-16).map(m=>({role:m.role,content:str(m.content,1500)}));
+  // Tool access is scoped to the CURRENT user turn, not previous note requests in history.
+  const currentQuestion=String(messages.at(-1)?.content||"");
+  const allowNoteTool=typeof onSaveNote==="function"&&/(?:ghi\s+(?:lại|chú|vào)|lưu\s+(?:lại|vào|giúp)|chép\s+(?:lại|vào)|nhớ\s+(?:giúp|hộ|rằng)|thêm\s+vào\s+ghi\s+chú|giữ\s+lại|để\s+dành)/iu.test(currentQuestion);
   const allSources=[];const toolCalls=[];let webSearchCalls=0;let usage={input_tokens:0,output_tokens:0,cached_input_tokens:0,api_calls:0};let response=null;
   for(let round=0;round<3;round++){
     const controller=new AbortController();
@@ -115,7 +118,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     let r;
     try{
       r=await fetchImpl(API,{method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},
-        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:webSearchCalls?[...TOOLS,...(onSaveNote?[SAVE_NOTE_TOOL]:[])]:[...TOOLS,...(onSaveNote?[SAVE_NOTE_TOOL]:[]),WEB_SEARCH],...(webSearchCalls?{}:{max_tool_calls:1}),tool_choice:round===2?"none":"auto",reasoning:{effort:"none"},max_output_tokens:460,store:false})});
+        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:webSearchCalls?[...TOOLS,...(allowNoteTool?[SAVE_NOTE_TOOL]:[])]:[...TOOLS,...(allowNoteTool?[SAVE_NOTE_TOOL]:[]),WEB_SEARCH],...(webSearchCalls?{}:{max_tool_calls:1}),tool_choice:round===2?"none":"auto",reasoning:{effort:"none"},max_output_tokens:460,store:false})});
       if(!r.ok)throw Error(r.status===401?"API key không hợp lệ":r.status===429?"API hết hạn mức":r.status===400?"OpenAI HTTP 400: cần kiểm tra quyền hỗ trợ web_search của model/API key":"OpenAI HTTP "+r.status);
       response=await r.json();
     }finally{clearTimeout(tm)}
@@ -152,6 +155,12 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
       try{const args=JSON.parse(c.arguments||"{}");data=c.name==="save_note"?(onSaveNote?await onSaveNote(args.content):fnOutput(false,{error:"Tính năng ghi chú chưa sẵn sàng"})):await callTool(c.name,args,{fetchImpl:toolFetchImpl,signal});}
       catch(e){data=fnOutput(false,{error:"Nguồn hiện không truy cập được: "+String(e?.message||"unknown").slice(0,100)})}
       toolCalls.push(c.name);
+      if(c.name==="save_note"&&!allowNoteTool){
+        // Upstream model made an unrequested call: NEVER surface a save-note error as the conversation answer.
+        input.push(...response.output);
+        input.push({type:"function_call_output",call_id:c.call_id,output:JSON.stringify({ok:false,error:"Do not save. Respond to the actual current user question."})});
+        continue;
+      }
       if(c.name==="save_note"){
         const answer=data.ok?"Đã ghi vào file ghi chú.":str(data.data?.error||"Không lưu được ghi chú. Chưa lưu.",180);
         return {answer,sources:[],documentReferences:[],tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedWebSearchUsd:webSearchCalls*WEB_SEARCH_CALL_USD,estimatedModelUsd:Math.round(((usage.input_tokens-usage.cached_input_tokens)*0.10+usage.cached_input_tokens*0.01+usage.output_tokens*0.50)/1e6*1e8)/1e8,estimateBasis:"standard_short_context_excludes_other_fees",searchProvider:webSearchCalls?"openai_web_search":"public_sources_only"};
