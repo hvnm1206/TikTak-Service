@@ -1,5 +1,19 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## 14/11/2026 — SỬA LỖI GHI NHỚ V3 KHÔNG TRẢ LỜI ĐƯỢC CÂU HỎI GIÁN TIẾP (MỚI NHẤT)
+
+**Triệu chứng:** iPhone hiển thị ghi nhớ đã lưu trong SETUP như “Chủ nhân tên là Hải béo”, “Mày tên là Ngố”, nhưng câu “Mày biết tao là ai không?” không được GPT trả đúng. **Nguyên nhân xác minh từ source:** `loadV3Context()` ở `v3-backend.js` tính điểm trùng từ khóa `scoreSegment` rồi `filter(x=>x.score>0)`. Câu hỏi danh tính gián tiếp không có từ trùng, nên ghi nhớ đã lưu bị loại trước khi đưa vào GPT. Đây là lỗi truy xuất, không chứng minh D1 mất dữ liệu.
+
+**Đối sách đã triển khai:** Giữ ưu tiên các ghi nhớ có điểm liên quan, sau đó điền bằng ghi nhớ chủ động lưu gần đây tới giới hạn tối đa 6 mục, vẫn scoped theo Google subject. Không ép GPT ghi nhớ hội thoại, không sửa/xóa database hoặc dữ liệu cá nhân. `agent-v2.js`, STT, TTS Marin, Presence, Web Search và giao diện SETUP giữ nguyên. Không hard-code tên người hoặc câu hỏi.
+
+**Production:** Worker `nmh-voice-gpt-test`, URL `https://nmh-voice-gpt-test.magical-budget.workers.dev/`, version theo Cloudflare Wrangler **`c48b6a80-77e6-4476-a6c2-c551c1d838a8`**, source release commit `3a593ac777ff657f0368720b61c91c98ff4368da`. [Actions 43538733196](https://github.com/hvnm1206/TikTak-Service/actions/runs/43538733196): verify SUCCESS, deploy-memory-context-once SUCCESS, smoke `MEMORY_CONTEXT_EDGE_READY=1`, `MEMORY_CONTEXT_SMOKE=VOICE_V3_OAUTH_D1_WEB_DOCS_PASS`, `MEMORY_CONTEXT_RELEASE=DEPLOYED`; baseline rollback `2d766e1e-2e3c-4d08-a3b7-2599827bc4ba`. Workflow một lần đã bị gỡ khỏi source sau phát hành.
+
+**Test:** 33/33 Voice PASS và 7/7 V3 PASS, bổ sung assertions gián tiếp “Mày biết tao là ai không?” / “Bạn có biết tôi là ai không?” với ghi nhớ tên chủ nhân. Không dùng credential người dùng thật trong CI. Chưa kiểm chứng câu hỏi qua API key/Google session thật trên iPhone; không coi CI và HTTP smoke là E2E.
+
+**Điều kiện nghiệm thu thực tế:** Người dùng đã đăng nhập Google trong SETUP (cùng phiên/trình duyệt), hỏi câu danh tính bằng Voice trên URL production; kiểm tra phản hồi. Nếu sai cần đối chiếu session/cookie và ngữ cảnh trả về mà không tiết lộ nội dung ghi nhớ trong log. Các thông báo “chưa triển khai”, “ghi nhớ không hoạt động” ở ghi chú cũ phải được đối chiếu mốc này.
+
+---
+
 ## 14/11/2026 — GIẢM KHOẢNG DỪNG GIỮA CÁC ĐOẠN MARIN (MỚI NHẤT)
 
 **ĐÃ PHÁT HÀNH PRODUCTION:** NMH Voice GPT vẫn ở URL `https://nmh-voice-gpt-test.magical-budget.workers.dev/`, Worker `nmh-voice-gpt-test`. Cloudflare active version **`2d766e1e-2e3c-4d08-a3b7-2599827bc4ba`** theo Wrangler của [Actions 43537774419](https://github.com/hvnm1206/TikTak-Service/actions/runs/43537774419). Release source commit `55270efa2b0051be5a44ffcc8b161b5395c1b5ef`. Baseline rollback bảo toàn `2773a953-6c7c-4ad6-9711-5c98bc8a1418`. Verify=SUCCESS, deploy-marin-prefetch-once=SUCCESS, generic deploy=SKIPPED. Smoke `MARIN_PREFETCH_EDGE_READY=1`, `MARIN_PREFETCH_SMOKE=VOICE_V3_WEB_DOCS_SECURITY_PASS`, `MARIN_PREFETCH_RELEASE=DEPLOYED`.
