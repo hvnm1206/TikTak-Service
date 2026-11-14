@@ -157,7 +157,7 @@ jobs:
             return 1
           }
           http200_with_retry / /tmp/ngo-live-ui.html
-          for marker in 'id="start"' 'id="resume"' 'id="avatar"' 'v3MemoryV2Section' 'nmhReminderToast' 'Marin' 'ttsPrefetchCtl' 'ngoThemeCSS' 'ngoThemeSelect' 'nmh_voice_gain_v1' 'createDynamicsCompressor' 'ngoMascotStage' 'field.append(stage)' 'visual-field' 'width:min(94%,355px)' 'Mắt Ngố' 'Mắt Vịt' 'Mắt Corgi' 'ngo-eye' 'ngo-iris' 'scheduleBlink' 'nmhVoiceLatencyReport' 'nmhVoiceLatencyMark' 'firstAudio' 'ttsReady';do
+          for marker in 'id="start"' 'id="resume"' 'id="avatar"' 'v3MemoryV2Section' 'nmhReminderToast' 'Marin' 'ttsPrefetchCtl' 'ngoThemeCSS' 'ngoThemeSelect' 'nmh_voice_gain_v1' 'calculateStableAudioGain' 'ngoMascotStage' 'field.append(stage)' 'visual-field' 'width:min(94%,355px)' 'Mắt Ngố' 'Mắt Vịt' 'Mắt Corgi' 'ngo-eye' 'ngo-iris' 'scheduleBlink' 'nmhVoiceLatencyReport' 'nmhVoiceLatencyMark' 'firstAudio' 'ttsReady';do
             grep -q "$marker" /tmp/ngo-live-ui.html || { echo "::error::missing UI marker $marker";false; }
           done
           code=$(curl --silent --max-time 15 -o /tmp/ngo-anon -w '%{http_code}' "$TARGET/api/reminders/due")
