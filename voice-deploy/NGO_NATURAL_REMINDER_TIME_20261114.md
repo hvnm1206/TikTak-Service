@@ -1,5 +1,11 @@
 # Ngố — Natural Reminder Time / 14-11-2026
 
+## Kết quả sau thực thi
+- CI 71 legacy + 23 new PASS; thử tự động nói “7 giờ tối nay” → 19:00 Asia/Ho_Chi_Minh, không cần nói ISO.
+- Sandbox Cloudflare Worker và D1 riêng, claim/readback owner, rollback đúng bản và cleanup: https://github.com/hvnm1206/TikTak-Service/actions/runs/43581134027 SUCCESS.
+- Worker production chính cập nhật có kiểm soát: https://github.com/hvnm1206/TikTak-Service/actions/runs/43581221209 SUCCESS; version mới `b4b18bd1-3562-4bab-9d59-2cee3c3a399c`, rollback `253c198a-5af6-4a98-9776-ebe9b06aa424`, D1 bookmark artifact 30 ngày.
+- Không đổi URL, không đụng Ngáo, không sửa microphone/Marin/Theme/Memory. Chưa có bằng chứng người dùng iPhone thử lại sau phiên bản mới.
+
 ## Tình huống thực
 Người dùng nói “7 giờ tối nay gọi tao dậy xem bóng đá”, Ngố yêu cầu ngày và giờ đầy đủ. Người dùng phải nói lại nhiều lần dù ý định và mốc thời gian đã rõ.
 
