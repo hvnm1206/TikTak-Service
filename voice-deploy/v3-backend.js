@@ -163,7 +163,7 @@ export function memoryIntent(question){
  if(save&&save[1].trim().length>=2){
   const body=save[1].trim().slice(0,500);
   // File notes are handled by the dedicated document route; never misfile them as personal facts.
-  if(/^(?:vào\s+)?(?:file|tệp|sổ)\s+(?:ghi\s+chú|note)\b/iu.test(body))return null;
+  if(/^(?:vào\s+)?(?:file|tệp|sổ)\s+(?:ghi\s+chú|note)(?:\s|$)/iu.test(body))return null;
   return {action:'save',body};
  }
  const edit=text.match(/^(?:hãy\s+)?sửa\s+ghi\s+nhớ\s+(.+?)\s+thành\s+(.+)$/isu);
