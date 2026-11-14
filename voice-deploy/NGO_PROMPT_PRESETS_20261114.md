@@ -25,3 +25,8 @@
 - Production Guard release #43613990687 **SUCCESS**, D1 schema `presets_json`, `active_preset` được bổ sung (không xóa dữ liệu), Time Travel backup artifact được tạo. Worker version mới **`fcd54e1a-6611-4b13-8748-d73e71f5fdc1`**; rollback code **`c35801d0-a840-4d4c-adc1-155c6070489a`**.
 - Guard/Operator GET app chính HTTP 200, HTML có `savedPresets`, `selectPreset`, `activePreset`, `presetKey:selectedKey`; micro/QR còn hiện diện.
 - **Giới hạn dữ liệu cũ:** Prompt đã lưu trước migration vẫn còn, nhưng vì hệ thống cũ không lưu tên mẫu, không thể tự gắn nó với Đanh Đá nếu không có căn cứ. Người dùng cần gán/lưu một lần cho đúng mẫu nếu muốn cập nhật nút này. Không tự khẳng định đã thử bằng phiên Google/iPhone cá nhân.
+
+## UI regression correction after live screenshot
+- Root cause: selecting a preset invoked `markPromptDirty()` and triggered a false `confirm` on subsequent template clicks. Also a background profile refresh could overwrite a selected template if dirty flag was cleared. Corrected with separate `presetSelectionPending` from actual `promptDirty`.
+- Added VM-based real SETUP JS interaction tests: all 3 presets choose/edit/save/switch/reload, no phantom confirm, unsaved draft confirm only for genuine input, late refresh safe. CI #43615124322 **117/117 PASS**.
+- Must pass new Cloudflare isolated D1 sandbox then Guard release; previous production behavior should not be described as fixed until deployed.
