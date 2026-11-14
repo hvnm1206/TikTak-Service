@@ -1,5 +1,18 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## CẬP NHẬT MỚI NHẤT 14/11/2026 — ĐÃ TÁI CẤU TRÚC ĐƯỜNG GHI DỮ LIỆU NGỐ
+- **Production Worker:** `nmh-voice-gpt-test`; URL https://nmh-voice-gpt-test.magical-budget.workers.dev/ ; version thực đã deploy `d0622605-7d01-47ba-a5aa-bbb7e5262ee9`.
+- **Nguồn code:** nhánh `nmh-voice-actions-reminders-p0-20261114`; GitHub Actions production run https://github.com/hvnm1206/TikTak-Service/actions/runs/43584681227 **SUCCESS**. Version trước release để rollback: `fc8ba001-038c-4a18-a0ac-84d3f8fff952`. D1 Time Travel bookmark lưu artifact 30 ngày của run.
+- **Đã loại bỏ từ live /api/chat:** `handleVoiceMemory`, `handleVoiceNote`, `routeVoiceWrite`, regex `memoryIntent`/`voiceNoteIntent`, classifier phụ; đã xóa source cũ `voice-write.js` và test cũ. Đã gỡ thuật toán nối quan hệ multi-hop chuyên biệt và prompt về quan hệ gia đình.
+- **Đường mới:** GPT chọn `save_memory`, `save_note`, `update_memory`, `delete_memory`, `read_memories`, reminder tools; backend xác thực Google subject, kiểm chứng D1 và chỉ sau readback mới báo thành công. Memory hoạt động ngay cả khi Reminders OFF.
+- **Truy xuất:** cung cấp 20 memory gần đây + `read_memories` chỉ đọc 50 bản ghi/trang cho GPT tự suy luận. Đây chưa phải semantic/vector retrieval đã nghiệm thu độ chính xác trên tập lớn; không tuyên bố đạt phần đó.
+- **Kiểm thử tự động:** 70 legacy/new core + 27 reminder/theme tests PASS; https://github.com/hvnm1206/TikTak-Service/actions/runs/43584484132 . Sandbox real Worker + D1, migration, permission/auth, rollback đúng version, cleanup PASS https://github.com/hvnm1206/TikTak-Service/actions/runs/43584484084 .
+- **Bằng chứng production hậu phát hành:** Guarded Operator GET /health trả 200 với `writeVersion=semantic-actions-d1-readback-v1` (đã xác minh canonical không cache), GET /api/reminders/capabilities 200 `enabled:true`, GET /api/v3/config 200 `ready:true, storage:Cloudflare D1`. Đợt phát hành không đổi URL, micro, Marin, theme hoặc tài khoản Ngáo.
+- **Giới hạn chưa PASS:** chưa có kiểm thử GPT Responses API bằng key thực + Google session của người dùng + iPhone Siri/SpeechRecognition/Marin thực, chưa nghiệm thu tìm kiếm ngữ nghĩa quy mô lớn. CI dùng giả lập Responses API có kiểm soát để chứng minh luồng, không phải chứng cứ model thật chọn đúng công cụ mọi câu.
+- **Bài thử iPhone bắt buộc:** nói yêu cầu lưu dữ kiện bất kỳ → nghe xác nhận D1; refresh → hỏi lại; yêu cầu sửa/xóa; ghi chú; đặt nhắc bằng thời gian tự nhiên; hội thoại thường không tạo ghi nhớ; kiểm micro/Marin/theme. Nếu lỗi cần dùng actionErrorCode và log đã được phép đọc để truy gốc. Không coi 7/7 đã hoàn thành nếu chưa UAT.
+- **Các version cũ ở dưới chỉ là nhật ký lịch sử**, không thay thế kết quả mới nhất.
+
+
 ## BẢN CHÍNH NGỐ — SỬA THỜI GIAN NHẮC TỰ NHIÊN 14/11/2026
 - Worker chính `nmh-voice-gpt-test` URL https://nmh-voice-gpt-test.magical-budget.workers.dev/ bản đang chạy `b4b18bd1-3562-4bab-9d59-2cee3c3a399c`.
 - Người dùng nói “7 giờ tối nay gọi tao dậy xem bóng đá”, Ngố bị ép ngày/giờ ISO, yêu cầu lặp lại. Đã sửa prompt cho GPT tự hiểu ngày/giờ theo ngữ cảnh và giờ Việt Nam; backend validate máy `HH:mm`, `YYYY-MM-DDTHH:mm`, `YYYY-MM-DDTHH:mm:ss`; không ép hỏi ngày khi nói tối nay. Không hardcode router theo câu nói.
