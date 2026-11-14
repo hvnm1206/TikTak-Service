@@ -12,7 +12,8 @@ const env=()=>{
    bind(...values){args=values;return this},
    async first(){
     if(sql.startsWith('SELECT user_id,expires_at FROM v3_sessions'))return sessions.get(args[0])||null;
-    if(sql.startsWith('SELECT id,raw_text,segment_count FROM v3_documents'))return [...documents.values()].find(d=>d.user_id===args[0]&&d.name===args[1])||null;
+    if(sql.startsWith('SELECT id,raw_text,segment_count FROM v3_documents'))return [...documents.values()].find(d=>d.user_id===args[0]&&(sql.includes('AND name=?')?d.name===args[1]:d.id===args[1]))||null;
+    if(sql.startsWith('SELECT body FROM v3_chunks'))return chunks.get(args[1]+'|'+args[2])||null;
     return null;
    },
    async all(){
@@ -46,6 +47,8 @@ test('explicit note commands append to a single per-user Markdown file and are r
  assert.equal(e.NMH_DB.writes,0);
  let r=await handleVoiceNote(req(),e,'Ghi vào file ghi chú mua bóng đèn ngày mai');
  assert.equal(r.answer,'Đã ghi vào file ghi chú.');
+ assert.equal(r.saved,true);
+ assert.equal(r.noteSegment,1);
  assert.deepEqual(r.tools,['save_note']);
  r=await handleVoiceNote(req(),e,'Thêm vào ghi chú kiểm tra máy bơm');
  assert.equal(r.answer,'Đã ghi vào file ghi chú.');
@@ -72,4 +75,18 @@ test('no cookie cannot read or write private notes, and failure must not report 
  assert.match(deniedRead.answer,/đăng nhập Google/);
  const invalid=await handleVoiceNote(req(),e,'Ghi vào file ghi chú '+ 'A'.repeat(501));
  assert.match(invalid.answer,/Chưa lưu/);
+});
+
+test('never claims saved when D1 write returns success but subsequent read is missing',async()=>{
+ const e=env();
+ const first=e.NMH_DB.prepare.bind(e.NMH_DB);
+ e.NMH_DB.prepare=(sql)=>{
+   const statement=first(sql);
+   if(sql.startsWith('SELECT body FROM v3_chunks'))statement.first=async()=>null;
+   return statement;
+ };
+ const r=await handleVoiceNote(req(),e,'Ghi vào file ghi chú kiểm tra chứng từ');
+ assert.match(r.answer,/chưa lưu thành công/i);
+ assert.ok(!r.saved);
+ assert.ok(!r.tools.includes('save_note'));
 });
