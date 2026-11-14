@@ -7,7 +7,7 @@ permissions:
 jobs:
   pilot-release:
     if: >-
-      startsWith(github.event.head_commit.message, 'release(memory-v2): authorized production pilot')
+      startsWith(github.event.head_commit.message, 'release(voice): verified voice-write repair 20261114')
     runs-on: ubuntu-latest
     timeout-minutes: 22
     concurrency:
@@ -56,7 +56,7 @@ jobs:
           items=call(root+'/workers/scripts/nmh-voice-gpt-test/deployments',os.environ['CLOUDFLARE_API_TOKEN'])['deployments']
           assert items and len(items[0].get('versions',[]))==1 and items[0]['versions'][0].get('percentage')==100
           version=items[0]['versions'][0]['version_id']
-          assert version=='51bd4dde-0d73-455c-b1ed-6bac8965de66','Production drift; deny release'
+          assert version=='76688639-c6be-483c-920b-367e81a9a51d','Production drift; deny release'
           bookmark=call(root+'/d1/database/'+os.environ['PROD_D1_ID']+'/time_travel/bookmark',os.environ['CLOUDFLARE_D1_TOKEN']).get('bookmark')
           assert isinstance(bookmark,str) and len(bookmark)>20,'No D1 restore bookmark: refuse release'
           qurl=root+'/d1/database/'+os.environ['PROD_D1_ID']+'/query'
