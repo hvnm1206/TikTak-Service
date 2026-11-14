@@ -261,3 +261,5 @@ jobs:
           echo "DEPLOY_SECURITY=VALIDATION_OK"
           trap - ERR
           echo "DEPLOY_FINAL=SUCCESS"
+
+# One-shot non-production Web Search version upload requested 2026-11-14.
