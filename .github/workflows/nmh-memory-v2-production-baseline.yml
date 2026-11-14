@@ -47,6 +47,9 @@ jobs:
             'memory_v2_opted_in':'SELECT COUNT(*) AS n FROM v3_memory_v2_preferences WHERE enabled=1',
             'memory_v2_turns':'SELECT COUNT(*) AS n FROM v3_memory_v2_turns',
             'note_files':'SELECT COUNT(*) AS n FROM v3_documents WHERE name=\'GHI_CHU.md\'',
+            'note_segments':'SELECT COALESCE(SUM(segment_count),0) AS n FROM v3_documents WHERE name=\'GHI_CHU.md\'',
+            'note_chunks':'SELECT COUNT(*) AS n FROM v3_chunks WHERE doc_id IN (SELECT id FROM v3_documents WHERE name=\'GHI_CHU.md\')',
+            'recent_memories':'SELECT COUNT(*) AS n FROM v3_memories WHERE created_at > 1794636000000',
           }
           for key,sql in queries.items():
            reply=http(url,os.environ['CLOUDFLARE_D1_TOKEN'],{'sql':sql,'params':[]})
