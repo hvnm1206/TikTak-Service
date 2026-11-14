@@ -18,3 +18,9 @@ The user's complaint is real; actual iPhone timing measurements are not yet avai
 5. Real iPhone UAT still required: speak, look at SETUP latency metrics after turn, compare repeated normal/search cases, verify mic/Marin, interruption, visual themes and reminders.
 
 Interpretation: only timing measurements from physical iPhone can support a quantitative speed improvement claim; no paid API was added.
+## Verified execution result
+- CI: https://github.com/hvnm1206/TikTak-Service/actions/runs/43599883353, 72 core + 32 reminder/theme/latency = **104 PASS**. Includes D1 Memory success path and timing metadata, source-script compile, existing Marin prefetch/interrupt, and 180/440-char text preservation.
+- Cloudflare isolated Worker+remote D1, migrations, claims, exact rollback and cleanup: https://github.com/hvnm1206/TikTak-Service/actions/runs/43599883356 **SUCCESS**.
+- Guarded production GitHub Actions: https://github.com/hvnm1206/TikTak-Service/actions/runs/43599996114 **SUCCESS**; current Worker version `c547c24a-ff0a-4b6d-afe4-1bbdd80d23d9`, previous rollback `f24ae459-324a-4aef-96d0-7713454d62e4`. D1 Time Travel bookmark artifact preserved in release workflow.
+- New timing labels available in SETUP after speaking. Note: `GPT/API` includes browser→Worker network and request processing; `GPT server` includes Responses API plus any tool calls; `Marin → tiếng đầu` includes request, decoding and starting AudioContext.
+- No verified physical-iPhone timings yet. Actual reduction in seconds must be determined from 3-5 recorded turns across simple and search-required questions, not estimates.
