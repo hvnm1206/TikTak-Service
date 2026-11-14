@@ -76,3 +76,5 @@ jobs:
 # Live counts audit, no personal data read or modified.
 
 # Repeat read-only document segment audit; no personal contents retrieved.
+
+# 2026-11-14 spot-check actual long-term memory and timestamp aggregates, read only.
