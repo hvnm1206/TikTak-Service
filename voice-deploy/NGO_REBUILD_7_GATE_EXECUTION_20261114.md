@@ -56,3 +56,9 @@ Không dùng hardcode câu, tên, quan hệ, ngành hoặc regex nhận diện n
 - Trường hợp tool-call lệch lượt `TURN_MISMATCH` phải cho GPT tiếp tục trả lời câu hỏi bình thường vì không có thao tác ghi. Các lỗi write thật (DB/auth/validate) trả ACK thất bại được backend xác thực, không cho model phủ nhận.
 - Bổ sung bài kiểm thử mô phỏng model báo thành công sai sau lỗi D1; xác nhận trả lời vẫn là lỗi thật.
 - Thay đổi này là hotfix hậu deploy; cần CI, sandbox Worker+D1, pin version production `d0622605-7d01-47ba-a5aa-bbb7e5262ee9` rồi mới phát hành bản hotfix.
+
+## Root cause của hai rollback sau khi thêm receipt integrity
+- Lần đầu workflow rollback ngay sau deploy vì `/api/docs/maintenance` trả 502; sau khi thêm HTTP status diagnostic và retry 8 lần, endpoint này vẫn trả 502 tất cả các lượt. Bằng chứng: run https://github.com/hvnm1206/TikTak-Service/actions/runs/43585731703 (strict retry, rollback version d062 thành công).
+- Source `worker.js` đọc GitHub Contents API, rồi fallback Raw. Fallback **khóa vào đúng tiêu đề** `## A. HIỆN TRẠNG ĐANG CHẠY`. Sau khi MAINTENANCE chính đã được thu gọn, tiêu đề này không còn; khi GitHub API bị hạn mức, fallback từ chối tài liệu Markdown hiện hành → 502. Đây là lỗi hardcode có thật của phụ thuộc tài liệu, không phải GPT.
+- Fix: fallback chỉ validate kích thước, định dạng Markdown tổng quát, không HTML/script; trả header `x-nmh-doc-source=github-raw-fallback-freshness-unverified` để không tự nhận độ mới khi API chính thất bại. Test GitHub HTTP 403 với tiêu đề mới và kiểm tra phản hồi; không bỏ smoke `/api/docs/maintenance`.
+- Cần chạy lại sandbox và production release; rollback version `d0622605-7d01-47ba-a5aa-bbb7e5262ee9` đã xác minh thành công.
