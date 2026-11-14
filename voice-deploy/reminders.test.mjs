@@ -5,7 +5,8 @@ import {readFileSync} from 'node:fs';
 import {executeReminderAction,handleReminderApi,remindersEnabled,reminderToolSchemas} from './reminders.js';
 import {enhanceReminderPage} from './reminders-client.js';
 import {runAgent} from './agent-v2.js';
-import {matchesCurrentUtterance} from './action-registry.js';
+import {matchesCurrentUtterance,buildActionRuntime,memoryToolSchema} from './action-registry.js';
+import {createHash} from 'node:crypto';
 
 function dbFixture(){
  const sqlite=new DatabaseSync(':memory:');
@@ -217,4 +218,70 @@ test('reminder prompt instructs GPT to understand natural time, not demand dates
  });
  assert.equal(r.actionOk,true);assert.match(r.answer,/Đã đặt nhắc/);
  assert.match(instructions,/không bắt người dùng nói ngày tháng/);
+});
+
+test('a Vietnamese personal fact is a memory, never a reminder; Google session scoped D1 readback',async()=>{
+ const {db,sqlite}=dbFixture();
+ const raw='A'.repeat(43), hash=createHash('sha256').update(raw).digest('hex');
+ const subject='google-user-A';
+ sqlite.prepare('INSERT INTO v3_users(id,name,created_at) VALUES (?,?,?)').run(subject,'Test User',Date.now());
+ sqlite.prepare('INSERT INTO v3_sessions(token_hash,user_id,expires_at,created_at) VALUES (?,?,?,?)').run(hash,subject,Date.now()+600000,Date.now());
+ const utterance='Tao muốn mày ghi nhớ rằng mẹ của Minh mèo tên là Thanh Vịt';
+ const request=new Request('https://ngo.example/api/chat',{headers:{cookie:'__Host-nmhv3='+raw}});
+ const env={NMH_DB:db,NMH_REMINDERS_MODE:'active',NMH_V3_GOOGLE_CLIENT_ID:'691734271661-abcdef.apps.googleusercontent.com'};
+ const action=buildActionRuntime({request,env,utterance,requestId:'mem-unit'});
+ assert.ok(action.tools.some(x=>x.name==='save_memory'));
+ const saved=await action.execute('save_memory',{body:'Mẹ của Minh mèo tên là Thanh Vịt',utterance_quote:'mẹ của Minh mèo tên là Thanh Vịt'});
+ assert.equal(saved.ok,true);
+ assert.equal(saved.status,'verified');
+ const m=sqlite.prepare('SELECT user_id,body FROM v3_memories').all();
+ assert.deepEqual(m,[{user_id:subject,body:'Mẹ của Minh mèo tên là Thanh Vịt'}]);
+ assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM nmh_reminders').get().n,0);
+ const forged=await action.execute('save_memory',{body:'Thông tin không được yêu cầu',utterance_quote:'đây không phải lời nói người dùng'});
+ assert.equal(forged.ok,false);
+ assert.equal(forged.errorCode,'TURN_MISMATCH');
+ assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM v3_memories').get().n,1);
+});
+test('natural GPT memory tool is returned as verified storage, never an invalid timed reminder',async()=>{
+ let instructions='';
+ const out=await runAgent({apiKey:'sk-abcdefghijklmnopqrstuvwxyz123456',
+  messages:[{role:'user',content:'Tao muốn mày ghi nhớ rằng mẹ của Minh mèo tên là Thanh Vịt'}],
+  actionRuntime:{tools:[...reminderToolSchemas,memoryToolSchema],execute:async(name,args)=>{
+   assert.equal(name,'save_memory');
+   assert.equal(args.body,'Mẹ của Minh mèo tên là Thanh Vịt');
+   return {ok:true,status:'verified',answer:'Đã ghi nhớ: Mẹ của Minh mèo tên là Thanh Vịt'};
+  }},
+  fetchImpl:async(_url,options)=>{
+   const body=JSON.parse(options.body);instructions=body.instructions;
+   return new Response(JSON.stringify({output:[{type:'function_call',call_id:'save-1',name:'save_memory',arguments:JSON.stringify({
+    body:'Mẹ của Minh mèo tên là Thanh Vịt',utterance_quote:'mẹ của Minh mèo tên là Thanh Vịt'})}],usage:{input_tokens:120,output_tokens:50}}),{status:200});
+  }});
+ assert.equal(out.actionOk,true);
+ assert.match(out.answer,/Đã ghi nhớ/);
+ assert.match(instructions,/KHÔNG phải đặt lời nhắc/);
+});
+test('wrong reminder time routes tool feedback back to GPT to recover as memory',async()=>{
+ const memoryMessage='Ghi nhớ rằng mẹ của Minh mèo tên là Thanh Vịt';
+ let round=0;
+ const out=await runAgent({apiKey:'sk-abcdefghijklmnopqrstuvwxyz123456',
+  messages:[{role:'user',content:memoryMessage}],
+  actionRuntime:{tools:[...reminderToolSchemas,memoryToolSchema],execute:async(name,args)=>{
+   if(name==='set_reminder')return {ok:false,status:'failed',errorCode:'TIME',answer:'Chưa đặt: khoảng thời gian chưa hợp lệ'};
+   assert.equal(name,'save_memory');
+   return {ok:true,status:'verified',answer:'Đã ghi nhớ: Mẹ của Minh mèo tên là Thanh Vịt'};
+  }},
+  fetchImpl:async(_url,options)=>{
+   round++;
+   const body=JSON.parse(options.body);
+   if(round===1)return new Response(JSON.stringify({output:[{type:'function_call',call_id:'bad1',name:'set_reminder',arguments:JSON.stringify({
+    text:'Mẹ của Minh mèo tên là Thanh Vịt',utterance_quote:'mẹ của Minh mèo tên là Thanh Vịt',
+    mode:'relative',delay_seconds:0,local_at:'',timezone:'Asia/Ho_Chi_Minh'})}],usage:{input_tokens:30,output_tokens:25}}),{status:200});
+   assert.ok(body.input.some(x=>x.type==='function_call_output'&&JSON.parse(x.output).error==='TIME'));
+   return new Response(JSON.stringify({output:[{type:'function_call',call_id:'mem2',name:'save_memory',arguments:JSON.stringify({
+    body:'Mẹ của Minh mèo tên là Thanh Vịt',utterance_quote:'mẹ của Minh mèo tên là Thanh Vịt'})}],usage:{input_tokens:20,output_tokens:20}}),{status:200});
+  }});
+ assert.equal(round,2);
+ assert.equal(out.actionOk,true);
+ assert.match(out.answer,/Đã ghi nhớ/);
+ assert.doesNotMatch(out.answer,/khoảng thời gian/);
 });
