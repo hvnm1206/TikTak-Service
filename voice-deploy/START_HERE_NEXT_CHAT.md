@@ -1,5 +1,14 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## TRẠNG THÁI PHÁT HÀNH MỚI NHẤT — NGỐ VOLUME + THEME 14/11/2026
+- Production URL giữ nguyên: https://nmh-voice-gpt-test.magical-budget.workers.dev/ ; phiên bản hotfix cuối **`253c198a-5af6-4a98-9776-ebe9b06aa424`**.
+- Volume: SETUP slider GainNode 1–2.5x default 1.55x, DynamicsCompressor. NMH Presence Audio Analyser còn hoạt động; không thay microphone/Marin API.
+- Theme: SETUP Mặc định/Vịt Ngố/Corgi Ngố, có SVG động theo trạng thái; chèn đúng vào `.visual-field`, ẩn #avatar chỉ khi chọn hình mới. Chuyển về Mặc định thì canvas Presence hiện lại.
+- CI 71+20 PASS; Cloudflare sandbox hotfix + rollback PASS run https://github.com/hvnm1206/TikTak-Service/actions/runs/43580057061 ; production hotfix deploy PASS run https://github.com/hvnm1206/TikTak-Service/actions/runs/43580162153 .
+- Rollback gần nhất `cd66b9f6-b7a7-4970-abf8-ce1ef19e1446`, rollback toàn bộ volume+theme về P0 `08e0bbf2-a2e5-4b98-94dc-0cfee882e5b6`. D1 bookmark 30 ngày trong run deploy. Ngáo tuyệt đối không đụng.
+- **Chưa UAT iPhone thật:** người dùng sẽ thử volume và đổi theme trên bản chính; phải nhận lỗi/ảnh/log từ thiết bị trước khi tuyên bố đạt thực tế. Các thông tin version cũ phía dưới chỉ là lịch sử.
+
+
 ## ĐIỂM CHỐT MỚI — NGỐ AUDIO + THEME ĐÃ DEPLOY BẢN CHÍNH 14/11/2026
 - Production: https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Version `cd66b9f6-b7a7-4970-abf8-ce1ef19e1446`. Source nhánh `nmh-voice-actions-reminders-p0-20261114` (KHÔNG deploy từ nhánh docs `nmh-voice-gpt-v1`).
 - Đã bổ sung WebAudio GainNode 1–2.5x (default 1.55x) + DynamicsCompressor bằng hậu xử lý `volume-ui.js`, để không xung đột `presence-ui.js` và avatar âm thanh. Thanh âm lượng ở SETUP.
