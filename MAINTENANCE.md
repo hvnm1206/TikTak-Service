@@ -1,5 +1,17 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## 14/11/2026 — GIẢM KHOẢNG DỪNG GIỮA CÁC ĐOẠN MARIN (MỚI NHẤT)
+
+**ĐÃ PHÁT HÀNH PRODUCTION:** NMH Voice GPT vẫn ở URL `https://nmh-voice-gpt-test.magical-budget.workers.dev/`, Worker `nmh-voice-gpt-test`. Cloudflare active version **`2d766e1e-2e3c-4d08-a3b7-2599827bc4ba`** theo Wrangler của [Actions 43537774419](https://github.com/hvnm1206/TikTak-Service/actions/runs/43537774419). Release source commit `55270efa2b0051be5a44ffcc8b161b5395c1b5ef`. Baseline rollback bảo toàn `2773a953-6c7c-4ad6-9711-5c98bc8a1418`. Verify=SUCCESS, deploy-marin-prefetch-once=SUCCESS, generic deploy=SKIPPED. Smoke `MARIN_PREFETCH_EDGE_READY=1`, `MARIN_PREFETCH_SMOKE=VOICE_V3_WEB_DOCS_SECURITY_PASS`, `MARIN_PREFETCH_RELEASE=DEPLOYED`.
+
+**Nguyên nhân đã xác định bằng source:** `speak()` cũ đợi `audioSource.onended` mới bắt đầu `fetchSpeechAudio` cho câu kế, gây khoảng im lặng theo độ trễ API TTS/giải mã. **Đối sách:** `worker.js` phát đoạn hiện tại đồng thời prefetch duy nhất đoạn kế tiếp; sau onended lấy âm thanh chuẩn bị sẵn. Chỉ một audio source được phát tại một thời điểm; controller prefetch bị abort khi NGẮT/KẾT THÚC hoặc `closeVoice()`. Giữ nguyên Marin TTS, STT Safari, Web Search, Presence, SETUP, OAuth và D1. Việc prefetch có thể tạo TTS sớm cho một đoạn chưa nghe nếu người dùng ngắt; đó là giới hạn chi phí phát sinh cần theo dõi.
+
+**Bằng chứng:** [CI 43537604994](https://github.com/hvnm1206/TikTak-Service/actions/runs/43537604994) 33/33 Voice PASS + 7/7 V3 PASS; hai test mới kiểm tra bắt đầu fetch đoạn kế **trước** khi đoạn trước kết thúc, giữ thứ tự và không phát sau khi interrupt. CI release 43537774419 SUCCESS và HTTP production `/health`/config/HTML smoke PASS. Workflow one-shot đã gỡ khỏi nhánh sau triển khai (commit `ed9617b66b1f5fe4310001219a89ca180b9725c5`).
+
+**Giới hạn nghiệm thu:** Chưa đo trực tiếp số mili giây khoảng dừng hay kiểm thử nghe thực trên iPhone sau sửa. Do TTS phía mạng có thể chậm hơn thời gian phát đoạn hiện tại, prefetch giảm nhưng không bảo đảm 0 ms trong mọi trường hợp. Không tuyên bố nghiệm thu chất lượng giọng thực tế chỉ từ CI/HTTP.
+
+---
+
 ## 14/11/2026 — WEB SEARCH ĐÃ DEPLOY LÊN PRODUCTION (TRẠNG THÁI MỚI NHẤT)
 
 **ĐÃ PHÁT HÀNH SOURCE, CHƯA NGHIỆM THU API KEY/IPHONE:** Worker chính thức `nmh-voice-gpt-test`, URL `https://nmh-voice-gpt-test.magical-budget.workers.dev/`, Cloudflare version **`2773a953-6c7c-4ad6-9711-5c98bc8a1418`** theo log Wrangler của [GitHub Actions 43536444631](https://github.com/hvnm1206/TikTak-Service/actions/runs/43536444631). Source release commit `0ab0be0fa7237ef1a4d80864c84ad86f7a991c59`. Verify=SUCCESS, deploy-web-search-once=SUCCESS, previous generic deploy=SKIPPED; predeploy Cloudflare API xác nhận baseline `8cc6032c-0035-414c-8217-7ea5e91825e5`. Smoke PASS: `POST_DEPLOY_RUNTIME=PASS_ATTEMPT_1`, `WEB_SEARCH_RELEASE_SMOKE=VOICE_UI_V3_DOCS_SECURITY_PASS`, `WEB_SEARCH_RELEASE=DEPLOYED`. One-shot release gate đã được gỡ ngay sau release (commit `d1298bbbb8cd6d20d6d6daf39bc72a1a85a152eb`).
