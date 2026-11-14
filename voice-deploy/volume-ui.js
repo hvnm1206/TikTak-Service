@@ -9,10 +9,11 @@ export function calculateStableAudioGain(decoded, userGain=1.55){
     const stride=Math.max(1,Math.ceil(length/4096));
     for(let channel=0;channel<Math.min(n,2);channel++){
       const data=decoded.getChannelData(channel);
-      for(let i=0;i<data.length;i+=stride){
+      for(let i=0;i<data.length;i++){
         const a=Math.abs(data[i]);
         if(!Number.isFinite(a))continue;
-        sum+=a*a;count++;peak=Math.max(peak,a);
+        peak=Math.max(peak,a);
+        if(i%stride===0){sum+=a*a;count++}
       }
     }
   }catch{return 1}
