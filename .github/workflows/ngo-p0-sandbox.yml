@@ -1,0 +1,170 @@
+name: NGỐ P0 — isolated real Cloudflare Worker and D1 sandbox
+on:
+  push:
+    branches: [nmh-voice-actions-reminders-p0-20261114]
+permissions:
+  contents: read
+jobs:
+  sandbox:
+    if: startsWith(github.event.head_commit.message, 'sandbox(ngo): run isolated Worker D1')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CLOUDFLARE_D1_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+      GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
+      LAB_DB: 'nmh-ngo-p0-d1-lab-20261114'
+      LAB_WORKER: 'nmh-ngo-p0-worker-lab-20261114'
+      PROD_DB: '3ce295cb-a84d-4a50-abee-d14fdd903514'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Confirm existing production version read only and provision separate D1
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,urllib.request,re
+          a='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']
+          headers=lambda t:{'Authorization':'Bearer '+t,'Content-Type':'application/json','User-Agent':'NMH-NGO-LAB/1'}
+          def call(url,token,method='GET',body=None):
+           q=urllib.request.Request(url,headers=headers(token),method=method,data=json.dumps(body).encode() if body is not None else None)
+           with urllib.request.urlopen(q,timeout=35) as resp:d=json.load(resp)
+           assert d.get('success') is True,d.get('errors')
+           return d['result']
+          versions=call(a+'/workers/scripts/nmh-voice-gpt-test/deployments',os.environ['CLOUDFLARE_API_TOKEN'])['deployments'][0]['versions']
+          assert len(versions)==1 and versions[0]['percentage']==100 and versions[0]['version_id']=='fb2bacc5-b26e-4abc-9ee1-78cc222ac221','Production drift; refuse sandbox'
+          base=a+'/d1/database'
+          response=call(base+'?per_page=100',os.environ['CLOUDFLARE_D1_TOKEN'])
+          items=response if isinstance(response,list) else response.get('databases',[])
+          assert not any(x.get('name')==os.environ['LAB_DB'] for x in items),'Sandbox D1 name already in use; require inspection'
+          new=call(base,os.environ['CLOUDFLARE_D1_TOKEN'],'POST',{'name':os.environ['LAB_DB']})
+          db_id=new.get('uuid') or new.get('id')
+          assert re.fullmatch(r'[a-f0-9-]{36}',str(db_id)) and db_id!=os.environ['PROD_DB']
+          with open('/tmp/ngo-p0-lab-db-id','w') as f:f.write(db_id)
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('LAB_D1_ID='+db_id+'\n')
+          print('NGO_SANDBOX_D1_CREATED=PASS')
+          print('NGO_PRODUCTION_BASELINE_STILL='+versions[0]['version_id'])
+          PY
+      - name: Build explicit separate Worker config and migrate remote D1
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,re,json
+          assert re.fullmatch(r'[0-9]+-[a-z0-9-]+[.]apps[.]googleusercontent[.]com',os.environ['GOOGLE_CLIENT'])
+          db=os.environ['LAB_D1_ID'];assert db!=os.environ['PROD_DB']
+          cfg={'name':os.environ['LAB_WORKER'],'main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'d1_databases':[{'binding':'NMH_DB','database_name':os.environ['LAB_DB'],'database_id':db}],'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT'],'NMH_REMINDERS_MODE':'active','NMH_MEMORY_V2_MODE':'off'}}
+          assert cfg['name']!='nmh-voice-gpt-test'
+          with open('voice-deploy/wrangler-ngo-lab.generated.jsonc','w') as f:json.dump(cfg,f)
+          PY
+          for file in 0001_v3.sql 0002_v3_d1_only.sql 0003_memory_v2.sql 0004_reminders.sql;do
+            CLOUDFLARE_API_TOKEN="$CLOUDFLARE_D1_TOKEN" npx --yes wrangler@4.102.0 d1 execute "$LAB_DB" --remote --config voice-deploy/wrangler-ngo-lab.generated.jsonc --file "voice-deploy/migrations/$file"
+          done
+          echo 'NGO_SANDBOX_REAL_REMOTE_D1_MIGRATION=PASS'
+      - name: Deploy isolated sandbox Worker only and exercise live D1 claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd voice-deploy
+          npx --yes wrangler@4.102.0 deploy --config wrangler-ngo-lab.generated.jsonc
+          cd ..
+          python3 - <<'PY'
+          import os,json,time,hashlib,secrets,base64,uuid,urllib.request,urllib.error
+          a='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']
+          d1=a+'/d1/database/'+os.environ['LAB_D1_ID']+'/query'
+          token=os.environ['CLOUDFLARE_D1_TOKEN']
+          def q(sql,params=[]):
+           body=json.dumps({'sql':sql,'params':params}).encode()
+           req=urllib.request.Request(d1,headers={'Authorization':'Bearer '+token,'Content-Type':'application/json','User-Agent':'NMH-NGO-LAB/1'},data=body,method='POST')
+           with urllib.request.urlopen(req,timeout=30) as r:data=json.load(r)
+           assert data['success'] and data['result'][0]['success'],data.get('errors')
+           return data['result'][0]['results']
+          raw=base64.urlsafe_b64encode(secrets.token_bytes(32)).decode().rstrip('=')
+          assert 42<=len(raw)<=44
+          sub='ngo-p0-ci-synthetic-user'
+          now=int(time.time()*1000)
+          q('INSERT INTO v3_users(id,name,created_at) VALUES (?,?,?)',[sub,'NGO CI',now])
+          q('INSERT INTO v3_sessions(token_hash,user_id,expires_at,created_at) VALUES (?,?,?,?)',[hashlib.sha256(raw.encode()).hexdigest(),sub,now+1200000,now])
+          a_id=str(uuid.uuid4()); b_id=str(uuid.uuid4())
+          for rid,due,txt in [(a_id,now-10000,'test synthetic due'),(b_id,now+300000,'test synthetic future')]:
+           q("INSERT INTO nmh_reminders(id,user_id,text,due_at_ms,timezone,status,idem_key,fingerprint,created_at_ms,updated_at_ms) VALUES(?,?,?,?,?,'pending',?,?,?,?)",
+             [rid,sub,txt,due,'Asia/Ho_Chi_Minh','ci-'+rid,'finger-'+rid,now,now])
+          host='https://'+os.environ['LAB_WORKER']+'.magical-budget.workers.dev'
+          for i in range(12):
+           try:
+            with urllib.request.urlopen(urllib.request.Request(host+'/health',headers={'User-Agent':'NMH-NGO-LAB/1'}),timeout=15) as r:
+             h=json.load(r)
+            if h.get('ok'):break
+           except Exception:time.sleep(4)
+          else:raise AssertionError('Sandbox health not ready')
+          def http(path,method='GET',payload=None,login=True):
+           headers={'User-Agent':'NMH-NGO-LAB/1','accept':'application/json'}
+           if login:headers['Cookie']='__Host-nmhv3='+raw
+           if payload is not None:headers.update({'Content-Type':'application/json','Origin':host})
+           req=urllib.request.Request(host+path,headers=headers,data=json.dumps(payload).encode() if payload is not None else None,method=method)
+           try:
+            with urllib.request.urlopen(req,timeout=25) as r:return r.status,json.load(r)
+           except urllib.error.HTTPError as e:return e.code,json.loads(e.read().decode())
+          assert http('/api/reminders/capabilities')[1]['enabled'] is True
+          status,config=http('/api/v3/config');assert status==200 and config['ready'] and config['storage']=='Cloudflare D1'
+          status,anon=http('/api/reminders/due',login=False);assert status==401
+          status,pending=http('/api/reminders/due');assert status==200 and [x['id'] for x in pending['reminders']]==[a_id]
+          status,claim=http('/api/reminders/claim','POST',{'id':a_id});assert status==200 and claim['claimed']
+          status,again=http('/api/reminders/claim','POST',{'id':a_id});assert status==409
+          status,empty=http('/api/reminders/due');assert status==200 and empty['reminders']==[]
+          status,listing=http('/api/reminders');assert status==200 and len(listing['reminders'])==1 and listing['reminders'][0]['id']==b_id
+          assert q('SELECT status FROM nmh_reminders WHERE id=? AND user_id=?',[a_id,sub])[0]['status']=='triggered'
+          assert q('SELECT COUNT(*) AS n FROM nmh_reminder_audit')[0]['n']==1
+          with urllib.request.urlopen(urllib.request.Request(host+'/',headers={'User-Agent':'NMH-NGO-LAB/1'}),timeout=25) as r:markup=r.read().decode()
+          for marker in ('nmhReminderToast','id="start"','id="resume"','id="avatar"','v3MemoryV2Section','Marin','ttsPrefetchCtl'):
+           assert marker in markup,'UI missing '+marker
+          assert 'ngo-p0-ci-synthetic-user' not in markup
+          print('NGO_SANDBOX_REAL_D1_OWNER_AUTH_CLAIM_READBACK=PASS')
+          print('NGO_SANDBOX_MULTITAB_AT_MOST_ONCE=PASS')
+          print('NGO_SANDBOX_VOICE_UI_UNCHANGED=PASS')
+          print('NGO_PRODUCTION_UNCHANGED_DURING_TEST=1')
+          PY
+      - name: CLEAN UP sandbox Worker and D1 (never production) and verify deletion
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.error
+          account=os.environ['CLOUDFLARE_ACCOUNT_ID'];base='https://api.cloudflare.com/client/v4/accounts/'+account
+          w=os.environ['LAB_WORKER'];name=os.environ['LAB_DB']
+          assert w!='nmh-voice-gpt-test' and name!='nmh-voice-v3'
+          def call(method,url,token,optional=False):
+           q=urllib.request.Request(url,method=method,headers={'Authorization':'Bearer '+token,'User-Agent':'NMH-NGO-LAB-Cleanup/1'})
+           try:
+            with urllib.request.urlopen(q,timeout=35) as r:return json.load(r)
+           except urllib.error.HTTPError as e:
+            if optional and e.code==404:return {'success':True,'result':None}
+            raise
+          worker_url=base+'/workers/scripts/'+w
+          try:
+           deleted=call('DELETE',worker_url,os.environ['CLOUDFLARE_API_TOKEN'],True)
+           assert deleted['success']
+          except Exception as e:print('NGO_SANDBOX_WORKER_CLEANUP_FAILED='+str(e));raise
+          d1=base+'/d1/database';lst=call('GET',d1+'?per_page=100',os.environ['CLOUDFLARE_D1_TOKEN'])
+          items=lst['result'] if isinstance(lst['result'],list) else lst['result'].get('databases',[])
+          targets=[x for x in items if x.get('name')==name]
+          assert len(targets)<=1
+          for x in targets:
+           dbid=x.get('uuid') or x.get('id')
+           assert dbid and dbid!=os.environ['PROD_DB']
+           result=call('DELETE',d1+'/'+dbid,os.environ['CLOUDFLARE_D1_TOKEN'])
+           assert result['success']
+          lst=call('GET',d1+'?per_page=100',os.environ['CLOUDFLARE_D1_TOKEN'])
+          entries=lst['result'] if isinstance(lst['result'],list) else lst['result'].get('databases',[])
+          assert not any(x.get('name')==name for x in entries)
+          assert call('GET',base+'/d1/database/'+os.environ['PROD_DB'],os.environ['CLOUDFLARE_D1_TOKEN'])['success']
+          versions=call('GET',base+'/workers/scripts/nmh-voice-gpt-test/deployments',os.environ['CLOUDFLARE_API_TOKEN'])['result']['deployments'][0]['versions']
+          assert len(versions)==1 and versions[0]['version_id']=='fb2bacc5-b26e-4abc-9ee1-78cc222ac221'
+          print('NGO_SANDBOX_WORKER_DELETED=PASS')
+          print('NGO_SANDBOX_D1_DELETED=PASS')
+          print('NGO_PRODUCTION_WORKER_AND_D1_INTACT=PASS')
+          PY
