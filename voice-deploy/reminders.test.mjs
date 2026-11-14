@@ -61,7 +61,7 @@ test('relative invalid time and expired absolute must fail without writes',async
  const {db,sqlite}=dbFixture();
  for(const x of [{...set,delay_seconds:0},{...set,timezone:'UTC'},{...set,mode:'absolute',delay_seconds:0,local_at:'2026-11-14T14:59:59'},
   {...set,mode:'absolute',delay_seconds:0,local_at:'2026-02-30T20:00:00'},{...set,text:'x'}, {...set,delay_seconds:2592001}]){
-  const r=await doAction(db,'set_reminder',x);assert.equal(r.ok,false);assert.match(r.answer,/Chưa đặt/);
+  const r=await doAction(db,'set_reminder',x);assert.equal(r.ok,false);assert.match(r.answer,/^Chưa (?:đặt|hiểu|lưu)/);
  }
  assert.equal(sqlite.prepare('SELECT count(*) AS n FROM nmh_reminders').get().n,0);
 });
