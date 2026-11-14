@@ -147,3 +147,5 @@ jobs:
           echo 'MEMORY_V2_PRODUCTION_SMOKE=VOICE_MARIN_SEARCH_OAUTH_D1_UI_SECURITY_PASS'
           echo 'MEMORY_V2_PRODUCTION_PILOT=DEPLOYED_ACTIVE_BUT_ACCOUNT_OPT_IN_REQUIRED'
           trap - ERR
+
+# Explicit user authorization: deploy Memory V2 to existing NMH Voice for real-world testing, no changes to Ngáo.
