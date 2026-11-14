@@ -62,7 +62,7 @@ test('eye-only selector and state animations work with DOM behavior stub, withou
  assert.ok(source);
  const handlers={}, observers=[],intervals=[],store=new Map([['nmh_voice_theme_v1','eyes']]);
  const fake=(name)=>({name,dataset:{},style:{setProperty(k,v){this[k]=v}},textContent:'',
-  addEventListener(type,fn){handlers[name+':'+type]=fn},
+  setAttribute(k,v){this[k]=v},addEventListener(type,fn){handlers[name+':'+type]=fn},
   insertAdjacentElement(){},insertAdjacentHTML(_pos,markup){this.markup=markup},
   replaceChildren(){this.markup=''},querySelectorAll(sel){
    if(!this.markup)return [];
