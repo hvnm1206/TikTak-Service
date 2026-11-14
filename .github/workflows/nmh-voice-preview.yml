@@ -135,6 +135,76 @@ jobs:
             print('D1_AGGREGATE_READONLY',json.dumps(row,sort_keys=True))
           print('D1_READONLY_AUDIT=PASS')
           PY
+
+  test-notes-live-synthetic-once:
+    needs: verify
+    if: >-
+      github.event_name == 'push' &&
+      startsWith(github.event.head_commit.message, 'audit(voice): authenticated live note write read cleanup 20261114')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+      NMH_D1_ID: '3ce295cb-a84d-4a50-abee-d14fdd903514'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Exercise REAL production HTTP → signed-in session → real D1 → GET, clean synthetic user
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.error,uuid,secrets,base64,hashlib,time
+          token=os.environ['CLOUDFLARE_API_TOKEN'];assert token
+          account=os.environ['CLOUDFLARE_ACCOUNT_ID'];database=os.environ['NMH_D1_ID']
+          endpoint=f'https://api.cloudflare.com/client/v4/accounts/{account}/d1/database/{database}/query'
+          host='https://nmh-voice-gpt-test.magical-budget.workers.dev'
+          sub='nmh_voice_synthetic_ci_'+uuid.uuid4().hex[:20]
+          session=base64.urlsafe_b64encode(secrets.token_bytes(32)).decode().rstrip('=')
+          digest=hashlib.sha256(session.encode()).hexdigest()
+          uid=uuid.uuid4().hex
+          note='NHM CI NOTE PROBE '+uid
+          def query(sql,params=[]):
+           data=json.dumps({'sql':sql,'params':params}).encode()
+           q=urllib.request.Request(endpoint,data=data,headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'},method='POST')
+           with urllib.request.urlopen(q,timeout=20) as resp: obj=json.load(resp)
+           assert obj.get('success') and obj.get('result') and all(x.get('success') for x in obj['result']), 'D1 API query failed'
+           return obj['result'][0].get('results',[])
+          def http(path,method='GET',data=None):
+           payload=json.dumps(data).encode() if data is not None else None
+           hdr={'Cookie':'__Host-nmhv3='+session,'Origin':host,'Content-Type':'application/json'}
+           req=urllib.request.Request(host+path,data=payload,headers=hdr,method=method)
+           with urllib.request.urlopen(req,timeout=25) as resp:return resp.status,json.load(resp)
+          try:
+           query('INSERT INTO v3_users (id,name,created_at) VALUES (?,?,?)',[sub,'Synthetic CI transient',int(time.time()*1000)])
+           query('INSERT INTO v3_sessions (token_hash,user_id,expires_at,created_at) VALUES (?,?,?,?)',[digest,sub,int(time.time()*1000)+600000,int(time.time()*1000)])
+           assert http('/api/v3/me')[1].get('signedIn'), 'synthetic session invalid'
+           api='sk-'+'a'*40
+           def chat(s):
+            return http('/api/chat','POST',{'apiKey':api,'messages':[{'role':'user','content':s}],'style':'nghiem_tuc'})[1]
+           a=chat('Ghi vào file ghi chú '+note)
+           assert a.get('answer')=='Đã ghi vào file ghi chú.' and 'save_note' in a.get('tools',[]), 'create note failed'
+           b=chat('Thêm vào ghi chú KIEM TRA LAN HAI')
+           assert b.get('answer')=='Đã ghi vào file ghi chú.' and 'save_note' in b.get('tools',[]), 'append note failed'
+           docs=http('/api/v3/documents')[1].get('documents',[])
+           matched=[d for d in docs if d.get('name')=='GHI_CHU.md']
+           assert len(matched)==1, 'note file absent or duplicate'
+           document=http('/api/v3/documents/'+matched[0]['id'])[1]
+           assert document['text']==note+'\nKIEM TRA LAN HAI','read-after-write document mismatch'
+           third=chat('Đọc file ghi chú')
+           assert note in third.get('answer','') and 'KIEM TRA LAN HAI' in third.get('answer',''),'voice read failed'
+           print('LIVE_SYNTHETIC_NOTE_E2E=PASS')
+           print('LIVE_NOTE_CREATE_APPEND_READ_AUTH=PASS')
+          finally:
+           # Explicit cleanup limited to synthetic owner, never touch real user data.
+           query('DELETE FROM v3_chunks WHERE user_id=?',[sub])
+           query('DELETE FROM v3_documents WHERE user_id=?',[sub])
+           query('DELETE FROM v3_sessions WHERE user_id=?',[sub])
+           query('DELETE FROM v3_users WHERE id=?',[sub])
+           assert not query('SELECT id FROM v3_users WHERE id=?',[sub]),'cleanup failed'
+           print('LIVE_SYNTHETIC_USER_CLEANUP=PASS')
+          PY
   deploy:
     needs: verify
     if: >-
