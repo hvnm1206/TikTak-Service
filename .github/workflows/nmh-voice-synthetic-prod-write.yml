@@ -1,0 +1,77 @@
+name: NMH Voice production write confirmation synthetic live
+on:
+  push:
+    branches: [nmh-voice-memory-v2-stage-20261114]
+permissions:
+  contents: read
+jobs:
+  verify-live:
+    if: >-
+      startsWith(github.event.head_commit.message, 'verify(voice): production synthetic write acknowledgement')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CF_D1_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+      CF_WORKER_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CF_ACCOUNT: '769c2ab4af5ad50700039d473a72d48e'
+    steps:
+      - name: Verify actual production D1 write, readback and spoken status with isolated synthetic Google session
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,urllib.request,hashlib,secrets,uuid,time
+          account=os.environ['CF_ACCOUNT'];d1='3ce295cb-a84d-4a50-abee-d14fdd903514'
+          base='https://nmh-voice-gpt-test.magical-budget.workers.dev'
+          endpoint=f'https://api.cloudflare.com/client/v4/accounts/{account}/d1/database/{d1}/query'
+          def get(url,token=None):
+           headers={'User-Agent':'NMH-Write-Audit/1'}
+           if token:headers['Authorization']='Bearer '+token
+           with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=25) as r:return json.load(r)
+          dep=get(f'https://api.cloudflare.com/client/v4/accounts/{account}/workers/scripts/nmh-voice-gpt-test/deployments',os.environ['CF_WORKER_TOKEN'])
+          vs=dep['result']['deployments'][0]['versions']
+          assert dep['success'] and len(vs)==1 and vs[0]['version_id']=='fb2bacc5-b26e-4abc-9ee1-78cc222ac221','production version drift'
+          assert get(base+'/health')['writeVersion']=='voice-write-synchronous-ack-v1'
+          def sql(statement,params=[]):
+           headers={'Authorization':'Bearer '+os.environ['CF_D1_TOKEN'],'Content-Type':'application/json'}
+           request=urllib.request.Request(endpoint,headers=headers,data=json.dumps({'sql':statement,'params':params}).encode(),method='POST')
+           with urllib.request.urlopen(request,timeout=25) as r:v=json.load(r)
+           assert v['success'] and v['result'][0]['success'],'D1 query failure'
+           return v['result'][0].get('results',[])
+          def write(text,session=None):
+           h={'Origin':base,'Content-Type':'application/json'}
+           if session:h['Cookie']='__Host-nmhv3='+session
+           d={'apiKey':'sk-'+'a'*42,'messages':[{'role':'user','content':text}]}
+           request=urllib.request.Request(base+'/api/chat',headers=h,data=json.dumps(d).encode(),method='POST')
+           with urllib.request.urlopen(request,timeout=25) as r:return r.status,json.load(r)
+          user='nmh_voice_write_smoke_'+uuid.uuid4().hex
+          session=secrets.token_urlsafe(32);marker='SMOKE_'+uuid.uuid4().hex[:9]
+          now=int(time.time()*1000);created=False
+          try:
+           sql('INSERT INTO v3_users (id,name,created_at) VALUES (?,?,?)',[user,'Synthetic smoke',now]);created=True
+           sql('INSERT INTO v3_sessions (token_hash,user_id,expires_at,created_at) VALUES (?,?,?,?)',[hashlib.sha256(session.encode()).hexdigest(),user,now+180000,now])
+           status,m=write('Ghi nhớ rằng '+marker,session)
+           assert status==200 and m.get('saved') is True and m.get('saveStatus')=='saved' and m.get('answer','').startswith('Đã lưu'),('memory failure',status,m)
+           found=sql('SELECT body FROM v3_memories WHERE user_id=?',[user])
+           assert len(found)==1 and found[0]['body']==marker
+           print('PRODUCTION_SYNTHETIC_MEMORY_SAVE_ACK=PASS')
+           status,n=write('Ghi vào file ghi chú '+marker+' thử máy',session)
+           assert status==200 and n.get('saved') is True and n.get('saveStatus')=='saved' and n.get('answer','').startswith('Đã ghi'),('note failure',status,n)
+           docs=sql("SELECT id,raw_text,segment_count FROM v3_documents WHERE user_id=? AND name='GHI_CHU.md'",[user])
+           assert len(docs)==1 and docs[0]['segment_count']==1 and marker in docs[0]['raw_text']
+           chunks=sql('SELECT body FROM v3_chunks WHERE user_id=? AND doc_id=?',[user,docs[0]['id']])
+           assert len(chunks)==1 and marker in chunks[0]['body']
+           print('PRODUCTION_SYNTHETIC_NOTE_SAVE_ACK=PASS')
+           status,no=write('Ghi vào file ghi chú '+marker+' không đăng nhập')
+           assert status==200 and no.get('saved') is False and no.get('saveStatus')=='failed' and 'Chưa lưu' in no.get('answer','')
+           print('PRODUCTION_SYNTHETIC_FAILURE_ACK=PASS')
+          finally:
+           if created:
+            for table in ['v3_memory_v2_turns','v3_memory_v2_preferences','v3_chunks','v3_documents','v3_memories','v3_sessions','v3_users']:
+             column='id' if table=='v3_users' else 'user_id'
+             sql(f'DELETE FROM {table} WHERE {column}=?',[user])
+            assert not sql('SELECT id FROM v3_users WHERE id=?',[user])
+            assert not sql('SELECT id FROM v3_memories WHERE user_id=?',[user])
+            assert not sql('SELECT id FROM v3_documents WHERE user_id=?',[user])
+            print('PRODUCTION_SYNTHETIC_DATA_CLEANUP=PASS')
+          PY
