@@ -135,7 +135,7 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   assert.equal(backAgain.body.presets.chem,other);
 
   assert.equal((await handleV3(req('/api/v3/profile','PUT',{prompt:'stale edit',revision:0},cookie),e)).status,409);
-  assert.equal((await asBody(await handleV3(req('/api/v3/profile','GET',null,cookie),e))).body.prompt,changed);
+  assert.equal((await asBody(await handleV3(req('/api/v3/profile','GET',null,cookie),e))).body.prompt,selected);
   const mem=await asBody(await handleV3(req('/api/v3/memories','POST',{body:'Ưu tiên báo cáo ngắn'},cookie),e));
   assert.equal(mem.status,201);
   const edited=await asBody(await handleV3(req('/api/v3/memories/'+mem.body.id,'PUT',{body:'Chỉ báo cáo đúng trọng tâm'},cookie),e));
@@ -149,7 +149,7 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   assert.equal(restored.status,200);
   assert.equal(restored.body.text,'Lỗi E12: kiểm tra cảm biến áp suất trước khi khởi động lại.');
   const context=await loadV3Context(req('/api/chat','POST',{},cookie),e,'Lỗi E12 cần làm gì?');
-  assert.equal(context.personalPrompt,changed);
+  assert.equal(context.personalPrompt,selected);
   assert.ok(context.documents.some(x=>x.name==='quytrinh.txt'));
   // The real UI stores explicit identity statements; indirect phrasing must still surface them.
   const identity=await asBody(await handleV3(req('/api/v3/memories','POST',{body:'Chủ nhân tên là Hải béo'},cookie),e));
