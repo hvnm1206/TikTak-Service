@@ -10,7 +10,7 @@ const STYLES={
 };
 const TOOLS=[
   {type:"function",name:"get_current_time",description:"Trả về thời gian chính xác từ đồng hồ máy chủ tại múi giờ IANA được yêu cầu. Dùng khi cần thời gian thực.",parameters:{type:"object",properties:{timezone:{type:"string",description:"IANA timezone ví dụ Asia/Ho_Chi_Minh"}},required:["timezone"],additionalProperties:false},strict:true},
-  {type:"function",name:"get_weather",description:"Lấy thời tiết hiện tại theo địa điểm bằng dữ liệu Open-Meteo công khai. Không tự đoán vị trí hiện tại.",parameters:{type:"object",properties:{place:{type:"string",description:"Tên địa điểm do người dùng nêu hoặc biết từ ngữ cảnh"}},required:["place"],additionalProperties:false},strict:true},
+  {type:"function",name:"get_weather",description:"Lấy thời tiết hiện tại VÀ dự báo 7 ngày tới tại địa điểm người dùng yêu cầu, bao gồm ngày mai; dữ liệu Open-Meteo, có ngày địa phương và đơn vị. Không đoán vị trí.",parameters:{type:"object",properties:{place:{type:"string",description:"Tên địa điểm do người dùng nêu hoặc biết từ ngữ cảnh"}},required:["place"],additionalProperties:false},strict:true},
   {type:"function",name:"search_encyclopedia",description:"Tra cứu kiến thức bách khoa tiếng Việt trong Wikipedia, không dùng cho sự kiện mới diễn ra.",parameters:{type:"object",properties:{query:{type:"string",description:"Từ khóa kiến thức"}} ,required:["query"],additionalProperties:false},strict:true},
   {type:"function",name:"search_news",description:"Tìm các tin mới trên nguồn RSS công khai; thông tin có thể không đầy đủ, cần dẫn URL nguồn.",parameters:{type:"object",properties:{query:{type:"string",description:"Nội dung muốn tìm tin tức"}} ,required:["query"],additionalProperties:false},strict:true}
 ];
@@ -43,9 +43,22 @@ async function callTool(name,args,{fetchImpl,signal}){
     const w=new URL("https://api.open-meteo.com/v1/forecast");
     w.searchParams.set("latitude",city.latitude);w.searchParams.set("longitude",city.longitude);
     w.searchParams.set("current","temperature_2m,relative_humidity_2m,precipitation,rain,weather_code,wind_speed_10m");
+    w.searchParams.set("daily","weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max");
+    w.searchParams.set("forecast_days","7");
     w.searchParams.set("timezone","auto");
     const weather=await (await retrieve(w,fetchImpl,signal)).json();
-    return fnOutput(true,{location:[city.name,city.admin1,city.country].filter(Boolean).join(", "),current:weather.current||{},units:weather.current_units||{},source:"Open-Meteo"},[{title:"Open-Meteo Forecast",url:w.href}]);
+    const days=weather?.daily;
+    if(!Array.isArray(days?.time)||!days.time.length)return fnOutput(false,{error:"Nguồn dự báo chưa cung cấp dữ liệu theo ngày cho địa điểm này."});
+    const forecast=days.time.slice(0,7).map((date,i)=>({
+      date,
+      weather_code:days.weather_code?.[i]??null,
+      temperature_max:days.temperature_2m_max?.[i]??null,
+      temperature_min:days.temperature_2m_min?.[i]??null,
+      precipitation_mm:days.precipitation_sum?.[i]??null,
+      precipitation_probability_max:days.precipitation_probability_max?.[i]??null,
+      wind_speed_max:days.wind_speed_10m_max?.[i]??null
+    }));
+    return fnOutput(true,{location:[city.name,city.admin1,city.country].filter(Boolean).join(", "),timezone:weather.timezone||city.timezone||"unknown",current:weather.current||{},current_units:weather.current_units||{},forecast,forecast_units:weather.daily_units||{},source:"Open-Meteo",forecast_kind:"daily_prediction_not_observation"},[{title:"Open-Meteo 7-day forecast",url:w.href}]);
   }
   if(name==="search_encyclopedia"){
     const query=str(args.query,180);if(query.length<2)return fnOutput(false,{error:"Truy vấn quá ngắn"});
@@ -98,6 +111,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     "Ưu tiên sự thật: trả lời đúng câu hỏi, không bịa số liệu, không giả vờ đã tìm mạng.",
     "Đây là hội thoại GIỌNG NÓI: mặc định trả lời trực tiếp 1–2 câu, không tóm tắt quá dài, không liệt kê website, tên bài báo, nguồn trích dẫn, số hiệu citation hoặc đọc URL. Nguồn đã được hệ thống hiển thị riêng trong NHẬT KÝ, không nhắc lại trong lời nói. Khi người dùng yêu cầu chi tiết thì trả lời đủ ý nhưng vẫn tự nhiên.",
     "Khi thiếu dữ liệu thực tế, tự cân nhắc công cụ thích hợp. Không lạm dụng công cụ.",
+    "Khi hỏi thời tiết tương lai, dùng trường forecast theo ngày địa phương trong get_weather và nói rõ là dự báo, không lấy current thay thế dự báo ngày mai. Với câu hỏi ngày mai hãy chọn ngày sau ngày hiện tại theo timezone của dữ liệu; nếu ngày cần hỏi không có trong dữ liệu, nói không có dự báo, không bịa.",
     "Ứng dụng có kho dữ liệu cá nhân và các công cụ lưu/đọc dữ liệu khi phiên đăng nhập hợp lệ. Nếu có công cụ tương ứng, sử dụng để thực hiện yêu cầu; chỉ báo thành công khi backend đã xác minh kết quả. Không giả vờ đã lưu.",
     "Có công cụ web_search chính thức trong Responses API để kiểm chứng địa điểm kinh doanh, thông tin mới và nguồn Internet khi thật sự cần; không dùng tìm kiếm cho câu hỏi kiến thức đơn giản.",
     "Với quán ăn hoặc địa điểm, chỉ nêu nơi có nguồn xác minh được, không tự nhận biết đang mở hay còn hoạt động nếu không có bằng chứng.",
