@@ -1,0 +1,65 @@
+name: NMH Traffic - create isolated daily quota pilot Worker
+on:
+  push:
+    branches: [nmh-traffic-voice-pilot-quota-20261115]
+    paths: ['.github/workflows/traffic-voice-pilot-deploy.yml']
+permissions:
+  contents: read
+jobs:
+  create-new-pilot-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Confirm clean pilot config and tests
+        run: |
+          set -euo pipefail
+          node -e "const j=JSON.parse(require('fs').readFileSync('traffic-voice/wrangler-pilot.jsonc'));if(j.name!=='nmh-traffic-voice-pilot-v1'||j.ratelimits[0].namespace_id!=='2026111501'||j.durable_objects?.bindings?.[0]?.name!=='TRAFFIC_DAILY_QUOTA')process.exit(1)"
+          (cd traffic-voice && npm run check && npm test)
+          npx --yes wrangler@4.102.0 deploy --dry-run --config traffic-voice/wrangler-pilot.jsonc --outdir /tmp/traffic-pilot-verified
+      - name: Verify Cloudflare Worker list and forbid overwrite
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          curl --fail-with-body -sS --max-time 15 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts" -o /tmp/pilot-existing.json
+          python3 - <<'PY'
+          import json
+          j=json.load(open('/tmp/pilot-existing.json'));assert j.get('success') is True
+          names={x.get('id') for x in (j.get('result') or []) if isinstance(x,dict)}
+          assert 'nmh-traffic-voice-pilot-v1' not in names, 'REFUSE_TO_OVERWRITE_EXISTING_WORKER'
+          assert 'nmh-voice-gpt-test' in names and 'nmh-traffic-voice-v1' in names, 'BASELINE_WORKERS_NOT_VISIBLE'
+          print('PILOT_TARGET_NEW_AND_LEGACY_WORKERS_INTACT=PASS')
+          PY
+      - name: Create dedicated pilot Worker with SQLite daily quota
+        run: npx --yes wrangler@4.102.0 deploy --config traffic-voice/wrangler-pilot.jsonc
+      - name: Verify real pilot URL and legacy Worker health
+        run: |
+          set -euo pipefail
+          PILOT='https://nmh-traffic-voice-pilot-v1.magical-budget.workers.dev'
+          for i in 1 2 3 4 5; do
+            if curl --fail -sS --max-time 10 "$PILOT/health" -o /tmp/pilot-health.json; then break; fi
+            sleep 3
+          done
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/pilot-health.json'))
+          assert p.get('ok') and p.get('app')=='NMH Traffic Voice V1'
+          assert p.get('dailyQuotaConfigured') is True and p.get('rateLimiterConfigured') is True
+          assert not p.get('mapsConfigured') and not p.get('aiConfigured') and not p.get('accessConfigured')
+          print('PILOT_URL_HEALTH_PASS_QUOTAS_PRESENT_NO_PAID_KEYS')
+          PY
+          curl --fail -sS --max-time 10 'https://nmh-voice-gpt-test.magical-budget.workers.dev/health' -o /tmp/ngo-health.json
+          curl --fail -sS --max-time 10 'https://nmh-traffic-voice-v1.magical-budget.workers.dev/health' -o /tmp/traffic-health.json
+          python3 - <<'PY'
+          import json
+          ngo=json.load(open('/tmp/ngo-health.json'));tr=json.load(open('/tmp/traffic-health.json'))
+          assert ngo.get('ok') and ngo.get('app')=='NMH Voice GPT V2'
+          assert tr.get('ok') and tr.get('app')=='NMH Traffic Voice V1'
+          print('LEGACY_WORKERS_REMAIN_HEALTHY=PASS')
+          PY
+          echo "PILOT_URL=$PILOT"
