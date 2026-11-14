@@ -110,10 +110,62 @@ export async function loadV3Context(req,env,question){
   return {personalPrompt:maxText(profile?.prompt,2500),memories:ranked.map(x=>x.body),documents:docs};
  }catch{return {personalPrompt:'',memories:[],documents:[],contextError:'Không truy cập được kho cá nhân, không thể xác minh tài liệu.'}}
 }
+export function voiceNoteIntent(question){
+ const text=String(question||'').trim();
+ const match=text.match(/^(?:hãy\s+)?(?:ghi|lưu|chép)(?:\s+(?:lại|giúp\s+(?:tôi|tao|anh)|cho\s+(?:tôi|tao|anh)))?\s+(?:(?:vào|trong)\s+)?(?:file|tệp|sổ)\s+(?:ghi\s+chú|note)(?:\s+(?:rằng|nội\s+dung|là))?\s*[:：,]?\s+(.+)$/isu);
+ if(!match)return null;
+ const body=match[1].trim();
+ return body.length>=2&&body.length<=2200?body:null;
+}
+export async function handleVoiceNote(req,env,question){
+ const note=voiceNoteIntent(question);
+ if(!note)return null;
+ const result=(answer,saved=false)=>({answer,saved,sources:[],tools:[],model:'local-d1-note',usage:{input_tokens:0,output_tokens:0}});
+ if(!productionReady(env))return result('Chưa lưu được ghi chú: kho D1 chưa sẵn sàng.');
+ const sub=await sessionSubject(req,env);
+ if(!sub)return result('Chưa lưu ghi chú. Hãy đăng nhập Google trong SETUP.');
+ try{
+  const db=env.NMH_DB,filename='GHI_CHU.md';
+  const prior=await db.prepare('SELECT id,raw_text,segment_count FROM v3_documents WHERE user_id=? AND name=? ORDER BY created_at DESC LIMIT 1').bind(sub,filename).first();
+  const timestamp=new Date().toISOString().slice(0,16).replace('T',' ');
+  const entry='\n\n- '+timestamp+' — '+note;
+  let fileId,segment;
+  if(prior){
+   fileId=prior.id;
+   const length=String(prior.raw_text||'').length;
+   const previousSegments=Number(prior.segment_count||0);
+   if(length+entry.length>60000||previousSegments>=100)return result('Sổ ghi chú đã đầy, chưa ghi thêm. Hãy mở SETUP và tạo tài liệu mới.');
+   const operations=[
+    db.prepare('UPDATE v3_documents SET raw_text=raw_text || ?,segment_count=segment_count+1 WHERE id=? AND user_id=? AND LENGTH(raw_text)<=? AND segment_count<?').bind(entry,fileId,sub,60000-entry.length,100),
+    db.prepare('INSERT INTO v3_chunks (doc_id,user_id,segment,body) SELECT id,user_id,segment_count,? FROM v3_documents WHERE id=? AND user_id=?').bind(note,fileId,sub)
+   ];
+   const changes=await db.batch(operations);
+   if(changes.length!==2||changes.some(x=>Number(x?.meta?.changes||0)!==1))return result('Chưa xác minh được thao tác ghi, không xác nhận thành công.');
+   segment=previousSegments+1;
+  }else{
+   fileId=id();segment=1;
+   const text='# GHI CHÚ\n'+entry;
+   const changes=await db.batch([
+    db.prepare('INSERT INTO v3_documents (id,user_id,name,mime,segment_count,created_at,raw_text) VALUES (?,?,?,?,?,?,?)').bind(fileId,sub,filename,'text/markdown',1,Date.now(),text),
+    db.prepare('INSERT INTO v3_chunks (doc_id,user_id,segment,body) VALUES (?,?,?,?)').bind(fileId,sub,1,note)
+   ]);
+   if(changes.length!==2||changes.some(x=>Number(x?.meta?.changes||0)!==1))return result('Chưa xác minh được thao tác ghi, không xác nhận thành công.');
+  }
+  const verify=await db.prepare('SELECT raw_text,segment_count FROM v3_documents WHERE user_id=? AND id=?').bind(sub,fileId).first();
+  const chunk=await db.prepare('SELECT body FROM v3_chunks WHERE user_id=? AND doc_id=? AND segment=?').bind(sub,fileId,segment).first();
+  if(!verify?.raw_text?.includes(note)||chunk?.body!==note)return result('Đã gửi thao tác nhưng chưa đọc lại được ghi chú, không xác nhận thành công.');
+  return result('Đã ghi và kiểm tra trong file GHI_CHU.md: '+note,true);
+ }catch{return result('Ghi chú chưa được xác nhận trong D1. Hãy kiểm tra SETUP trước khi thử lại.')}
+}
 export function memoryIntent(question){
  const text=String(question||'').trim();
- const save=text.match(/^(?:hãy\s+)?(?:nhớ\s+rằng|ghi\s+nhớ(?:\s+rằng)?|lưu\s+vào\s+bộ\s+nhớ)\s*[:：,]?\s+(.+)$/isu);
- if(save&&save[1].trim().length>=2)return {action:'save',body:save[1].trim().slice(0,500)};
+ const save=text.match(/^(?:hãy\s+)?(?:nhớ\s+rằng|ghi\s+nhớ(?:\s+rằng)?|lưu\s+vào\s+bộ\s+nhớ|ghi(?:\s+(?:lại|giúp\s+(?:tôi|tao|anh)|cho\s+(?:tôi|tao|anh)))?|lưu(?:\s+(?:lại|giúp\s+(?:tôi|tao|anh)))?)\s*[:：,]?\s+(.+)$/isu);
+ if(save&&save[1].trim().length>=2){
+  const body=save[1].trim().slice(0,500);
+  // File notes are handled by the dedicated document route; never misfile them as personal facts.
+  if(/^(?:vào\s+)?(?:file|tệp|sổ)\s+(?:ghi\s+chú|note)\b/iu.test(body))return null;
+  return {action:'save',body};
+ }
  const edit=text.match(/^(?:hãy\s+)?sửa\s+ghi\s+nhớ\s+(.+?)\s+thành\s+(.+)$/isu);
  if(edit&&edit[1].trim().length>=2&&edit[2].trim().length>=2)return {action:'edit',query:edit[1].trim(),body:edit[2].trim().slice(0,500)};
  const erase=text.match(/^(?:hãy\s+)?(?:quên\s+điều|xóa\s+ghi\s+nhớ(?:\s+về)?)\s*[:：,]?\s+(.+)$/isu);
@@ -129,8 +181,11 @@ export async function handleVoiceMemory(req,env,question){
  try{
   if(intent.action==='save'){
    const k=id();
-   await env.NMH_DB.prepare('INSERT INTO v3_memories (id,user_id,body,created_at) VALUES (?,?,?,?)').bind(k,sub,intent.body,Date.now()).run();
-   return {answer:'Đã lưu ghi nhớ: '+intent.body,sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
+   const write=await env.NMH_DB.prepare('INSERT INTO v3_memories (id,user_id,body,created_at) VALUES (?,?,?,?)').bind(k,sub,intent.body,Date.now()).run();
+   if(Number(write?.meta?.changes||0)!==1)throw Error('Memory insert unconfirmed');
+   const checked=await env.NMH_DB.prepare('SELECT body FROM v3_memories WHERE user_id=? AND id=?').bind(sub,k).first();
+   if(checked?.body!==intent.body)throw Error('Memory readback unconfirmed');
+   return {answer:'Đã lưu và kiểm tra ghi nhớ: '+intent.body,saved:true,sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
   }
   const results=await env.NMH_DB.prepare('SELECT id,body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 100').bind(sub).all();
   const q=intent.query.toLocaleLowerCase('vi');
