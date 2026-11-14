@@ -31,3 +31,8 @@
 - Không thay model, Marin hoặc logic nhận giọng.
 - Nếu sandbox test thất bại: sửa đúng chặng lỗi trước release.
 - Nếu lỗi sau production: rollback đúng Worker version snapshot, giữ D1 additive.
+
+## UI AUDIT ADDENDUM — Mascot đúng vùng hiển thị
+- Đã kiểm tra layout NMH Presence: canvas cũ nằm trong `.visual-field`; sau bản phát hành đầu, mascot mới chèn sau status gây trùng 2 mặt. Phát hiện bằng source audit; chưa có bằng chứng thiết bị bị lỗi.
+- Sửa: `theme-ui.js` gắn mascot trực tiếp vào `.visual-field`, chỉ ẩn `#avatar` khi theme duck/corgi, mặc định không ẩn. Theme khác vẫn nhận status từ MutationObserver, engine Presence vẫn hoạt động.
+- Bắt buộc CI và sandbox rollback lại PASS trước khi phát hành hotfix.
