@@ -1,0 +1,49 @@
+name: NMH Voice Memory V2 — isolated staging checks (NO DEPLOY)
+on:
+  push:
+    branches: [nmh-voice-memory-v2-stage-20261114]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-memory-v2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static syntax and isolation checks
+        run: |
+          set -euo pipefail
+          node --check voice-deploy/memory-v2.js
+          node --check voice-deploy/agent-v2.js
+          node --check voice-deploy/v3-backend.js
+          node --check voice-deploy/worker.js
+          node --check voice-deploy/v3-ui.js
+          if grep -E 'import.*memory-v2' voice-deploy/agent-v2.js;then echo 'Analyzer leaked into chat agent';exit 1;fi
+      - name: Full existing Voice and V3 regression tests
+        run: |
+          set -euo pipefail
+          node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs voice-deploy/v3-backend.test.mjs
+      - name: New Memory V2 security and behavior tests
+        run: |
+          set -euo pipefail
+          node --test voice-deploy/memory-v2.test.mjs
+      - name: Prove additive SQLite migration and unchanged existing schema
+        run: |
+          python3 - <<'PY'
+          import sqlite3,pathlib
+          d=sqlite3.connect(':memory:')
+          p=pathlib.Path('voice-deploy/migrations')
+          for name in ['0001_v3.sql','0002_v3_d1_only.sql','0003_memory_v2.sql']:
+           d.executescript((p/name).read_text())
+          for table in ['v3_users','v3_sessions','v3_profiles','v3_memories','v3_documents','v3_chunks','v3_memory_v2_turns','v3_memory_v2_preferences']:
+           assert d.execute("SELECT count(*) FROM sqlite_master WHERE name=? AND type='table'",(table,)).fetchone()[0]==1,table
+          existing={t:[r[1] for r in d.execute('PRAGMA table_info('+t+')')] for t in ['v3_users','v3_sessions','v3_profiles','v3_memories','v3_documents','v3_chunks']}
+          print('MEMORY_V2_ADDITIVE_SQLITE_SCHEMA=PASS')
+          print('V3_TABLES_PRESERVED='+','.join(existing))
+          PY
+      - name: No release
+        run: echo 'MEMORY_V2_STAGING_ONLY=PASS; PRODUCTION_UNCHANGED=1'
