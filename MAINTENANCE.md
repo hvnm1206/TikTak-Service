@@ -1,5 +1,15 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## CHỐT CUỐI CÙNG 14/11/2026 — NGỐ VOLUME + MASCOT LAYOUT HOTFIX PRODUCTION PASS
+- Trạng thái mới nhất: Worker chính `nmh-voice-gpt-test`, URL **https://nmh-voice-gpt-test.magical-budget.workers.dev/**, version **`253c198a-5af6-4a98-9776-ebe9b06aa424`**.
+- Sau release audio/theme version `cd66b9f6-b7a7-4970-abf8-ce1ef19e1446`, source audit phát hiện mascot Vịt/Corgi bị chèn vào vùng chú thích gây trùng avatar. Đã sửa: mascot vào `.visual-field`, ẩn canvas cũ CHỈ khi chọn vịt/corgi, chế độ Mặc định giữ nguyên NMH Presence. Không đổi logic mic/TTS.
+- Regression **71 legacy + 20 new PASS**. Sandbox Cloudflare D1/rollback hotfix: https://github.com/hvnm1206/TikTak-Service/actions/runs/43580057061 — SUCCESS. Production release hotfix: https://github.com/hvnm1206/TikTak-Service/actions/runs/43580162153 — SUCCESS, exact pinned source, D1 bookmark, smoke, rollback gate PASS.
+- Version rollback trực tiếp từ bản hotfix: `cd66b9f6-b7a7-4970-abf8-ce1ef19e1446`. Nếu muốn rollback cả audio/theme về P0 ban đầu thì dùng version `08e0bbf2-a2e5-4b98-94dc-0cfee882e5b6`. Không đảo ngược D1; migration trước đó cộng bảng, hotfix không sửa D1.
+- Independent Guarded Operator sau hotfix: GET /health HTTP 200, /api/reminders/capabilities HTTP 200 active. URL và tính năng cũ vẫn giữ.
+- GIỚI HẠN: chưa nghiệm thu âm lượng nghe thực tế trên iPhone, theme layout Safari và lời nhắc audio trên iPhone. Người dùng sẽ tự thử. Không công bố thiết bị PASS nếu chưa có bằng chứng.
+- Không chạm Ngáo. Các phiên bản `cd66...` và cũ ghi dưới là lịch sử, không phải version production hiện tại.
+
+
 ## CẬP NHẬT MỚI NHẤT 14/11/2026 — NGỐ ĐÃ NÂNG ÂM LƯỢNG + GIAO DIỆN TRÊN PRODUCTION
 - URL chính thức giữ nguyên: https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Worker version: `cd66b9f6-b7a7-4970-abf8-ce1ef19e1446`.
 - Nguồn: nhánh `nmh-voice-actions-reminders-p0-20261114`; kế hoạch bám sát: https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-actions-reminders-p0-20261114/voice-deploy/NGO_AUDIO_THEME_PLAN_20261114.md .
