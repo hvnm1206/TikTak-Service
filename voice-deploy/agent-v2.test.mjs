@@ -85,7 +85,7 @@ test('usage estimate uses current Standard short-context GPT-6 Luna rates and ca
   const r=await runAgent({apiKey:key,messages:msg,fetchImpl});
   assert.equal(r.usage.cached_input_tokens,500_000);
   assert.equal(r.usage.api_calls,1);
-  assert.equal(r.estimatedModelUsd,0.2775);
+  assert.equal(r.estimatedModelUsd,0.555);
   assert.match(r.estimateBasis,/excludes_other_fees/);
 });
 
