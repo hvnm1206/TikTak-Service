@@ -17,9 +17,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for f in worker.js agent-v2.js v3-backend.js v3-ui.js memory-v2.js action-registry.js reminders.js reminders-client.js theme-ui.js volume-ui.js latency-ui.js; do node --check "voice-deploy/$f";done
+          for f in worker.js agent-v2.js v3-backend.js v3-ui.js memory-v2.js action-registry.js reminders.js reminders-client.js theme-ui.js volume-ui.js latency-ui.js qr-ui.js; do node --check "voice-deploy/$f";done
           node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs voice-deploy/v3-backend.test.mjs voice-deploy/semantic-actions.test.mjs voice-deploy/memory-v2.test.mjs voice-deploy/memory-v2.preference.test.mjs
-          node --experimental-sqlite --test voice-deploy/reminders.test.mjs voice-deploy/reminders-client.test.mjs voice-deploy/theme-ui.test.mjs voice-deploy/latency-ui.test.mjs voice-deploy/volume-ui.test.mjs
+          node --experimental-sqlite --test voice-deploy/reminders.test.mjs voice-deploy/reminders-client.test.mjs voice-deploy/theme-ui.test.mjs voice-deploy/latency-ui.test.mjs voice-deploy/volume-ui.test.mjs voice-deploy/qr-ui.test.mjs
           python3 - <<'PY'
           import sqlite3,pathlib
           d=sqlite3.connect(':memory:')
