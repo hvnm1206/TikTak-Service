@@ -1,5 +1,22 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## 14/11/2026 — DỌN BỎ TOÀN BỘ LUỒNG GHI FILE BẰNG GIỌNG NÓI THỬ NGHIỆM (TRẠNG THÁI CHỐT MỚI NHẤT)
+
+**Yêu cầu:** Người dùng yêu cầu dọn sạch những chức năng thử nghiệm làm hỏng hội thoại, cấm làm mất các chức năng đang chạy. Giữ nguyên dữ liệu lưu trong D1, không xóa ghi nhớ hay tài liệu người dùng.
+
+**Đã thực hiện và kiểm chứng mã nguồn:**
+- `agent-v2.js`: loại bỏ hoàn toàn công cụ GPT `save_note`, callback `onSaveNote`, bộ lọc từ khóa `allowNoteTool` và các nhánh lỗi tool. Công cụ Web Search và các công cụ thông tin thời tiết/thời gian/tin tức/Wikipedia giữ nguyên, cũng như lời nói gọn và phân tách nguồn.
+- `worker.js`: loại bỏ đường chặn `handleVoiceNote()` và `onSaveNote` của `/api/chat`. Giữ nguyên `handleVoiceMemory()` (ghi nhớ chủ động cũ), `loadV3Context()`, mic Web Speech, Marin TTS prefetch, Presence, Google OAuth và D1.
+- `v3-backend.js`: loại bỏ code noteIntent/handleVoiceNote thử nghiệm; **không động đến schema hoặc bản ghi** trong `v3_documents`, `v3_chunks`, `v3_memories`.
+- `v3-ui.js`: bỏ trạng thái file GHI_CHU.md thử nghiệm; **giữ nguyên kho tài liệu thủ công (TXT/MD), ghi nhớ chủ động, prompt cá nhân và đăng nhập Google**.
+- Test cũ của tool save_note được thay bằng test hội thoại bình thường sau lịch sử lệnh ghi chú. CI không chạy test file note đã bị bỏ khỏi đường thực thi. Không đưa mã Ngáo vào production.
+
+**Kết quả:** [Release Actions 43549832431](https://github.com/hvnm1206/TikTak-Service/actions/runs/43549832431) `verify=SUCCESS`, `deploy-cleanup-notes-once=SUCCESS`, `deploy=SKIPPED`. `VOICE_CLEANUP_EDGE_READY=1`, `VOICE_CLEANUP_SMOKE=MIC_TTS_SEARCH_V3_D1_OAUTH_PRESENCE_SECURITY_PASS`, `VOICE_CLEANUP_RELEASE=DEPLOYED`. Cloudflare Worker chính thức `nmh-voice-gpt-test` tại `https://nmh-voice-gpt-test.magical-budget.workers.dev/`, version mới **`51bd4dde-0d73-455c-b1ed-6bac8965de66`**, baseline rollback **`962b29ff-709c-4b64-978a-259f86221d9c`** (bản cũ còn lỗi ghi chú, không coi là bản sạch). [CI trước release 43549739234](https://github.com/hvnm1206/TikTak-Service/actions/runs/43549739234) 36/36 Voice PASS + 7/7 V3 PASS. One-shot deploy job đã được gỡ sau thành công.
+
+**Giới hạn:** Chức năng **ghi vào file ghi chú bằng giọng nói hiện TẠM GỠ** vì không được nghiệm thu, không có thao tác ghi file qua GPT; người dùng vẫn có thể nhập/upload tài liệu thủ công tại SETUP và sử dụng ghi nhớ chủ động như trước. Các file GHI_CHU.md đã lưu trong D1, nếu có, **không bị xóa**. Test CI/HTTP không chứng minh E2E mic/Marin trên iPhone; không tuyên bố đã kiểm chứng nghe thực. Mọi nội dung cũ khẳng định note-save khả dụng phải đối chiếu với mục này.
+
+---
+
 ## 14/11/2026 — GHI CHÚ: KIỂM TRA D1 THẬT VÀ XÁC NHẬN SAU GHI (MỚI NHẤT)
 
 **Bối cảnh:** Người dùng vẫn báo lệnh bằng giọng không lưu nội dung. Không được dùng mock tests hoặc HTTP 200 để kết luận đã nghiệm thu trên tài khoản của người dùng.
