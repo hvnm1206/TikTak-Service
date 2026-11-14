@@ -1,5 +1,19 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## 14/11/2026 — WEB SEARCH HOSTED: CHỈ STAGE/PREVIEW, CHƯA DEPLOY PRODUCTION (MỚI NHẤT)
+
+**Production tuyệt đối chưa thay đổi:** Worker `nmh-voice-gpt-test`, active version `8cc6032c-0035-414c-8217-7ea5e91825e5` được GitHub Actions kiểm tra bằng Cloudflare API trước và sau upload. URL production giữ nguyên `https://nmh-voice-gpt-test.magical-budget.workers.dev/`. **Production hiện CHƯA có Web Search tổng quát.**
+
+**Mã nguồn đang ở nhánh `nmh-voice-gpt-v1`, chưa phát hành:** `voice-deploy/agent-v2.js` thêm hosted `web_search` Responses API cho `gpt-6-luna`; parse `web_search_call` + `url_citation`; giới hạn tối đa 1 hosted call mỗi lượt; trả `estimatedWebSearchUsd` (0,01 USD/call cơ bản, chưa tính token nội dung); sửa đơn giá ước phí GPT Luna theo tài liệu OpenAI Standard 0,10/0,01/0,50 USD cho 1M token input/cached/output. `worker.js` chỉ cộng khoản Web Search vào sổ ước phí giao diện đang có, giữ nguyên STT/SpeechRecognition, Marin, Presence, D1/OAuth. Các nguồn công cụ thời tiết/Wikipedia/RSS cũ được giữ.
+
+**Bằng chứng CI:** [Actions 43534668517](https://github.com/hvnm1206/TikTak-Service/actions/runs/43534668517) `verify=SUCCESS`, `31/31 Voice PASS`, `7/7 V3 PASS`, `deploy=SKIPPED`. [Actions upload preview 43535038784](https://github.com/hvnm1206/TikTak-Service/actions/runs/43535038784): `verify=SUCCESS`, `nmh-web-search-version-preview=SUCCESS`, `deploy=SKIPPED`, `PRODUCTION_VERSION_UNCHANGED=PASS`.
+
+**Bản preview phiên bản trên CHÍNH Worker (không tạo Worker/branch mới):** version `c0b6d225-2f0f-4217-9fa3-d39e8d292fe7`, URL `https://c0b6d225-nmh-voice-gpt-test.magical-budget.workers.dev/`. Guarded Operator đọc trực tiếp /health 200, /api/v3/config 200 `ready=true`, trang / 200 chứa giao diện Presence và sổ phí mới. Bản này dùng binding D1 V3 và Google Web Client hiện hành; **Google OAuth origin trên Version URL khác production nên không coi đăng nhập Google preview là đã nghiệm thu**. Workflow upload preview dùng một lần đã được gỡ khỏi source; phiên bản đã upload vẫn tồn tại để kiểm thử. Không deploy hoặc rollback production.
+
+**ĐIỀU KIỆN CHƯA ĐẠT:** chưa có thử nghiệm Web Search với API key người dùng thực (key chỉ lưu trên iPhone/SETUP), chưa có kết quả địa điểm Mỹ Đình có nguồn qua API thật, chưa kiểm thử micro → search → Marin → nghe tiếp trên iPhone, chưa đối chiếu chi phí OpenAI Usage. Các bài test dùng response giả lập; không công bố nâng cấp hoàn thành. Không được promote version preview lên production khi chưa có bằng chứng E2E trên iPhone và đủ cổng rollback.
+
+---
+
 ## 14/11/2026 — CHỐT DỌN DẸP SAU SỰ CỐ TÌM KIẾM (TRẠNG THÁI HIỆN HÀNH)
 
 **PRODUCTION GIỮ NGUYÊN.** Cloudflare Worker `nmh-voice-gpt-test`, URL https://nmh-voice-gpt-test.magical-budget.workers.dev/, active version **`8cc6032c-0035-414c-8217-7ea5e91825e5`** đã kiểm chứng bằng Cloudflare API và HTTP sau dọn dẹp. Không deploy hay rollback Worker production trong đợt dọn dẹp này.
