@@ -1,5 +1,21 @@
 # BÀN GIAO NGỐ — TRẠNG THÁI CHÍNH THỨC 14/11/2026
 
+## MỚI NHẤT 14/11/2026 — SỬA MẪU TÍNH CÁCH TỰ TRỞ VỀ NỘI DUNG CŨ
+
+- **Production Worker:** `nmh-voice-gpt-test`, URL https://nmh-voice-gpt-test.magical-budget.workers.dev/ . **Version mới `fcd54e1a-6611-4b13-8748-d73e71f5fdc1`**, rollback code `c35801d0-a840-4d4c-adc1-155c6070489a`.
+- **Nguyên nhân gốc đã xác minh:** Trong `v3-ui.js`, các nút `MẪU ĐANH ĐÁ`, `MẪU CHÉM GIÓ`, `MẪU NGHIÊM TÚC` luôn gán giá trị `presets.danh/chem/nghiem` được hard-code. Nút LƯU PROMPT trước đó chỉ ghi Prompt đang dùng, không có nơi lưu bản chỉnh sửa riêng cho từng mẫu. Khi bấm chọn mẫu, nội dung cũ được nạp lại (đúng ảnh người dùng).
+- **Đã sửa:** mỗi mẫu được lưu riêng theo Google ID trong trường JSON `v3_profiles.presets_json` và đánh dấu mẫu đang dùng `active_preset`. Chọn mẫu nạp bản tùy chỉnh đã lưu; nếu tài khoản chưa chỉnh mẫu thì dùng mặc định. Khi sửa một mẫu rồi LƯU PROMPT, D1 ghi **đồng thời Prompt sử dụng và nội dung mẫu đang chọn**, revision tăng, đọc lại cả hai; màn hình không báo lưu thành công khi readback thiếu. Nếu đang sửa chưa lưu mà đổi mẫu phải xác nhận. Không xóa Prompt cũ.
+- **Migration:** `migrations/0005_prompt_presets.sql` (additive), pipeline production tự phát hiện cột còn thiếu và bổ sung idempotent. D1 Time Travel bookmark/rollback theo workflow.
+- **Bằng chứng:** CI 114/114 PASS; [sandbox Worker+D1 thật #43613858183](https://github.com/hvnm1206/TikTak-Service/actions/runs/43613858183) PASS, cả tạo/sửa, chuyển Đanh Đá↔Chém Gió, mở lại, conflict, rollback/cleanup. [Production release #43613990687](https://github.com/hvnm1206/TikTak-Service/actions/runs/43613990687) SUCCESS. Guard/Operator GET URL chính HTTP 200 và thấy source logic `savedPresets/selectPreset/activePreset`, micro và QR còn nguyên.
+- **Lưu ý với Prompt đã lưu trước khi sửa:** D1 cũ chỉ biết nội dung Prompt, **không biết người dùng lấy từ mẫu nào**, vì vậy không tự gắn Prompt cũ vào nút Đanh Đá. Nếu muốn dùng văn bản đã viết làm mẫu Đanh Đá, hãy mở Prompt đang lưu, sao chép nội dung, bấm MẪU ĐANH ĐÁ, dán vào, LƯU PROMPT **một lần**. Từ sau lần này nút Đanh Đá sẽ nạp lại bản riêng đã lưu.
+- **Chưa nghiệm thu:** phiên Google cá nhân trên iPhone thật của người dùng, chưa thể kết luận đã kiểm chứng thao tác người dùng. Không sửa Ngáo, mic, Marin, Memory, Reminder hoặc API key.
+- **Nhật ký kỹ thuật:** https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-actions-reminders-p0-20261114/voice-deploy/NGO_PROMPT_PRESETS_20261114.md
+
+Các mục version bên dưới là lịch sử, không phải phiên bản đang chạy.
+
+---
+
+
 ## HIỆN HÀNH 14/11/2026 — SỬA LƯU PROMPT MỚI VÀ SỬA PROMPT
 
 - **Worker production chính:** `nmh-voice-gpt-test` — https://nmh-voice-gpt-test.magical-budget.workers.dev/ ; **version `c35801d0-a840-4d4c-adc1-155c6070489a`**. Mốc rollback code **`c1755bd1-5e2a-4af8-b542-d4557446cef4`**.
