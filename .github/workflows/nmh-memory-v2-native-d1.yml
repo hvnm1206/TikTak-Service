@@ -100,3 +100,5 @@ jobs:
 # Verify consent re-check with Cloudflare native D1 on isolated users.
 
 # Recheck direct voice-note create and append against live isolated D1.
+
+# End-to-end write acknowledgement proof with real isolated D1 and synthetic user session.
