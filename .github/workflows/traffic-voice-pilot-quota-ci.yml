@@ -1,0 +1,26 @@
+name: NMH Traffic Pilot - quota protections dry-run only
+on:
+  push:
+    branches: [nmh-traffic-voice-pilot-quota-20261115]
+    paths:
+      - 'traffic-voice/**'
+      - '.github/workflows/traffic-voice-pilot-quota-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-no-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and 24 backend/quota regression tests
+        run: cd traffic-voice && npm run check && npm test
+      - name: Cloudflare build with SQLite Durable Object binding (no deploy)
+        run: npx --yes wrangler@4.102.0 deploy --dry-run --config traffic-voice/wrangler.jsonc --outdir /tmp/traffic-quota-dist
+      - name: Confirm correct worker name, quota and migration identity
+        run: |
+          node -e "const x=JSON.parse(require('fs').readFileSync('traffic-voice/wrangler.jsonc'));if(x.name!=='nmh-traffic-voice-v1'||x.migrations?.[0]?.new_sqlite_classes?.[0]!=='TrafficDailyQuota'||x.durable_objects?.bindings?.[0]?.name!=='TRAFFIC_DAILY_QUOTA')process.exit(1);console.log('Isolated SQLite quota binding checked')"

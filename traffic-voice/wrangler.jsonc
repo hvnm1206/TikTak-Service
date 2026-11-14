@@ -3,6 +3,33 @@
   "main": "worker.mjs",
   "compatibility_date": "2026-11-14",
   "workers_dev": true,
-  "observability": {"enabled": true},
-  "ratelimits": [{"name": "TRAFFIC_LIMITER", "namespace_id": "2026111401", "simple": {"limit": 30, "period": 60}}]
+  "observability": {
+    "enabled": true
+  },
+  "ratelimits": [
+    {
+      "name": "TRAFFIC_LIMITER",
+      "namespace_id": "2026111401",
+      "simple": {
+        "limit": 30,
+        "period": 60
+      }
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "TRAFFIC_DAILY_QUOTA",
+        "class_name": "TrafficDailyQuota"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "traffic-daily-quota-sql-v1",
+      "new_sqlite_classes": [
+        "TrafficDailyQuota"
+      ]
+    }
+  ]
 }

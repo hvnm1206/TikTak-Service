@@ -6,7 +6,8 @@ const loc=()=>({lat:21.03,lng:105.82,accuracy:20,timestamp:Date.now()});
 const DEMO_ROUTE={routes:[{distanceMeters:12345,duration:'2400s',staticDuration:'1950s',routeLabels:['DEFAULT_ROUTE'],polyline:{encodedPolyline:'_p~iF~ps|U_ulLnnqC_mqNvxq`@'},travelAdvisory:{speedReadingIntervals:[{startPolylinePointIndex:0,endPolylinePointIndex:2,speed:'SLOW'},{startPolylinePointIndex:2,endPolylinePointIndex:3,speed:'NORMAL'}]}},{distanceMeters:13000,duration:'2600s',staticDuration:'2100s',polyline:{encodedPolyline:'_p~iF~ps|U_ulLnnqC_mqNvxq`@'}}]};
 const calls=[];
 const fakeFetch=async(url,opt)=>{calls.push({url,body:JSON.parse(opt.body||'{}')});if(url.includes('/chat/completions')){const str=JSON.parse(opt.body).messages.at(-1).content;let args;if(str.includes('Không đi Hà Đông nữa'))args={action:'start_trip',destination:'Nội Bài, Hà Nội'};else if(str.includes('Kết thúc hành trình'))args={action:'end_trip'};else if(str.includes('Tố Hữu'))args={action:'compare_road',road:'Tố Hữu, Hà Nội'};else if(str.includes('phía trước'))args={action:'look_ahead',aheadKm:2};else if(str.includes('Kiểm tra lại'))args={action:'refresh'};else args={action:'start_trip',destination:'Hà Đông, Hà Nội',origin:str.includes('Cầu Giấy')?'Cầu Giấy, Hà Nội':undefined};return Response.json({choices:[{message:{role:'assistant',tool_calls:[{function:{name:'traffic_action',arguments:JSON.stringify(args)}}]}}]})}if(url.includes('places:searchText')){const q=JSON.parse(opt.body).textQuery;return Response.json({places:[{id:'place-'+q,name:q,displayName:{text:q},formattedAddress:q+', Việt Nam'}]})}if(url.includes('computeRoutes'))return Response.json(DEMO_ROUTE);if(url.includes('/audio/speech'))return new Response(new Uint8Array(100),{headers:{'Content-Type':'audio/mpeg'}});throw Error('Unexpected fetch '+url)};
-const env={GOOGLE_MAPS_API_KEY:'test-maps',OPENAI_API_KEY:'test-ai',TRAFFIC_ACCESS_TOKEN:access,TRAFFIC_LIMITER:{limit:async()=>({success:true})}};
+const fakeDailyQuota={idFromName:s=>s,get:id=>({fetch:async(req)=>Response.json({ok:true,remaining:29})})};
+const env={GOOGLE_MAPS_API_KEY:'test-maps',OPENAI_API_KEY:'test-ai',TRAFFIC_ACCESS_TOKEN:access,TRAFFIC_LIMITER:{limit:async()=>({success:true})},TRAFFIC_DAILY_QUOTA:fakeDailyQuota};
 const request=(path,body={},token=access)=>new Request('https://example.com'+path,{method:'POST',headers:{'content-type':'application/json','x-traffic-access':token},body:JSON.stringify(body)});
 const h=createHandler({fetchImpl:fakeFetch,html:'<h1>Traffic V1</h1>'});
 test('health says which integrations are configured, no secrets',async()=>{const r=await h(new Request('https://example.com/health'),env),t=await r.text();assert.equal(r.status,200);assert.equal(JSON.parse(t).mapsConfigured,true);assert.ok(!t.includes('test-maps'))});
@@ -40,3 +41,28 @@ test('stale previous origin cannot be used as current location to claim remainin
 });
 
 test('missing staticDuration does not fabricate traffic delay',()=>{const [r]=routeSummary({routes:[{distanceMeters:5600,duration:'900s'}]});assert.equal(r.durationMin,15);assert.equal(r.staticMin,null);assert.equal(r.extraDelayMin,null)});
+
+
+test('missing durable budget binding fails closed before contacting paid providers',async()=>{
+ const n=calls.length;
+ const r=await h(request('/api/ask',{message:'Đi Hà Đông'}),{...env,TRAFFIC_DAILY_QUOTA:undefined});
+ assert.equal(r.status,503);assert.equal(calls.length,n);
+});
+test('Google Places daily limit is checked before any paid Places request',async()=>{
+ calls.length=0;
+ const quota={idFromName:()=> 'x',get:()=>({fetch:async()=>Response.json({ok:false},{status:429})})};
+ await assert.rejects(()=>resolvePlace('Hà Đông', {...env,TRAFFIC_DAILY_QUOTA:quota}, fakeFetch),/20 lượt Places/);
+ assert.equal(calls.length,0);
+});
+test('Google Routes daily limit is checked before any paid Routes request',async()=>{
+ calls.length=0;
+ const quota={idFromName:()=> 'x',get:()=>({fetch:async()=>Response.json({ok:false},{status:429})})};
+ await assert.rejects(()=>getRoutes({...env,TRAFFIC_DAILY_QUOTA:quota}, fakeFetch,{origin:{location:{latLng:{latitude:21,longitude:105}}},destination:{placeId:'abc'}}),/30 lượt Routes/);
+ assert.equal(calls.length,0);
+});
+test('Google daily budget backend storage errors fail closed before provider',async()=>{
+ calls.length=0;
+ const quota={idFromName:()=> 'x',get:()=>({fetch:async()=>Response.json({error:'storage failure'},{status:503})})};
+ await assert.rejects(()=>resolvePlace('Hà Đông', {...env,TRAFFIC_DAILY_QUOTA:quota}, fakeFetch),/Bộ đếm hạn mức ngày/);
+ assert.equal(calls.length,0);
+});
