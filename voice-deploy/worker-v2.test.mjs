@@ -334,7 +334,7 @@ test('Memory V2 controls remain separate from mic/Marin UI and injected Setup sc
 
 test('GitHub 403 fallback accepts updated Markdown headings without hardcoded history marker',async()=>{
  const original=globalThis.fetch;
- const md='# NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH\n\n## 1. Production đã kiểm chứng\n- Nội dung hiện hành được tải đúng cấu trúc Markdown, không phụ thuộc tiêu đề bản cũ.';
+ const md=`# NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH\n\n## 1. Production đã kiểm chứng\n- Nội dung hiện hành được tải đúng cấu trúc Markdown, không phụ thuộc tiêu đề bản cũ.`;
  globalThis.fetch=async(url)=>String(url).startsWith('https://api.github.com')?Response.json({message:'API rate limited'},{status:403}):new Response(md,{status:200});
  try{
   const r=await worker.fetch(new Request(host+'/api/docs/maintenance'));
