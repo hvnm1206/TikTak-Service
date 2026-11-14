@@ -26,7 +26,9 @@ Base source: nmh-voice-memory-v2-stage-20261114, commit 1ecd0fea29f6faa5a4b2891b
 - Baseline snapshot: GitHub Actions artifact "ngo-p0-prod-readonly-baseline" in run 43575735755. Contains production version and D1 Time Travel bookmark.
 - First REAL Cloudflare sandbox Worker+D1 run: https://github.com/hvnm1206/TikTak-Service/actions/runs/43575985351 — sandbox deployment, D1 migrations, synthetic cookie auth, due query, atomic claim, readback, UI smoke, cleanup all PASS. Production unchanged.
 - REAL Cloudflare sandbox after trace/audit/schema changes: https://github.com/hvnm1206/TikTak-Service/actions/runs/43576360766 — complete SUCCESS, remote D1 insert/claim/readback/cleanup PASS.
-- Additional sandbox rollback verification is configured in .github/workflows/ngo-p0-sandbox.yml. This commit triggers it; result must be read independently.
+- Exact sandbox rollback test: https://github.com/hvnm1206/TikTak-Service/actions/runs/43576714181 — SUCCESS; deployed a second sandbox version and restored the precise prior Cloudflare Worker version, then deleted Worker and D1. Latest code additionally includes atomic write dedup across two concurrent tabs.
+
+- CI after concurrent dedup change: https://github.com/hvnm1206/TikTak-Service/actions/runs/43577021799 — SUCCESS. This report commit triggers a final real D1/Worker sandbox run on the latest changes; inspect its result before claiming integrated PASS.
 
 ## Critical release gate: NOT YET MET
 - Live Responses API using user's OpenAI key, actual speech -> tool -> real D1 readback on the user's Google subject: NOT VERIFIED.
