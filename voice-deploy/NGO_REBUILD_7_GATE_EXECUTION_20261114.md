@@ -42,3 +42,11 @@ Không dùng hardcode câu, tên, quan hệ, ngành hoặc regex nhận diện n
 
 ## Trạng thái
 Đây là nhật ký các cổng và phải được cập nhật bằng run-ID, SHA, version thực sau khi triển khai.
+## Kết quả đối chiếu sau triển khai — 14/11/2026
+- Gate 1 baseline: `fc8ba001-038c-4a18-a0ac-84d3f8fff952` (trước release), D1 `nmh-voice-v3`, kiểm tra production D1 Time Travel bookmark ở workflow.
+- Gate 2/3: Xóa router câu cứng và classifier chồng chéo; GPT action registry thống nhất, xác thực user và D1 readback.
+- Gate 4: Bỏ matcher quan hệ viết riêng; thêm trang `read_memories` chỉ đọc, Google-owner isolation. Chưa đánh giá chất lượng retrieval quy mô lớn.
+- Gate 5: **97/97 tests PASS** (70 core + 27 reminders), https://github.com/hvnm1206/TikTak-Service/actions/runs/43584484132 . Cloudflare sandbox D1, test live auth/reminder, rollback và cleanup PASS https://github.com/hvnm1206/TikTak-Service/actions/runs/43584484084 .
+- Gate 6: Production release **SUCCESS** https://github.com/hvnm1206/TikTak-Service/actions/runs/43584681227 . New Worker version `d0622605-7d01-47ba-a5aa-bbb7e5262ee9`, preserved URL and D1. Rollback version `fc8ba001-038c-4a18-a0ac-84d3f8fff952`, Time Travel bookmark in GitHub 30-day artifact. Guarded Operator read-only post-release GET /health canonical and cache-busting 200 with `writeVersion=semantic-actions-d1-readback-v1`; /api/v3/config ready D1; /api/reminders/capabilities enabled true. First non-cachebusting probe returned old health shortly after deploy; subsequent probes confirmed new label. Do not hide this transient inconsistency.
+- Gate 7: **CHƯA ĐẠT** — real iPhone session, OpenAI API key, SpeechRecognition, Marin spoken loop and post-refresh memory still require actual owner UAT. All 97 tests use controlled mocked OpenAI tool calls; do not call them proof of real OpenAI semantic decisions in arbitrary speech.
+- MAINTENANCE in-app was near its 60k character maximum. Archived full snapshot at `voice-deploy/archive/MAINTENANCE_PRE_UNIFIED_20261114.md`, then replaced the live maintenance index with a concise current-version and evidence report; no historical information destroyed.
