@@ -144,7 +144,7 @@ const script=String.raw`
   $('v3Prompt').value=savedPresets[key]??presets[key];
   promptDirty=false;
   presetSelectionPending=true;
-  promptStatus('Đang xem mẫu '+(key==='danh'?'ĐANH ĐÁ':key==='chem'?'CHÉM GIÓ':'NGHIÊM TÚC')+'. Chỉnh nội dung nếu muốn và bấm LƯU PROMPT để lưu riêng mẫu này.');
+  promptStatus((Object.prototype.hasOwnProperty.call(savedPresets,key)?'ĐÃ CÓ MẪU TÙY CHỈNH: ':'CHƯA CÓ BẢN TÙY CHỈNH — ĐANG HIỆN MẪU GỐC: ')+presetLabel[key]+'. Sửa rồi bấm LƯU PROMPT để cập nhật đúng mẫu này.');
  };
  $('v3SampleDanh').onclick=()=>selectPreset('danh');
  $('v3SampleChem').onclick=()=>selectPreset('chem');
