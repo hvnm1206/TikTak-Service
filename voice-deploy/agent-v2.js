@@ -102,7 +102,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     let r;
     try{
       r=await fetchImpl(API,{method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},
-        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:webSearchCalls?[...TOOLS]:[...TOOLS,WEB_SEARCH],max_tool_calls:webSearchCalls?0:1,tool_choice:round===2?"none":"auto",reasoning:{effort:"none"},max_output_tokens:460,store:false})});
+        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:webSearchCalls?[...TOOLS]:[...TOOLS,WEB_SEARCH],...(webSearchCalls?{}:{max_tool_calls:1}),tool_choice:round===2?"none":"auto",reasoning:{effort:"none"},max_output_tokens:460,store:false})});
       if(!r.ok)throw Error(r.status===401?"API key không hợp lệ":r.status===429?"API hết hạn mức":r.status===400?"OpenAI HTTP 400: cần kiểm tra quyền hỗ trợ web_search của model/API key":"OpenAI HTTP "+r.status);
       response=await r.json();
     }finally{clearTimeout(tm)}
