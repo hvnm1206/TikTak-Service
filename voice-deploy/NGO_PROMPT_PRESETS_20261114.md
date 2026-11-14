@@ -30,3 +30,12 @@
 - Root cause: selecting a preset invoked `markPromptDirty()` and triggered a false `confirm` on subsequent template clicks. Also a background profile refresh could overwrite a selected template if dirty flag was cleared. Corrected with separate `presetSelectionPending` from actual `promptDirty`.
 - Added VM-based real SETUP JS interaction tests: all 3 presets choose/edit/save/switch/reload, no phantom confirm, unsaved draft confirm only for genuine input, late refresh safe. CI #43615124322 **117/117 PASS**.
 - Must pass new Cloudflare isolated D1 sandbox then Guard release; previous production behavior should not be described as fixed until deployed.
+
+## SỬA LỖI UI BỊ NGƯỜI DÙNG PHÁT HIỆN — 14/11/2026
+- Ảnh thực tế: bấm mẫu là trình duyệt bật modal “Prompt đang sửa chưa lưu. Chuyển mẫu sẽ thay nội dung hiện tại. Tiếp tục?”, ngay cả khi chỉ đang chuyển mẫu. Nguyên nhân xác nhận ở source: `selectPreset` gọi `markPromptDirty()` vô điều kiện, đồng nhất thao tác chọn với sửa văn bản. Trạng thái giao diện cũ khiến trải nghiệm sai dù test D1 PASS.
+- Đã tách `promptDirty` (chỉ input thật của người dùng) và `presetSelectionPending` (đang xem mẫu nhưng chưa áp dụng). Chọn mẫu không markDirty, không bật confirm giả; background refresh không thay nội dung mẫu đang xem; nếu đã gõ bản nháp mới chưa lưu, đổi mẫu vẫn phải xác nhận; bấm LƯU đọc lại D1 và reset pending.
+- **Kiểm thử JS thực thi (không dò chuỗi):** `prompt-preset-ui-behavior.test.mjs` dùng VM chạy đúng source client và fake GET/PUT revision. 3 mẫu chọn→sửa→lưu→chuyển→tải lại→chọn lại đúng, click-only không cảnh báo, bản nháp thật được bảo vệ, refresh muộn không ghi đè. **117/117 PASS** (77 core + 40 voice/reminder/theme).
+- Sandbox Cloudflare Worker+D1 thật, including rollback và cleanup: **PASS** https://github.com/hvnm1206/TikTak-Service/actions/runs/43615224840
+- Release Guard production: **SUCCESS** https://github.com/hvnm1206/TikTak-Service/actions/runs/43615360945 . Version mới `2e5e6e61-4dce-4b0b-9683-d8c9710e978c`; rollback mã `fcd54e1a-6611-4b13-8748-d73e71f5fdc1`.
+- Guarded Operator GET root production HTTP 200, xác nhận mã `presetSelectionPending=true`, `promptDirty=false` khi chỉ bấm mẫu, `!presetSelectionPending` ngăn refresh ghi đè, và `presetKey:selectedKey` khi lưu. Micro và QR vẫn trong HTML.
+- **Giới hạn:** Chưa có bằng chứng thao tác quét/nhấn và D1 cá nhân trên iPhone thật của người dùng sau bản này. Không tuyên bố lỗi đã được nghiệm thu trên thiết bị, chỉ có kiểm thử UI được chạy thực thi + D1 sandbox + production source.
