@@ -62,9 +62,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in 0001_v3.sql 0002_v3_d1_only.sql 0003_memory_v2.sql; do
-            CLOUDFLARE_API_TOKEN="$CLOUDFLARE_D1_TOKEN" npx --yes wrangler@4.102.0 d1 execute nmh-memory-v2-sandbox-20261114 --remote --config voice-deploy/wrangler-memory-v2-sandbox.generated.jsonc --file "voice-deploy/migrations/$file"
-          done
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_D1_TOKEN" npx --yes wrangler@4.102.0 d1 execute nmh-memory-v2-sandbox-20261114 --remote --config voice-deploy/wrangler-memory-v2-sandbox.generated.jsonc --json --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('v3_users','v3_sessions','v3_profiles','v3_memories','v3_documents','v3_chunks','v3_memory_v2_turns','v3_memory_v2_preferences');" > /tmp/nmh-sandbox-existing-schema.json
+          python3 - <<'PY'
+          import json,os
+          x=json.load(open('/tmp/nmh-sandbox-existing-schema.json'))
+          assert isinstance(x,list) and x and x[0].get('success'), 'Cannot inspect existing sandbox schema'
+          n=len(x[0].get('results',[]))
+          assert n in (0,8), 'Partial sandbox schema: refuse repeated migration'
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('NMH_SANDBOX_SCHEMA_COUNT='+str(n)+'\n')
+          print('MEMORY_V2_SANDBOX_SCHEMA_EXISTING='+str(n))
+          PY
+          if [ "$(tail -1 "$GITHUB_ENV" | cut -d= -f2)" = 0 ];then
+            for file in 0001_v3.sql 0002_v3_d1_only.sql 0003_memory_v2.sql; do
+              CLOUDFLARE_API_TOKEN="$CLOUDFLARE_D1_TOKEN" npx --yes wrangler@4.102.0 d1 execute nmh-memory-v2-sandbox-20261114 --remote --config voice-deploy/wrangler-memory-v2-sandbox.generated.jsonc --file "voice-deploy/migrations/$file"
+            done
+          else
+            echo 'Sandbox schema already installed; skip non-idempotent ALTER TABLE migrations.'
+          fi
           echo 'MEMORY_V2_SANDBOX_MIGRATION=PASS'
       - name: Deploy sandbox Worker only
         shell: bash
