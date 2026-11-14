@@ -93,6 +93,63 @@ jobs:
           except Exception:
               print('CLOUDFLARE_DEPLOYMENTS=INVALID_RESPONSE')
           PY
+
+  nmh-web-search-version-preview:
+    needs: verify
+    if: >-
+      github.event_name == 'push' &&
+      startsWith(github.event.head_commit.message, 'stage(voice): web search version preview')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm production baseline without changing deployment
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --max-time 20 \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/nmh-voice-gpt-test/deployments" -o /tmp/nmh-before-preview.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/nmh-before-preview.json'))
+          v=d['result']['deployments'][0]['versions']
+          assert len(v)==1 and v[0]['percentage']==100
+          assert v[0]['version_id']=='8cc6032c-0035-414c-8217-7ea5e91825e5', 'Production version drift; refuse preview'
+          print('PRODUCTION_PREVIEW_BASELINE=VERIFIED')
+          PY
+      - name: Upload non-active version of SAME Worker; NEVER deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.102.0 versions upload --config voice-deploy/wrangler.jsonc 2>&1 | tee /tmp/nmh-preview-upload.log
+          echo "PREVIEW_UPLOAD=VERSION_ONLY_NO_TRAFFIC_PROMOTION"
+          grep -Eo 'https://[a-zA-Z0-9.-]+\\.workers\\.dev' /tmp/nmh-preview-upload.log | sort -u || true
+      - name: Ensure active production version remains unchanged
+        if: always()
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --max-time 20 \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/nmh-voice-gpt-test/deployments" -o /tmp/nmh-after-preview.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/nmh-after-preview.json'))
+          v=d['result']['deployments'][0]['versions']
+          assert len(v)==1 and v[0]['percentage']==100
+          assert v[0]['version_id']=='8cc6032c-0035-414c-8217-7ea5e91825e5', 'Production changed during preview; investigation required'
+          print('PRODUCTION_VERSION_UNCHANGED=PASS')
+          PY
   deploy:
     needs: verify
     if: >-
