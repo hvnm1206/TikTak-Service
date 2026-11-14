@@ -70,7 +70,7 @@ test('allow durable fact with verbatim quote and reject invention, transient and
 test('delete cannot be inferred by model, needs explicit user forget cue and known id',()=>{
  assert.equal(validateProposal({ops:[del(id1,'chó tên Mít')]},old,'Tao có chó tên Mít').accepted.length,0);
  assert.equal(validateProposal({ops:[del(id1,'Quên con chó')]},old,'Quên con chó tên Mít đi').accepted.length,1);
- assert.equal(validateProposal({ops:[del(id2,'Quên con chó')]},old,'Quên con chó tên Mít đi').accepted.length,1,'known id but model risk is constrained by explicit utterance only');
+ assert.equal(validateProposal({ops:[del(id2,'Quên con chó')]},old,'Quên con chó tên Mít đi').accepted.length,0,'wrong memory ID must not be deleted');
  assert.equal(validateProposal({ops:[del('33333333-3333-4333-8333-333333333333','Quên con chó')]},old,'Quên con chó tên Mít đi').accepted.length,0);
 });
 test('update requires explicit correction, preserves immutable original until commit',()=>{
