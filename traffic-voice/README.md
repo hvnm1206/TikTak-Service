@@ -1,6 +1,8 @@
 # NMH Traffic Voice AI V1 — bản thử độc lập
 
-**Trạng thái 14/11/2026: mã nguồn và 17 kiểm thử mô phỏng đạt. CHƯA triển khai production, CHƯA xác nhận khóa Google/OpenAI, CHƯA có bằng chứng iPhone.**
+**Trạng thái 14/11/2026: Worker Traffic độc lập đã triển khai và xác minh HTTP 200 tại https://nmh-traffic-voice-v1.magical-budget.workers.dev/ ; 17/17 mock tests đạt; chưa cấu hình Google Maps/OpenAI, chưa có giao thông thực hoặc nghiệm thu iPhone. Đây là bản STAGING, chưa phải sản phẩm hoàn chỉnh.**
+ 
+Bằng chứng: [GitHub deploy xác minh PASS](https://github.com/hvnm1206/TikTak-Service/actions/runs/43615018925), [kiểm tra bí mật cấu hình PASS](https://github.com/hvnm1206/TikTak-Service/actions/runs/43614280513), [workflow nạp key an toàn NO-OP khi chưa có khóa](https://github.com/hvnm1206/TikTak-Service/actions/runs/43615146661).
 
 Đây là ứng dụng **riêng**. Không import source, không đổi Worker, route, database, secrets, workflow hoặc deployment của Ngố/Ngáo/Mendo.
 
@@ -115,4 +117,4 @@ Công thức tổng: **Maps Routes + Places + Dynamic Maps (nếu nhúng) + Open
 - Không dùng deployment chung với Ngố; rollback bằng Git commit của `traffic-voice/` và Cloudflare Worker riêng.
 - Không liên kết bảng dữ liệu, D1 hoặc secret của Ngố. Khóa mới, quota riêng nếu có thể.
 - Nếu Worker thử nghiệm gây lỗi: đưa Worker `nmh-traffic-voice-v1` về bản trước, hoặc tắt Worker mới; Ngố không bị ảnh hưởng.
-- Sau khi triển khai phải lưu Git commit SHA, Worker version và kết quả thử thật; hiện **chưa có các định danh triển khai V1**.
+- URL staging đã xác minh: https://nmh-traffic-voice-v1.magical-budget.workers.dev/ ; GitHub deployment verification PASS 43615018925. Chưa có bằng chứng Maps live và iPhone UAT để nghiệm thu V1.
