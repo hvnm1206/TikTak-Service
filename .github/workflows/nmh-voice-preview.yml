@@ -96,6 +96,86 @@ jobs:
 
 
 
+
+  deploy-memory-context-once:
+    needs: verify
+    if: >-
+      github.event_name == 'push' &&
+      startsWith(github.event.head_commit.message, 'release(voice): V3 memory context fix approved 20261114')
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    concurrency:
+      group: nmh-voice-gpt-production-deploy
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+      GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Cloudflare baseline and protect existing version for rollback
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          curl --fail-with-body --silent --show-error --max-time 20 \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/nmh-voice-gpt-test/deployments" -o /tmp/nmh-memory-before.json
+          python3 - <<'PY'
+          import json,os
+          d=json.load(open('/tmp/nmh-memory-before.json'));vs=d['result']['deployments'][0]['versions']
+          assert d.get('success') and len(vs)==1 and vs[0]['percentage']==100
+          assert vs[0]['version_id']=='2d766e1e-2e3c-4d08-a3b7-2599827bc4ba','Production drift: refuse deploy'
+          with open(os.environ['GITHUB_ENV'],'a') as out:out.write('NMH_STABLE_VERSION='+vs[0]['version_id']+'\n')
+          print('MEMORY_ROLLBACK_BASELINE='+vs[0]['version_id'])
+          PY
+          curl --fail --silent --show-error --max-time 15 'https://nmh-voice-gpt-test.magical-budget.workers.dev/health' | \
+            python3 -c 'import sys,json;h=json.load(sys.stdin);assert h["ok"] and h["voice"]=="browser-stt+marin-tts" and h["uiVersion"]=="presence-canvas-v1" and h["v3Version"]=="d1-only-google-v3"'
+      - name: Deploy exact same Worker and D1, rollback if smoke fails
+        run: |
+          set -Eeuo pipefail
+          rollback() {
+            echo "::error::Memory context release failed; rollback to $NMH_STABLE_VERSION"
+            npx --yes wrangler@4.102.0 rollback "$NMH_STABLE_VERSION" --name nmh-voice-gpt-test --config voice-deploy/wrangler.jsonc || echo "::error::ROLLBACK_FAILED"
+          }
+          trap rollback ERR
+          python3 - <<'PY'
+          import json,os,re
+          assert re.fullmatch('[0-9]+-[a-z0-9-]+[.]apps[.]googleusercontent[.]com',os.environ['GOOGLE_CLIENT']),'Existing OAuth client unavailable'
+          c={'name':'nmh-voice-gpt-test','main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'observability':{'enabled':False},'d1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':'3ce295cb-a84d-4a50-abee-d14fdd903514'}],'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT']}}
+          with open('voice-deploy/wrangler-v3-memory.generated.jsonc','w') as f:json.dump(c,f)
+          PY
+          npx --yes wrangler@4.102.0 deploy --config voice-deploy/wrangler-v3-memory.generated.jsonc
+          TARGET="https://nmh-voice-gpt-test.magical-budget.workers.dev"
+          ready=0
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            sleep 5
+            if curl --fail --silent --show-error --max-time 12 "$TARGET/health" -o /tmp/nmh-memory-health.json && \
+               curl --fail --silent --show-error --max-time 12 "$TARGET/api/v3/config" -o /tmp/nmh-memory-config.json && \
+               python3 - <<'PY'
+          import json
+          h=json.load(open('/tmp/nmh-memory-health.json'));c=json.load(open('/tmp/nmh-memory-config.json'))
+          assert h.get('ok') and h.get('voice')=='browser-stt+marin-tts' and h.get('uiVersion')=='presence-canvas-v1' and h.get('v3Version')=='d1-only-google-v3'
+          assert c.get('ready') and c.get('sync') and c.get('storage')=='Cloudflare D1' and c.get('r2Required')==False
+          assert c.get('googleClientId','').endswith('.apps.googleusercontent.com')
+          PY
+            then ready=1;echo "MEMORY_CONTEXT_EDGE_READY=$attempt";break;fi
+          done
+          if [[ "$ready" != 1 ]];then false;fi
+          curl --fail --silent --show-error --max-time 15 "$TARGET/" -o /tmp/nmh-memory-page.html
+          for marker in 'id="avatar"' 'id="v3Prompt"' 'id="v3Memories"' 'id="v3Documents"' 'id="start"' 'id="resume"' 'id="journalBtn"' 'getByteTimeDomainData' 'ttsPrefetchCtl' 'webUsd';do
+            grep -q "$marker" /tmp/nmh-memory-page.html || { echo "::error::Missing UI marker $marker";false; }
+          done
+          test "$(curl --silent --max-time 15 -o /tmp/nmh-memory-unauth.json -w '%{http_code}' "$TARGET/api/v3/me")" = 401
+          test "$(curl --silent --max-time 15 -o /tmp/nmh-memory-unauth-mem.json -w '%{http_code}' "$TARGET/api/v3/memories")" = 401
+          test "$(curl --silent --max-time 15 -o /tmp/nmh-memory-bad-chat.json -w '%{http_code}' -X POST -H "Origin: $TARGET" -H 'Content-Type: application/json' --data '{"apiKey":"invalid","messages":[{"role":"user","content":"hello"}]}' "$TARGET/api/chat")" = 400
+          curl --fail --silent --show-error --max-time 20 "$TARGET/api/docs/maintenance" -o /tmp/nmh-memory-doc.md
+          grep -q 'GIẢM KHOẢNG DỪNG GIỮA CÁC ĐOẠN MARIN' /tmp/nmh-memory-doc.md
+          echo "MEMORY_CONTEXT_SMOKE=VOICE_V3_OAUTH_D1_WEB_DOCS_PASS"
+          trap - ERR
+          echo "MEMORY_CONTEXT_RELEASE=DEPLOYED"
   deploy:
     needs: verify
     if: >-
