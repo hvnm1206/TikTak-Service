@@ -1,5 +1,12 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## BỔ SUNG 14/11/2026 — NGỐ P0 PILOT ĐÃ CHẠY CLOUDFARE (KHÔNG PHẢI PRODUCTION)
+- Pilot độc lập: https://nmh-ngo-p0-pilot-20261114.magical-budget.workers.dev/ — Worker + D1 riêng, cờ nhắc việc active CHỈ trong pilot.
+- GitHub Actions bốn gate PASS: https://github.com/hvnm1206/TikTak-Service/actions/runs/43577570928 ; Guarded Operator GET /health PASS, HTTP 200. 71 bài cũ + 17 bài mới PASS. Sandbox rollback phiên bản chính xác PASS trước đó.
+- Worker production nmh-voice-gpt-test vẫn giữ version fb2bacc5-b26e-4abc-9ee1-78cc222ac221, D1 production không đổi. NGÁO hoàn toàn không đụng.
+- Chưa nghiệm thu iPhone thật + OpenAI key + Google subject + Marin nhắc 2 phút. Chưa phát hành production. Pilot cần đăng nhập và Setup riêng vì dùng D1 riêng.
+
+
 ## CẬP NHẬT THỰC THI NGỐ P0 — 14/11/2026 (NHÁNH CÁCH LY, CHƯA DEPLOY PRODUCTION)
 
 - Mã mới NGỐ: https://github.com/hvnm1206/TikTak-Service/tree/nmh-voice-actions-reminders-p0-20261114/voice-deploy
