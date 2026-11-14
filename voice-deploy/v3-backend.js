@@ -120,12 +120,26 @@ export function memoryIntent(question){
 // Only an explicit voice instruction may write. Ordinary conversations never auto-save.
 const NOTE_FILE='GHI_CHU.md';
 export function noteIntent(question){
- const q=String(question||'').trim().replace(/^(?:ngố|mày|bạn|hãy)\s*[,，]\s*/iu,'');
- const save=q.match(/^(?:hãy\s+|mày\s+|bạn\s+|ngố\s+)?(?:(?:ghi|lưu)(?:\s+lại)?(?:\s+giúp\s+(?:tao|tôi|mình))?\s+(?:vào|trong)\s+(?:(?:file|tệp)\s+)?ghi\s+chú|thêm\s+(?:vào|trong)\s+(?:(?:file|tệp)\s+)?ghi\s+chú|ghi\s+chú\s+(?:lại\s+)?(?:rằng|là|:))\s*[:：,]?\s*(.+)$/isu);
- if(save)return {action:'append',body:save[1].trim()};
- if(/^(?:(?:hãy|mày|bạn|ngố)\s+)?(?:đọc|xem|mở)\s+(?:(?:file|tệp)\s+)?ghi\s+chú(?:\s+(?:của\s+(?:tao|tôi|mình)))?[.!?]?$/isu.test(q))return {action:'read'};
+ // Explicit commands only. Do not infer permission to save from ordinary conversation.
+ const q=String(question||'').trim()
+  .replace(/^(?:này\s+)?(?:ngố|mày|bạn|hãy|ê\s+ngố)\s*[,，!！]\s*/iu,'')
+  .replace(/[.!。！]+$/gu,'').trim();
+ const read=/^(?:(?:hãy|mày|bạn|ngố)\s+)?(?:đọc|xem|mở|cho\s+(?:tao|tôi|mình)\s+xem)\s+(?:(?:file|tệp|sổ)\s+)?ghi\s+chú(?:\s+của\s+(?:tao|tôi|mình))?$/iu;
+ if(read.test(q))return {action:'read'};
+ const prefixes=[
+  /^(?:(?:hãy|mày|bạn|ngố)\s+)?(?:(?:ghi|lưu)(?:\s+lại)?(?:\s+(?:giúp|hộ|cho)\s+(?:tao|tôi|mình))?\s+(?:vào|trong)\s+)?(?:(?:file|tệp|sổ)\s+)?ghi\s+chú(?:\s+(?:lại|giúp|hộ|cho\s+(?:tao|tôi|mình)))?(?:\s+(?:rằng|là|nội\s+dung))?\s*[:：,]?\s+/iu,
+  /^(?:(?:hãy|mày|bạn|ngố)\s+)?(?:thêm|bổ\s+sung)\s+(?:vào|trong)\s+(?:(?:file|tệp|sổ)\s+)?ghi\s+chú\s*[:：,]?\s*/iu,
+  /^(?:(?:hãy|mày|bạn|ngố)\s+)?(?:ghi|lưu)(?:\s+lại|\s+chép)(?:\s+(?:giúp|hộ|cho)\s+(?:tao|tôi|mình))?\s*(?:rằng|là|nội\s+dung\s+)?\s*[:：,]?\s+/iu
+ ];
+ for(const pattern of prefixes){
+  const m=q.match(pattern);
+  if(!m)continue;
+  const body=q.slice(m[0].length).trim();
+  if(body)return {action:'append',body};
+ }
  return null;
 }
+
 export async function handleVoiceNote(req,env,question){
  const intent=noteIntent(question);
  if(!intent)return null;
