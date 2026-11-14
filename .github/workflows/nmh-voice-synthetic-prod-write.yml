@@ -75,3 +75,5 @@ jobs:
             assert not sql('SELECT id FROM v3_documents WHERE user_id=?',[user])
             print('PRODUCTION_SYNTHETIC_DATA_CLEANUP=PASS')
           PY
+
+# One-time synthetic production check. No user data accessed. Synthetic data deleted in finally.
