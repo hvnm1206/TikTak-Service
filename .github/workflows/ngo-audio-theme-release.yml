@@ -18,6 +18,7 @@ jobs:
       CLOUDFLARE_D1_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
       GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
+      GH_ACTIONS_TOKEN: ${{ github.token }}
       PROD_DB_ID: '3ce295cb-a84d-4a50-abee-d14fdd903514'
       PROD_WORKER: nmh-voice-gpt-test
       PROD_EXPECTED_VERSION: b4b18bd1-3562-4bab-9d59-2cee3c3a399c
@@ -34,12 +35,12 @@ jobs:
           node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs voice-deploy/v3-backend.test.mjs voice-deploy/voice-write.test.mjs voice-deploy/memory-v2.test.mjs voice-deploy/memory-v2.preference.test.mjs
           node --experimental-sqlite --test voice-deploy/reminders.test.mjs voice-deploy/reminders-client.test.mjs voice-deploy/theme-ui.test.mjs
           python3 - <<'PY'
-          import json,urllib.request
-          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43577570928',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-PROD-GATE'})
+          import json,urllib.request,os
+          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43577570928',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-PROD-GATE','Authorization':'Bearer '+os.environ['GH_ACTIONS_TOKEN']})
           with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
           assert j['conclusion']=='success' and j['name']=='NGỐ P0 — persistent isolated iPhone pilot'
           print('NGO_REAL_WORKER_AND_D1_PILOT_GATE=PASS')
-          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43582105083',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-AUDIO-THEME-GATE'})
+          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43582105083',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-AUDIO-THEME-GATE','Authorization':'Bearer '+os.environ['GH_ACTIONS_TOKEN']})
           with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
           assert j['conclusion']=='success' and j['name']=='NGỐ P0 — isolated real Cloudflare Worker and D1 sandbox'
           print('NGO_AUDIO_THEME_REAL_D1_SANDBOX_AND_ROLLBACK_GATE=PASS')
