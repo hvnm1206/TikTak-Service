@@ -1,5 +1,24 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## 14/11/2026 — SỬA GHI CHÚ KHÔNG LƯU KHI RA LỆNH TỰ NHIÊN (MỚI NHẤT)
+
+**Tình trạng tiếp nhận:** Người dùng báo “Nó không hề ghi khi yêu cầu”. Kiểm tra source production phát hiện `noteIntent()` ban đầu chỉ chấp nhận các mẫu rất hẹp (ví dụ “Ghi vào file ghi chú ...”), còn “Ngố, ghi lại cho tao ...” hoặc “Ghi lại ...” trả `null` và bị chuyển tới GPT như hội thoại thông thường, không thực hiện ghi D1. Ngoài ra KHO TÀI LIỆU chỉ gọi `populate()` khi load/login, không tự refresh lúc mở SETUP nên có thể hiển thị danh sách cũ.
+
+**Đối sách đã phát hành:**
+- `v3-backend.js`: mở rộng bộ nhận lệnh ghi chú rõ ràng theo lời nói tự nhiên, giữ nguyên kiểm tra Google session, giới hạn kích thước, và write owner-scope vào tài liệu `GHI_CHU.md` trong D1. Không tự ghi mọi hội thoại.
+- `agent-v2.js`: thêm hosted model function `save_note` (chỉ khi người dùng ra lệnh lưu). GPT hiểu các diễn đạt không trùng mẫu regex; action xử lý qua callback an toàn, không để GPT tự tuyên bố lưu thành công. Khi callback trả lỗi, trả về lỗi ghi chú cụ thể; không tiếp tục tạo câu "đã lưu" không có bằng chứng.
+- `worker.js`: callback lưu ghi chú đi qua đúng `handleVoiceNote`, xác minh cue lưu trong lời người dùng, bảo toàn cookie phiên Google, D1, không đưa D1 credential hay secret vào GPT.
+- `v3-ui.js` + `worker.js`: khi mở lại SETUP, đọc lại trạng thái/tài liệu từ backend thông qua `nmhV3Refresh`, không chỉ hiển thị cache của lần đăng nhập đầu.
+- Giữ nguyên Web Search, Marin prefetch, mic/STT, OAuth Web Client, D1 database, Presence, nhật ký và chi phí.
+
+**Production mới:** `https://nmh-voice-gpt-test.magical-budget.workers.dev/`; Worker `nmh-voice-gpt-test`; Cloudflare Worker Version theo Wrangler `17252e9a-c3b4-4784-a71c-cbca7190085d`. [Release Actions 43542690055](https://github.com/hvnm1206/TikTak-Service/actions/runs/43542690055): `verify=SUCCESS`, `deploy-natural-notes-once=SUCCESS`, `deploy=SKIPPED`, `NATURAL_NOTES_SMOKE=VOICE_WEB_V3_D1_OAUTH_UI_SECURITY_PASS`, `NATURAL_NOTES_RELEASE=DEPLOYED`. Rollback baseline `cb25a9bc-83ab-4607-99b8-70df2b58b1f0`. Đã gỡ job phát hành dùng một lần sau khi deploy.
+
+**Test:** [Actions 43542517955](https://github.com/hvnm1206/TikTak-Service/actions/runs/43542517955) 37/37 Voice PASS, 10/10 V3/note PASS; gồm nhận ra lệnh tự nhiên, ghi và đọc tài liệu D1 theo Google subject trong mocked DB, GPT callback save_note thành công/thất bại và không xuất công cụ khi callback thiếu. Các kiểm thử là mock/CI, chưa có một lần nói → OpenAI API thực → lưu D1 bằng phiên Google iPhone thật. Không tuyên bố E2E PASS nếu thiếu bằng chứng thật.
+
+**Chú ý:** Người dùng phải còn đăng nhập Google trong đúng origin production; nếu không, ghi chú trả thông báo chưa lưu. Sau khi ghi xong, mở lại SETUP → KHO TÀI LIỆU để xem `GHI_CHU.md`. Tuyệt đối không nhầm với `v3_memories` (GHI NHỚ CHỦ ĐỘNG) là bảng khác. Không đọc/ghi tiết lộ file cá nhân, không tạo DB khác.
+
+---
+
 ## 14/11/2026 — GHI CHÚ BẰNG GIỌNG NÓI + TRẢ LỜI NGẮN, NGUỒN RIÊNG (MỚI NHẤT)
 
 **Đã phát hành production:** Worker `nmh-voice-gpt-test`, URL `https://nmh-voice-gpt-test.magical-budget.workers.dev/`, Cloudflare active version theo Wrangler **`cb25a9bc-83ab-4607-99b8-70df2b58b1f0`**, release source `1f471eccb3b13546622e106359d900a2d327f240`. [GitHub Actions 43540527297](https://github.com/hvnm1206/TikTak-Service/actions/runs/43540527297): verify=SUCCESS, deploy-notes-once=SUCCESS, generic deploy=SKIPPED, smoke `VOICE_NOTE_RELEASE_SMOKE=VOICE_D1_OAUTH_WEB_UI_SECURITY_PASS`, `VOICE_NOTE_RELEASE=DEPLOYED`. Baseline rollback: `c48b6a80-77e6-4476-a6c2-c551c1d838a8`. Release one-shot gate đã được gỡ trên nhánh.
