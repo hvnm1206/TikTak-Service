@@ -110,3 +110,5 @@ jobs:
 # One-shot staged sandbox verification; no production deployment.
 
 # Final staging refresh from verified source after strict schema and native D1 integration.
+
+# Safe repeated staging refresh: D1 schema introspection prevents double ALTER.
