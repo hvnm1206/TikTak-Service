@@ -1,5 +1,21 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## 14/11/2026 — GHI CHÚ: KIỂM TRA D1 THẬT VÀ XÁC NHẬN SAU GHI (MỚI NHẤT)
+
+**Bối cảnh:** Người dùng vẫn báo lệnh bằng giọng không lưu nội dung. Không được dùng mock tests hoặc HTTP 200 để kết luận đã nghiệm thu trên tài khoản của người dùng.
+
+**Bằng chứng đọc D1 thật (chỉ số tổng hợp, không đọc dữ liệu riêng):** GitHub Actions 43546692890, `D1_READONLY_AUDIT=PASS`: database `nmh-voice-v3` có `note_files=1`, `note_segments=2`, `active_sessions=5` tại thời điểm kiểm tra. Điều này **không xác định file có thuộc tài khoản người dùng đang báo lỗi hay không**.
+
+**Kiểm thử E2E thật với tài khoản tổng hợp riêng:** [Actions 43547084583](https://github.com/hvnm1206/TikTak-Service/actions/runs/43547084583): `LIVE_SYNTHETIC_NOTE_E2E=PASS`, `LIVE_NOTE_CREATE_APPEND_READ_AUTH=PASS`, `LIVE_SYNTHETIC_USER_CLEANUP=PASS`. Test chạy qua URL production, phiên D1 riêng tạm thời, tạo note bằng lệnh `/api/chat`, append lần 2, GET file qua `/api/v3/documents`, đọc lại bằng lệnh; bản thử đã xóa sạch. Bước thử lần đầu 43546972528 HTTP 403 do Python HTTP client, lần sau với header User-Agent phù hợp thành công. **E2E này áp dụng cho production version trước lần phát hành mới, không cho phiên iPhone của người dùng.**
+
+**Sửa mã nguồn phát hành mới:** Trong `v3-backend.js`, ghi mới và append chỉ trả `saved:true` sau khi đọc lại đồng thời `v3_documents.raw_text` và `v3_chunks.body` đúng chủ sở hữu, đúng nội dung, đúng segment. Phản hồi success trực tiếp: `Đã ghi và kiểm tra trong GHI_CHU.md, mục N.`; lỗi xác minh báo rõ không thể xác nhận, không nói "đã lưu". `worker.js` callback GPT `save_note` chỉ thành công nếu backend trả `saved===true`; `agent-v2.js` nhận receipt file+segment. SETUP → KHO TÀI LIỆU bổ sung trạng thái `GHI_CHU.md — N mục đã lưu trong D1` theo Google session hiện hành, hoặc báo chưa có ghi chú cho tài khoản đó. Không tự tạo DB hay thay key/OAuth; Voice, Marin, Web Search giữ nguyên.
+
+**Kiểm thử:** [CI 43547380430](https://github.com/hvnm1206/TikTak-Service/actions/runs/43547380430) 40/40 Voice và 11/11 V3/note PASS, có test read-after-write và không xác nhận thành công khi đọc lại thất bại. [Release 43547663180](https://github.com/hvnm1206/TikTak-Service/actions/runs/43547663180): verify=SUCCESS, release-verified-notes-once=SUCCESS, generic deploy=SKIPPED, smoke `VERIFIED_NOTES_SMOKE=VOICE_WEB_V3_D1_OAUTH_UI_SECURITY_PASS`, `VERIFIED_NOTES_RELEASE=DEPLOYED`. Cloudflare version mới `962b29ff-709c-4b64-978a-259f86221d9c`, baseline rollback `73b787ad-dcb9-427b-aea1-cddaca235295`. One-shot workflow deploy/audit/test đã gỡ.
+
+**Giới hạn xác minh:** Chưa đo/đọc được người dùng đã nói câu cụ thể nào ở iPhone, chưa kiểm tra session Google của chính người dùng, chưa kiểm thử GPT semantic tool thực qua API key của người dùng. Kiểm thử live synthetic lặp lại sau bản phát hành mới không chạy được do công cụ từ chối thao tác; không tuyên bố PASS. Không khẳng định lỗi người dùng đã được giải quyết chỉ vì có receipt hoặc CI. Nếu app tiếp tục không ghi, cần dựa vào câu thoại được nhận dạng, câu trả lời lưu thất bại, trạng thái file theo account tại SETUP; tuyệt đối không thu hoặc in API key, cookie hay nội dung riêng vào log.
+
+---
+
 ## 14/11/2026 — HOTFIX: SAVE_NOTE CHIẾM LUỒNG HỘI THOẠI SAU MỘT LỆNH LƯU (MỚI NHẤT)
 
 **Báo lỗi thực tế từ người dùng:** Sau khi ra một lệnh ghi chú, mọi câu hỏi tiếp theo đều bị phản hồi "Không có yêu cầu ghi chú rõ ràng. Chưa lưu." Đây là hồi quy nghiêm trọng của release trước.
