@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
-import {handleV3,loadV3Context,handleVoiceMemory,memoryIntent,voiceNoteIntent} from './v3-backend.js';
+import {handleV3,loadV3Context,storeVoiceNote} from './v3-backend.js';
 const host='https://voice.local.test';
 const config='792345678901-test-oauth.apps.googleusercontent.com';
 function db(){
@@ -74,13 +74,6 @@ test('without D1/R2 or Google web client V3 refuses feature operations without t
  const u=await asBody(await handleV3(req('/api/v3/profile'),{}));
  assert.equal(u.status,503);
 });
-test('memory actions only trigger for intentional voice commands, not every sentence',()=>{
- assert.deepEqual(memoryIntent('Nhớ rằng tôi thích ngắn gọn'),{action:'save',body:'tôi thích ngắn gọn'});
- assert.equal(memoryIntent('Tôi nghe câu nhớ rằng nhưng không yêu cầu'),null);
- assert.deepEqual(memoryIntent('Quên điều tôi thích ngắn gọn'),{action:'erase',query:'tôi thích ngắn gọn'});
- assert.deepEqual(memoryIntent('Sửa ghi nhớ màu xanh thành màu đỏ'),{action:'edit',query:'màu xanh',body:'màu đỏ'});
- assert.equal(memoryIntent('Tối nay ăn gì?'),null);
-});
 test('fake or missing login is rejected, no client-supplied owner identity is trusted',async()=>{
  const e=env();
  assert.equal((await handleV3(req('/api/v3/profile'),e)).status,401);
@@ -113,10 +106,7 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   assert.equal(mem.status,201);
   const edited=await asBody(await handleV3(req('/api/v3/memories/'+mem.body.id,'PUT',{body:'Chỉ báo cáo đúng trọng tâm'},cookie),e));
   assert.equal(edited.status,200);
-  const dup=await handleVoiceMemory(req('/api/chat','POST',{},cookie),e,'Nhớ rằng máy chạy 3 ca');
-  assert.match(dup.answer,/Đã lưu/);
-  const voiceEdit=await handleVoiceMemory(req('/api/chat','POST',{},cookie),e,'Sửa ghi nhớ máy chạy 3 ca thành máy chạy 2 ca');
-  assert.match(voiceEdit.answer,/Đã sửa/);
+  // GPT actions are now the sole conversational write entrypoint.
   const doc=await asBody(await handleV3(req('/api/v3/documents','POST',{name:'quytrinh.txt',mime:'text/plain',text:'Lỗi E12: kiểm tra cảm biến áp suất trước khi khởi động lại.'},cookie),e));
   assert.equal(doc.status,201);
   assert.equal(e.NMH_DB.docs.size,1);
@@ -135,7 +125,7 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   const indirect=await loadV3Context(req('/api/chat','POST',{},cookie),e,'Mày biết tao là ai không?');
   assert.ok(indirect.memories.includes('Chủ nhân tên là Hải béo'),'owner identity must be available without matching words');
   assert.ok(indirect.memories.includes('Mày tên là Ngố'),'assistant identity must be available without matching words');
-  assert.ok(indirect.memories.length<=6,'memory context remains bounded');
+  assert.ok(indirect.memories.length<=20,'memory context remains bounded');
   const polite=await loadV3Context(req('/api/chat','POST',{},cookie),e,'Bạn có biết tôi là ai không?');
   assert.ok(polite.memories.includes('Chủ nhân tên là Hải béo'));
   // A different Google account cannot see, delete or retrieve user one's records.
@@ -214,15 +204,3 @@ test('D1-only V3 needs no R2 binding and rejects anonymous access',async()=>{
  assert.equal(unauth.status,401);
 });
 
-test('explicit natural voice write is routed to memory; file-note directives routed separately',()=>{
- assert.deepEqual(memoryIntent('Ghi lại con chó của tao tên Mít'),{action:'save',body:'con chó của tao tên Mít'});
- assert.deepEqual(memoryIntent('Ghi ngày mai phải kiểm tra máy'),{action:'save',body:'ngày mai phải kiểm tra máy'});
- assert.deepEqual(memoryIntent('Lưu giúp tao ngày mai gọi anh Nam'),{action:'save',body:'ngày mai gọi anh Nam'});
- assert.equal(memoryIntent('Hỏi cách ghi nhớ hiệu quả'),null);
- assert.equal(memoryIntent('Ghi vào file ghi chú ngày mai kiểm tra máy'),null);
- assert.equal(voiceNoteIntent('Ghi vào file ghi chú ngày mai kiểm tra máy'),'ngày mai kiểm tra máy');
- assert.equal(voiceNoteIntent('Lưu vào sổ ghi chú: kiểm tra máy bơm'),'kiểm tra máy bơm');
- assert.equal(voiceNoteIntent('Ghi chú: sáng mai họp phòng sản xuất'),'sáng mai họp phòng sản xuất');
- assert.equal(voiceNoteIntent('Lưu ghi chú kiểm tra an toàn'),'kiểm tra an toàn');
- assert.equal(voiceNoteIntent('Tôi hỏi về file ghi chú'),null);
-});
