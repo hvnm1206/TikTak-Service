@@ -44,8 +44,12 @@ const script=String.raw`
  }
  closeBtn.addEventListener('click',()=>{cleanupAudio();box.style.display='none';busy=false;active=null;showNext()});
  playBtn.addEventListener('click',()=>{void speak()});
+ const REMINDER_POLL_MS=10*60*1000;
+ let lastCheckAt=0,checking=false;
  async function tick(){
-  if(document.visibilityState!=='visible')return;
+  if(document.visibilityState!=='visible'||checking)return;
+  // Foreground re-entry is checked promptly; duplicate focus events share one in-flight check.
+  checking=true;lastCheckAt=Date.now();
   try{
    const data=await req('/api/reminders/due');
    for(const item of data.reminders||[]){
@@ -56,10 +60,13 @@ const script=String.raw`
    }
    showNext();
   }catch(e){/* offline: do not claim success or discard pending D1 reminders */}
+  finally{checking=false}
  }
- const timer=setInterval(()=>{void tick()},10000);
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void tick()});
- window.addEventListener('focus',()=>{void tick()});
+ const timer=setInterval(()=>{void tick()},REMINDER_POLL_MS);
+ // Avoid duplicate wake/focus requests; still check when returning after >=60 seconds.
+ const onResume=()=>{if(document.visibilityState==='visible'&&!checking&&Date.now()-lastCheckAt>=60000)void tick()};
+ document.addEventListener('visibilitychange',onResume);
+ window.addEventListener('focus',onResume);
  window.addEventListener('pagehide',()=>{clearInterval(timer);cleanupAudio()});
  setTimeout(()=>{void tick()},500);
 })();
