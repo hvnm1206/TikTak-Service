@@ -1,5 +1,15 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## MỚI NHẤT 14/11/2026 — SỬA DỰ BÁO NGÀY MAI VÀ ÂM LƯỢNG MARIN
+- Worker chính: https://nmh-voice-gpt-test.magical-budget.workers.dev/ — production version **`c53ec4d6-ed9f-4dd2-9f79-76cdfdd8505d`**. Rollback code **`c547c24a-ff0a-4b6d-afe4-1bbdd80d23d9`**.
+- Lỗi thời tiết: công cụ `get_weather` trước chỉ lấy `current`. Đã yêu cầu thêm 7 ngày `daily`: ngày địa phương, nhiệt độ max/min, xác suất và lượng mưa, gió, WMO code, đơn vị. Ngày mai phải lấy dự báo của đúng ngày, không lấy current thay thế. Không có daily thì công cụ báo lỗi, không bịa dữ liệu.
+- Kiểm nguồn công khai thực: Guarded Operator GET Open-Meteo geocoding Hà Nội HTTP 200, forecast endpoint HTTP 200 với `2026-11-15` và các giá trị daily; chưa có test GPT real API của phiên iPhone.
+- Âm lượng: bỏ bộ nén động gây nguy cơ dao động mức âm; thay gain tuyến tính theo RMS PCM của từng đoạn Marin và giới hạn đỉnh 0.88 không clipping; giữ nút volume, mic và nhịp TTS như cũ. Đây là thay đổi kỹ thuật có test waveform, chưa xác nhận cảm giác nghe trên iPhone.
+- CI **110/110 PASS** https://github.com/hvnm1206/TikTak-Service/actions/runs/43601366567 ; sandbox D1/Worker và rollback PASS https://github.com/hvnm1206/TikTak-Service/actions/runs/43601510075 ; production release SUCCESS https://github.com/hvnm1206/TikTak-Service/actions/runs/43601602098 ; D1 Time Travel bookmark được lưu trong artifact của release.
+- Bài thử iPhone chưa xác minh: hỏi “Thời tiết Hà Nội ngày mai thế nào?” (đúng ngày dự báo), thử nghe một đoạn dài nhiều phần Marin, thay đổi volume trong SETUP, thử ngắt lời và micro. Nếu còn lỗi phải ghi nhận thông số/lỗi thực, không vá theo từng câu hỏi.
+- Báo cáo kỹ thuật: https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-actions-reminders-p0-20261114/voice-deploy/NGO_WEATHER_VOLUME_REPAIR_20261114.md
+
+
 ## MỚI NHẤT 14/11/2026 — GIẢM THỜI GIAN ĐẾN TIẾNG NÓI ĐẦU TIÊN
 - URL chính giữ nguyên: https://nmh-voice-gpt-test.magical-budget.workers.dev/ ; Cloudflare Worker version `c547c24a-ff0a-4b6d-afe4-1bbdd80d23d9`. Rollback version `f24ae459-324a-4aef-96d0-7713454d62e4`.
 - Thêm SETUP → ĐỘ TRỄ: đo từ khi Safari nhận xong câu nói đến GPT/API trả lời, Marin tạo tiếng đầu, tổng và thời gian backend D1/GPT. Không gửi nội dung voice hoặc API key vào log; số liệu theo lượt trên thiết bị.
