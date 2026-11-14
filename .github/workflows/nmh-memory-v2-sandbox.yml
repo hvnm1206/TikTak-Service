@@ -112,3 +112,5 @@ jobs:
 # Final staging refresh from verified source after strict schema and native D1 integration.
 
 # Safe repeated staging refresh: D1 schema introspection prevents double ALTER.
+
+# Final sandbox refresh includes consent revocation guard and UI regression tests.
