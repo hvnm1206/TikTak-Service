@@ -1,5 +1,17 @@
 # NGỐ Audio + Theme V1 — kế hoạch khóa phạm vi (14/11/2026)
 
+## KẾT QUẢ THỰC THI / ĐỐI CHIẾU KẾ HOẠCH
+- Bước 1 kiểm tra nguồn Presence/Marin: HOÀN THÀNH.
+- Bước 2 WebAudio gain mặc định 1.55x, giới hạn 1–2.5 + compressor và slider lưu localStorage: HOÀN THÀNH, qua test.
+- Bước 3 giao diện Mặc định/Vịt/Corgi SVG có trạng thái động, không can thiệp luồng mic: HOÀN THÀNH, qua test.
+- Bước 4 CI 71 legacy + 20 new PASS; sandbox Cloudflare D1 real, kiểm tra UI và rollback PASS: https://github.com/hvnm1206/TikTak-Service/actions/runs/43579648460 .
+- Bước 5 Production release PASS cùng URL: https://github.com/hvnm1206/TikTak-Service/actions/runs/43579758792 ; version mới `cd66b9f6-b7a7-4970-abf8-ce1ef19e1446`. Rollback version `08e0bbf2-a2e5-4b98-94dc-0cfee882e5b6`. Lưu D1 bookmark artifact 30 ngày. Guard HTTP 200 health/config/capabilities.
+- Bước 6 iPhone thật: CHỜ NGƯỜI DÙNG THỬ. Chưa xác minh độ to thực, âm bị rè hay giao diện Safari. Không đánh đồng test tự động với nghiệm thu thiết bị.
+- Không sửa Ngáo. Production Memory V2, Reminder, D1, Google OAuth, Web Search giữ nguyên.
+- Lỗi phát hiện và sửa trong quá trình: lần đầu chèn gain vào audio source trước `enhanceVoicePage` làm mất anchor audio meter của Presence, CI FAIL; đã chuyển sang post-Presence patch `volume-ui.js`, chạy lại CI và sandbox PASS mới triển khai.
+- Chức năng âm lượng nhắc việc chạy từ `reminders-client.js` là một kênh phát độc lập, chưa tăng gain; phạm vi nâng âm lần này là Marin hội thoại và nút THỬ GIỌNG AI MARIN trong SETUP.
+
+
 ## Mục tiêu
 1. Khắc phục giọng Marin nhỏ trên iPhone bằng WebAudio gain có giới hạn 1.00–2.50x, default 1.55x; chặn đỉnh bằng DynamicsCompressor, cho người dùng kéo thanh âm lượng riêng trong SETUP, lưu localStorage.
 2. Ba giao diện chọn độc lập: Mặc định (giao diện cũ), Vịt Ngố (mascot gốc tự vẽ SVG), Corgi Ngố (mascot gốc tự vẽ SVG). Giao diện có hoạt ảnh theo trạng thái nghe/nghĩ/nói/lỗi. Dữ liệu/chức năng không đổi.
