@@ -6,7 +6,8 @@ permissions:
   contents: read
 jobs:
   sandbox:
-    if: startsWith(github.event.head_commit.message, 'sandbox(ngo): run isolated Worker D1')
+    if: >-
+      startsWith(github.event.head_commit.message, 'sandbox(ngo): run isolated Worker D1')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
