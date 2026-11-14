@@ -113,6 +113,10 @@ export function voiceNoteIntent(question){
 export async function handleVoiceNote(req,env,question){
  const note=voiceNoteIntent(question);
  if(!note)return null;
+ return storeVoiceNote(req,env,note);
+}
+export async function storeVoiceNote(req,env,note){
+ if(typeof note!=='string'||note.trim().length<2||note.length>2200)return {answer:'Nội dung ghi chú không hợp lệ.',saved:false};
  const result=(answer,saved=false)=>({answer,saved,sources:[],tools:[],model:'local-d1-note',usage:{input_tokens:0,output_tokens:0}});
  if(!productionReady(env))return result('Chưa lưu được ghi chú: kho D1 chưa sẵn sàng.');
  const sub=await sessionSubject(req,env);
