@@ -145,7 +145,18 @@ jobs:
             then ready=1;break;fi
           done
           test "$ready" = 1
-          curl --fail --silent --max-time 20 "$TARGET/" -o /tmp/ngo-live-ui.html
+          http200_with_retry(){
+            local endpoint="$1" dest="$2" status attempt
+            for attempt in 1 2 3 4 5 6 7 8;do
+              status=$(curl --silent --max-time 20 -o "$dest" -w '%{http_code}' "$TARGET$endpoint") || status=000
+              if [ "$status" = 200 ];then echo "NGO_HTTP_OK endpoint=$endpoint attempt=$attempt";return 0;fi
+              echo "NGO_HTTP_RETRY endpoint=$endpoint attempt=$attempt status=$status" >&2
+              sleep 3
+            done
+            echo "::error::Endpoint $endpoint did not return HTTP 200 after bounded retries" >&2
+            return 1
+          }
+          http200_with_retry / /tmp/ngo-live-ui.html
           for marker in 'id="start"' 'id="resume"' 'id="avatar"' 'v3MemoryV2Section' 'nmhReminderToast' 'Marin' 'ttsPrefetchCtl' 'ngoThemeCSS' 'ngoThemeSelect' 'nmh_voice_gain_v1' 'createDynamicsCompressor' 'ngoMascotStage' 'field.append(stage)' 'visual-field' 'width:245px;height:245px';do
             grep -q "$marker" /tmp/ngo-live-ui.html || { echo "::error::missing UI marker $marker";false; }
           done
@@ -157,7 +168,7 @@ jobs:
           test "$code" = 400
           code=$(curl --silent --max-time 15 -o /tmp/ngo-bad-tts -w '%{http_code}' -X POST -H "Origin: $TARGET" -H 'Content-Type: application/json' --data '{"apiKey":"invalid","text":"hi"}' "$TARGET/api/tts")
           test "$code" = 400
-          curl --fail --silent --max-time 20 "$TARGET/api/docs/maintenance" -o /tmp/ngo-maintenance.md
+          http200_with_retry /api/docs/maintenance /tmp/ngo-maintenance.md
           grep -q 'NGỐ P0 PILOT' /tmp/ngo-maintenance.md
           python3 - <<'PY'
           import os,json,urllib.request
