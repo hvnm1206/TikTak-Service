@@ -1,5 +1,19 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## 14/11/2026 — GHI CHÚ BẰNG GIỌNG NÓI + TRẢ LỜI NGẮN, NGUỒN RIÊNG (MỚI NHẤT)
+
+**Đã phát hành production:** Worker `nmh-voice-gpt-test`, URL `https://nmh-voice-gpt-test.magical-budget.workers.dev/`, Cloudflare active version theo Wrangler **`cb25a9bc-83ab-4607-99b8-70df2b58b1f0`**, release source `1f471eccb3b13546622e106359d900a2d327f240`. [GitHub Actions 43540527297](https://github.com/hvnm1206/TikTak-Service/actions/runs/43540527297): verify=SUCCESS, deploy-notes-once=SUCCESS, generic deploy=SKIPPED, smoke `VOICE_NOTE_RELEASE_SMOKE=VOICE_D1_OAUTH_WEB_UI_SECURITY_PASS`, `VOICE_NOTE_RELEASE=DEPLOYED`. Baseline rollback: `c48b6a80-77e6-4476-a6c2-c551c1d838a8`. Release one-shot gate đã được gỡ trên nhánh.
+
+**Chức năng ghi chú:** `v3-backend.js` thêm `noteIntent()` và `handleVoiceNote()`. Lệnh giọng nói rõ ràng như “Ghi vào file ghi chú mua bóng đèn ngày mai”, “Thêm vào ghi chú kiểm tra máy bơm”, “Ghi chú rằng…” tạo hoặc bổ sung vào tài liệu **`GHI_CHU.md`** trong Cloudflare D1 *hiện hữu* theo chủ tài khoản Google, lưu `raw_text` cùng index `v3_chunks`. Có thể xem file trong **SETUP → KHO TÀI LIỆU**, đọc bằng lệnh “Đọc file ghi chú”. Không tự ghi hội thoại thông thường; không đổi các ghi nhớ chủ động trong `v3_memories`; không tạo database hoặc dịch vụ khác. Nếu chưa đăng nhập Google, báo “Chưa lưu” và không ghi. Giới hạn mỗi lần 500 ký tự, mỗi file tối đa 100 mục / 60.000 ký tự. Kết quả “Đã ghi” chỉ trả sau D1 batch thành công. Tạo hoặc ghi thêm thông qua câu lệnh là tính năng mới, không phải bản backup của ghi nhớ cũ.
+
+**Dẫn nguồn:** `agent-v2.js` yêu cầu trả lời thoại trực tiếp 1–2 câu thông thường, không đọc URL/tên nguồn dài; `cleanVoiceAnswer` loại link/citation text. Các nguồn web có URL vẫn đi dưới dạng `sources` độc lập và được thu gọn mặc định trong **NHẬT KÝ → Nguồn tham khảo**, không chèn vào lời đọc Marin. Giữ nguyên Web Search, prefetch Marin, STT, Presence, login Google.
+
+**Bằng chứng CI:** [Actions 43540424912](https://github.com/hvnm1206/TikTak-Service/actions/runs/43540424912) 34/34 Voice PASS và 10/10 V3 + note PASS; lưu note rõ lệnh, đọc file, owner scope, từ chối chưa login, không lưu thành công giả, lọc citations. Release CI verify PASS, smoke PASS.
+
+**Giới hạn:** Chưa thực hiện lưu ghi chú bằng cookie Google thực của người dùng trên iPhone và chưa phát nghe Marin thực với API key cục bộ. HTTP/CI không thay thế E2E. Không in token hay dữ liệu riêng. Bản phát hành đã chạy, nhưng ghi chú trên phiên người dùng chưa được nghiệm thu thực.
+
+---
+
 ## 14/11/2026 — SỬA LỖI GHI NHỚ V3 KHÔNG TRẢ LỜI ĐƯỢC CÂU HỎI GIÁN TIẾP (MỚI NHẤT)
 
 **Triệu chứng:** iPhone hiển thị ghi nhớ đã lưu trong SETUP như “Chủ nhân tên là Hải béo”, “Mày tên là Ngố”, nhưng câu “Mày biết tao là ai không?” không được GPT trả đúng. **Nguyên nhân xác minh từ source:** `loadV3Context()` ở `v3-backend.js` tính điểm trùng từ khóa `scoreSegment` rồi `filter(x=>x.score>0)`. Câu hỏi danh tính gián tiếp không có từ trùng, nên ghi nhớ đã lưu bị loại trước khi đưa vào GPT. Đây là lỗi truy xuất, không chứng minh D1 mất dữ liệu.
