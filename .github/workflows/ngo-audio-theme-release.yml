@@ -169,7 +169,12 @@ jobs:
           code=$(curl --silent --max-time 15 -o /tmp/ngo-bad-tts -w '%{http_code}' -X POST -H "Origin: $TARGET" -H 'Content-Type: application/json' --data '{"apiKey":"invalid","text":"hi"}' "$TARGET/api/tts")
           test "$code" = 400
           http200_with_retry /api/docs/maintenance /tmp/ngo-maintenance.md
-          grep -q 'NGỐ P0 PILOT' /tmp/ngo-maintenance.md
+          python3 - <<'PY'
+          from pathlib import Path
+          raw=Path('/tmp/ngo-maintenance.md').read_text('utf-8')
+          assert 100<len(raw)<=60000 and raw.startswith('# ') and '<html' not in raw.lower(), 'MAINTENANCE_DOCUMENT_INVALID'
+          print('NGO_MAINTENANCE_VALID_MARKDOWN=PASS')
+          PY
           python3 - <<'PY'
           import os,json,urllib.request
           url='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/workers/scripts/'+os.environ['PROD_WORKER']+'/deployments'
