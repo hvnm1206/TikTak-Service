@@ -1,4 +1,14 @@
 # NGỐ / NMH VOICE GPT — P0 ActionRegistry / Foreground Reminder / Audit
+
+## 2026-11-14 — Persistent pilot for physical iPhone UAT
+- Pilot URL: https://nmh-ngo-p0-pilot-20261114.magical-budget.workers.dev/ (separate Worker + separate D1; NMH_REMINDERS_MODE=active; Memory V2 OFF in pilot only).
+- CI deploy: https://github.com/hvnm1206/TikTak-Service/actions/runs/43577570928 — all 4 gates SUCCESS (71+17 unit/regression, strict baseline check, isolated remote D1 migration & Worker deploy, anonymous 401, app/UI, production intact).
+- Independent Guarded Operator HTTP GET /health: Guard PASS; HTTP 200 READY.
+- GitHub source commit provisioning workflow: 5e341133d2eb57e8daf2eb2663fe2d82a9771760.
+- Pilot stays available for iPhone UAT; it is NOT the production Worker. The pilot does NOT use production V3 user data, so log in and set up on pilot independently.
+- UAT steps: on iPhone open pilot URL, sign in with Google in V3 setup, input own OpenAI API key, check mic/Marin/search, say exactly “2 phút nữa nhắc tao uống thuốc”; verify D1-backed acknowledgement, 2-minute visible toast and playback, then test list/cancel, refresh and duplicate tabs; app must stay foreground. Record actual iPhone evidence before any production promotion.
+- NOT VERIFIED: real end-to-end OpenAI function call + Google user and physical iPhone foreground/Marin; production migration/deploy not done. Never claim completed production.
+
 Date: 2026-11-14 (Asia/Ho_Chi_Minh)
 Branch: nmh-voice-actions-reminders-p0-20261114
 Base source: nmh-voice-memory-v2-stage-20261114, commit 1ecd0fea29f6faa5a4b2891b28f826b3c2739755
