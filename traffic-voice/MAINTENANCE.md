@@ -16,10 +16,18 @@ Ngày 14/11/2026.
 
 1. Chưa xác thực Maps Platform billing, Routes/Places API active và server key.
 2. Chưa xác thực OpenAI API key có quyền và hạn mức.
-3. Chưa tạo/triển khai Worker Traffic trên Cloudflare; không có URL app Traffic đã xác minh.
+3. ĐÃ tạo Worker Traffic riêng `nmh-traffic-voice-v1`; URL staging https://nmh-traffic-voice-v1.magical-budget.workers.dev/ . Guarded Operator kiểm tra trực tiếp `GET /health` HTTP 200 đúng tên, `mapsConfigured=false`, `aiConfigured=false`, `accessConfigured=false`, `rateLimiterConfigured=true`; trang HTML và `/api/config` HTTP 200; Ngố `/health` vẫn HTTP 200. Deployment CI lần đầu tạo worker thành công nhưng post-check sai câu `grep` nên CI báo fail; workflow sửa để chỉ kiểm tra Worker sẵn có và CI PASS: https://github.com/hvnm1206/TikTak-Service/actions/runs/43615018925 .
 4. Chưa gửi request **thật** đến Places/Routes/OpenAI; số liệu trong unit test chỉ là mock.
 5. Chưa đo độ trễ và chất lượng nhận giọng/loa trên iPhone Safari; chưa thử tiếng ồn xe trong điều kiện an toàn.
 6. Chưa có log/chi phí phát sinh của Traffic.
+
+## Tiếp tục cho tới sản phẩm cuối (không làm giả thành công)
+
+- Cloudflare token `NMH_CF_API_TOKEN`: đã kiểm tra hợp lệ trong GitHub Actions; Worker mới tạo bằng đúng quyền này, không đụng Worker Ngố.
+- Tại ngày 14/11/2026, GitHub Actions repo **chưa có** các secret `GOOGLE_MAPS_API_KEY`, `OPENAI_API_KEY`, `TRAFFIC_ACCESS_TOKEN`; do đó chưa gọi được API thật và chưa có phí Traffic phát sinh được xác nhận.
+- Quy trình nạp khóa độc lập, KHÔNG xuất khóa ra log: `.github/workflows/traffic-voice-configure-secrets.yml`. Chỉ chạy lệnh `wrangler secret put` khi đủ cả ba key, nếu không `BACKEND_KEYS_NOT_READY=NO_CHANGES`; kết quả https://github.com/hvnm1206/TikTak-Service/actions/runs/43615146661 .
+- Chủ sở hữu phải cấu hình quota/billing của Google Maps, rồi cấp secret cho repository GitHub; OpenAI key là API riêng, không phải key UI Ngố trên iPhone (không thể tự lấy). `TRAFFIC_ACCESS_TOKEN` tối thiểu 16 ký tự, chính người dùng giữ và điền trong SETUP của app sau khi backend đã nhận key. KHÔNG gửi key trong chat.
+- Sau khi đủ key: chạy workflow nạp key, `GET /health` phải có cả ba cờ true và rate limiter true; thực hiện API live có ghi số lượng/billing, nghiệm thu Safari iPhone theo checklist phía dưới. Hiện **chưa đạt nghiệm thu cuối**.
 
 ## Test cần để xác nhận PASS đầu-cuối
 
