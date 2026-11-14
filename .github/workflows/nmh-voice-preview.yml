@@ -281,3 +281,5 @@ jobs:
           echo "DEPLOY_FINAL=SUCCESS"
 
 
+
+# One-time Marin prefetch release authorized 2026-11-14; preserve original Worker and rollback baseline.
