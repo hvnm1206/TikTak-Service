@@ -124,12 +124,12 @@ jobs:
           assert q('SELECT status FROM nmh_reminders WHERE id=? AND user_id=?',[a_id,sub])[0]['status']=='triggered'
           assert q('SELECT COUNT(*) AS n FROM nmh_reminder_audit')[0]['n']==1
           with urllib.request.urlopen(urllib.request.Request(host+'/',headers={'User-Agent':'NMH-NGO-LAB/1'}),timeout=25) as r:markup=r.read().decode()
-          for marker in ('nmhReminderToast','id="start"','id="resume"','id="avatar"','v3MemoryV2Section','Marin','ttsPrefetchCtl'):
+          for marker in ('nmhReminderToast','id="start"','id="resume"','id="avatar"','v3MemoryV2Section','Marin','ttsPrefetchCtl','ngoThemeCSS','ngoThemeSelect','nmh_voice_gain_v1','createDynamicsCompressor','ngoMascotStage'):
            assert marker in markup,'UI missing '+marker
           assert 'ngo-p0-ci-synthetic-user' not in markup
           print('NGO_SANDBOX_REAL_D1_OWNER_AUTH_CLAIM_READBACK=PASS')
           print('NGO_SANDBOX_MULTITAB_AT_MOST_ONCE=PASS')
-          print('NGO_SANDBOX_VOICE_UI_UNCHANGED=PASS')
+          print('NGO_SANDBOX_VOICE_UI_PRESENCE_GAIN_THEME=PASS')
           print('NGO_PRODUCTION_UNCHANGED_DURING_TEST=1')
           PY
       - name: Verify sandbox rollback to exact previous Worker version
