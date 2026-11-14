@@ -46,7 +46,7 @@ test('model-triggered weather fetch uses Open-Meteo sources',async()=>{
   const toolFetchImpl=async(url)=>{
     const host=new URL(url).hostname;
     if(host==='geocoding-api.open-meteo.com')return {ok:true,json:async()=>({results:[{name:'Hà Nội',latitude:21.02,longitude:105.84,country:'Việt Nam'}]})};
-    if(host==='api.open-meteo.com')return {ok:true,json:async()=>({current:{temperature_2m:28},current_units:{temperature_2m:'°C'}})};
+    if(host==='api.open-meteo.com')return {ok:true,json:async()=>({timezone:'Asia/Ho_Chi_Minh',current:{temperature_2m:28},current_units:{temperature_2m:'°C'},daily:{time:['2026-11-14','2026-11-15'],weather_code:[3,61],temperature_2m_max:[29,27],temperature_2m_min:[22,20],precipitation_sum:[0,8],precipitation_probability_max:[20,75],wind_speed_10m_max:[12,17]},daily_units:{temperature_2m_max:'°C',precipitation_sum:'mm',precipitation_probability_max:'%'}})};
     throw Error('unexpected host');
   };
   const r=await runAgent({apiKey:key,messages:msg,fetchImpl,toolFetchImpl});
@@ -171,4 +171,54 @@ test('the removed note feature cannot intercept a new voice request',async()=>{
  }});
  assert.equal(body.tools.some(x=>x.name==='save_note'),false);
  assert.ok(r.answer.includes('chưa có chức năng'));
+});
+
+test('tomorrow and 7-day weather use dated Open-Meteo daily forecast, not current values',async()=>{
+ let n=0,payload=null,weatherURL=null;
+ const fetchImpl=async(_url,opts)=>{
+  n++;if(n===1)return tool('get_weather',{place:'Hà Nội'});
+  payload=JSON.parse(opts.body).input.find(x=>x.type==='function_call_output');
+  return say('Ngày mai dự báo cao nhất 27 độ, có mưa.');
+ };
+ const toolFetchImpl=async url=>{
+  const u=new URL(url);
+  if(u.hostname==='geocoding-api.open-meteo.com')
+   return {ok:true,json:async()=>({results:[{name:'Hà Nội',latitude:21.02,longitude:105.84,country:'Việt Nam',timezone:'Asia/Ho_Chi_Minh'}]})};
+  if(u.hostname==='api.open-meteo.com'){
+   weatherURL=u;
+   return {ok:true,json:async()=>({timezone:'Asia/Ho_Chi_Minh',current:{temperature_2m:32},daily:{time:['2026-11-14','2026-11-15','2026-11-16'],temperature_2m_max:[32,27,26],temperature_2m_min:[25,20,19],weather_code:[1,61,3],precipitation_sum:[0,8,2],precipitation_probability_max:[0,75,45],wind_speed_10m_max:[8,17,12]},daily_units:{temperature_2m_max:'°C',temperature_2m_min:'°C',precipitation_sum:'mm',precipitation_probability_max:'%'}})};
+  }
+  throw Error('bad source');
+ };
+ const answer=await runAgent({apiKey:key,messages:[{role:'user',content:'Dự báo thời tiết Hà Nội ngày mai?'}],fetchImpl,toolFetchImpl});
+ assert.ok(weatherURL);
+ assert.equal(weatherURL.searchParams.get('forecast_days'),'7');
+ assert.match(weatherURL.searchParams.get('daily'),/precipitation_probability_max/);
+ assert.ok(payload);
+ const out=JSON.parse(payload.output);
+ assert.equal(out.ok,true);
+ assert.equal(out.data.current.temperature_2m,32);
+ assert.equal(out.data.forecast[1].date,'2026-11-15');
+ assert.equal(out.data.forecast[1].temperature_max,27);
+ assert.equal(out.data.forecast[1].precipitation_probability_max,75);
+ assert.equal(out.data.forecast_units.precipitation_probability_max,'%');
+ assert.equal(out.data.forecast_kind,'daily_prediction_not_observation');
+ assert.match(answer.answer,/ngày mai/i);
+});
+test('weather daily unavailable returns explicit failure, never a fake tomorrow forecast',async()=>{
+ let n=0,output;
+ const fetchImpl=async(_url,opts)=>{
+  n++;if(n===1)return tool('get_weather',{place:'Đà Nẵng'});
+  output=JSON.parse(opts.body).input.find(x=>x.type==='function_call_output');
+  return say('Nguồn hiện chưa có dự báo theo ngày.');
+ };
+ const toolFetchImpl=async url=>{
+  if(new URL(url).hostname==='geocoding-api.open-meteo.com')
+   return {ok:true,json:async()=>({results:[{name:'Đà Nẵng',latitude:16.06,longitude:108.22}]})};
+  return {ok:true,json:async()=>({current:{temperature_2m:30}})};
+ };
+ await runAgent({apiKey:key,messages:[{role:'user',content:'Ngày mai ở Đà Nẵng có mưa không?'}],fetchImpl,toolFetchImpl});
+ const result=JSON.parse(output.output);
+ assert.equal(result.ok,false);
+ assert.match(result.data.error,/chưa cung cấp dữ liệu theo ngày/);
 });
