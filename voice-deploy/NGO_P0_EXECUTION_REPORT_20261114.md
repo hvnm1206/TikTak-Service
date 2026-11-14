@@ -25,7 +25,8 @@ Base source: nmh-voice-memory-v2-stage-20261114, commit 1ecd0fea29f6faa5a4b2891b
 - CI + read-only Cloudflare baseline: https://github.com/hvnm1206/TikTak-Service/actions/runs/43575735755 (PASS, 71 legacy tests + 11 new SQLite tests).
 - Baseline snapshot: GitHub Actions artifact "ngo-p0-prod-readonly-baseline" in run 43575735755. Contains production version and D1 Time Travel bookmark.
 - First REAL Cloudflare sandbox Worker+D1 run: https://github.com/hvnm1206/TikTak-Service/actions/runs/43575985351 — sandbox deployment, D1 migrations, synthetic cookie auth, due query, atomic claim, readback, UI smoke, cleanup all PASS. Production unchanged.
-- This report commit requests a NEW sandbox run after latest trace/audit/schema changes; the new run must be checked independently. Do not substitute old sandbox evidence for changed code.
+- REAL Cloudflare sandbox after trace/audit/schema changes: https://github.com/hvnm1206/TikTak-Service/actions/runs/43576360766 — complete SUCCESS, remote D1 insert/claim/readback/cleanup PASS.
+- Additional sandbox rollback verification is configured in .github/workflows/ngo-p0-sandbox.yml. This commit triggers it; result must be read independently.
 
 ## Critical release gate: NOT YET MET
 - Live Responses API using user's OpenAI key, actual speech -> tool -> real D1 readback on the user's Google subject: NOT VERIFIED.
@@ -38,3 +39,7 @@ Base source: nmh-voice-memory-v2-stage-20261114, commit 1ecd0fea29f6faa5a4b2891b
 - Only when application tab is open and allowed to poll; browser may suspend inactive tabs and autoplay.
 - Atomic claim guarantees at most one successful server-side claimant. It does NOT guarantee audible playback after a crash between claim and rendering.
 - No Web Push when app closed, no locked-screen reminder, no medication safety guarantee.
+
+## Further release safety checks
+- Worker audit/action flow bypasses Memory V2 observer on tool-action turns; no medication content is analyzed for long-term memory.
+- Sandbox rollback trial uses a second version and returns to the exact previous sandbox Worker version; it must PASS before production promotion.
