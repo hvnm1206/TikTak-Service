@@ -6,6 +6,7 @@ import {executeReminderAction,handleReminderApi,remindersEnabled,reminderToolSch
 import {enhanceReminderPage} from './reminders-client.js';
 import {runAgent} from './agent-v2.js';
 import {matchesCurrentUtterance,buildActionRuntime,memoryToolSchema} from './action-registry.js';
+import {loadV3Context} from './v3-backend.js';
 import {createHash} from 'node:crypto';
 
 function dbFixture(){
@@ -289,4 +290,30 @@ test('wrong reminder time routes tool feedback back to GPT to recover as memory'
  assert.equal(out.actionOk,true);
  assert.match(out.answer,/Đã ghi nhớ/);
  assert.doesNotMatch(out.answer,/khoảng thời gian/);
+});
+
+test('generic relational two-hop recall connects a mother with a child and the speaker, not assumed marriage',async()=>{
+ const {db,sqlite}=dbFixture();
+ const raw='B'.repeat(43), hash=createHash('sha256').update(raw).digest('hex'),sub='owner-parent';
+ sqlite.prepare('INSERT INTO v3_users(id,name,created_at) VALUES (?,?,?)').run(sub,'Owner',Date.now());
+ sqlite.prepare('INSERT INTO v3_sessions(token_hash,user_id,expires_at,created_at) VALUES (?,?,?,?)').run(hash,sub,Date.now()+600000,Date.now());
+ // Several direct matches crowd the top rank, but the child's relation shares the bridge entity.
+ const facts=[
+   'Thanh Vịt thích trồng cây.',
+   'Thanh Vịt uống trà buổi sáng.',
+   'Thanh Vịt hay đi bộ cuối tuần.',
+   'Thanh Vịt là mẹ của Minh mèo.',
+   'Minh mèo là con của tao.'
+ ];
+ facts.forEach((body,i)=>sqlite.prepare('INSERT INTO v3_memories(id,user_id,body,created_at) VALUES(?,?,?,?)').run('mem'+i,sub,body,1000+i));
+ const req=new Request('https://ngo.example/api/chat',{headers:{cookie:'__Host-nmhv3='+raw}});
+ const env={NMH_DB:db,NMH_V3_GOOGLE_CLIENT_ID:'691734271661-abcdef.apps.googleusercontent.com'};
+ const got=await loadV3Context(req,env,'Thanh Vịt có quan hệ gì với tao?');
+ assert.equal(got.contextError,undefined);
+ assert.ok(got.memories.includes('Thanh Vịt là mẹ của Minh mèo.'));
+ assert.ok(got.memories.includes('Minh mèo là con của tao.'));
+ // Other user memory is never leaked into the subject's context.
+ sqlite.prepare('INSERT INTO v3_memories(id,user_id,body,created_at) VALUES(?,?,?,?)').run('foreign','other-user','Thông tin người dùng khác',Date.now());
+ const after=await loadV3Context(req,env,'Thanh Vịt là ai?');
+ assert.ok(!after.memories.includes('Thông tin người dùng khác'));
 });
