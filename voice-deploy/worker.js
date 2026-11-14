@@ -95,9 +95,9 @@ try{
  }
  const question=String(body.messages.at(-1).content);
  const noteResult=await handleVoiceNote(request,env,question);
- if(noteResult)return respond(noteResult);
+ if(noteResult)return respond({...noteResult,saveStatus:noteResult.saved===true?'saved':'failed'});
  const memoryResult=await handleVoiceMemory(request,env,question);
- if(memoryResult)return respond(memoryResult);
+ if(memoryResult)return respond(memoryResult.saved===undefined?memoryResult:{...memoryResult,saveStatus:memoryResult.saved===true?'saved':'failed'});
  // Natural write command fallback is synchronous: classify → D1 → readback → spoken success/failure.
  // Ordinary chat, microphone, Web Search and Marin TTS remain untouched.
  const naturalWrite=await routeVoiceWrite(request,env,question,key,{signal:ctl.signal});
