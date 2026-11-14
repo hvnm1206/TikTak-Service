@@ -28,7 +28,10 @@ export function validateProposal(raw,existing,userText){
   }
   if(!validId(op.id)||!rows.has(op.id)||seen.has(op.id)){rejected.push('id');continue}
   const sourceTerms=meaningful(proof),priorTerms=meaningful(rows.get(op.id));
-  if(![...sourceTerms].some(t=>priorTerms.has(t))){rejected.push('unrelated-target');continue}
+  const shared=[...sourceTerms].filter(t=>priorTerms.has(t));
+  // A generic subject such as "dog" or "work" is not enough to pick among multiple stored facts.
+  // Require the correction/deletion to identify its target by two meaningful shared tokens.
+  if(shared.length<2){rejected.push('ambiguous-target');continue}
 
   if(type==='delete'&&!forget.test(text)){rejected.push('delete-not-requested');continue}
   if(type==='update'&&!change.test(text)){rejected.push('update-not-requested');continue}
