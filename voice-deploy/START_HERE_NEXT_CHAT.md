@@ -1,5 +1,14 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## ĐỌC ĐẦU TIÊN — NGỐ P0 ĐÃ DEPLOY PRODUCTION 14/11/2026
+- **URL chính thức giữ nguyên:** https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Version Worker hiện tại `08e0bbf2-a2e5-4b98-94dc-0cfee882e5b6`, branch nguồn `nmh-voice-actions-reminders-p0-20261114`.
+- Workflow phát hành guard và smoke **PASS**: https://github.com/hvnm1206/TikTak-Service/actions/runs/43578218605; independent Guard Operator HTTP GET health, config, reminders-capabilities đều 200/READY.
+- Thêm ActionRegistry set/list/cancel reminder, D1 audit và foreground polling, feature active trên production; Memory V2 active, các nút micro/Marin giữ nguyên, Ngáo không đụng.
+- Đã lưu version rollback `fb2bacc5-b26e-4abc-9ee1-78cc222ac221` và D1 Time Travel bookmark trong 30-day artifact của run phát hành. Chỉ migration cộng bảng; không phá dữ liệu cũ.
+- Người dùng yêu cầu thử trên bản chính. **iPhone UAT thực tế chưa xác minh**, cần câu lệnh nói nhắc 2 phút, kết quả Google/OpenAI tool, D1 readback và phát Marin khi tab mở; lỗi phải có ảnh/log trước khi tuyên bố hoàn thành.
+- Các dòng “CHƯA PRODUCTION” dưới đây là trạng thái lịch sử đã được thay thế. Xem chi tiết ở báo cáo https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-actions-reminders-p0-20261114/voice-deploy/NGO_P0_EXECUTION_REPORT_20261114.md .
+
+
 ## NGỐ P0 PILOT — CẬP NHẬT 14/11/2026
 - URL iPhone thử nghiệm: https://nmh-ngo-p0-pilot-20261114.magical-budget.workers.dev/ (Worker + D1 hoàn toàn riêng production).
 - Cloudflare thực đã deploy, HTTP health 200 qua Guard/Operator, CI 71+17 PASS và 4 gate pilot PASS: https://github.com/hvnm1206/TikTak-Service/actions/runs/43577570928 .
