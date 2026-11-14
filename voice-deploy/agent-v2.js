@@ -162,6 +162,10 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
           input.push({type:'function_call_output',call_id:c.call_id,output:JSON.stringify({ok:false,error:receipt.errorCode||'ACTION_FAILED',message:receipt.answer||'The operation was not completed. Reconsider the user intent and arguments. Never claim success.'})});
           continue;
         }
+        if(receipt.continueModel){
+          input.push({type:'function_call_output',call_id:c.call_id,output:JSON.stringify({ok:true,data:receipt.data})});
+          continue;
+        }
         // Deterministic backend ACK: never ask the model to fabricate success after a write.
         return {answer:receipt.answer,actionStatus:receipt.status,actionOk:receipt.ok===true,actionId:receipt.id||null,actionErrorCode:receipt.errorCode||null,
           sources:[],documentReferences:[],tools:toolCalls,model:MODEL,usage,webSearchCalls,
