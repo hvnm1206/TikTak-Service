@@ -93,39 +93,13 @@ export async function loadV3Context(req,env,question){
  try{
   const profile=await env.NMH_DB.prepare('SELECT prompt FROM v3_profiles WHERE user_id=?').bind(sub).first();
   const recent=await env.NMH_DB.prepare('SELECT body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 40').bind(sub).all();
-  // Ghi nhớ do người dùng chủ động lưu: ưu tiên khớp ngữ nghĩa/từ khóa,
-   // nhưng luôn có lớp nền gần đây để câu hỏi diễn đạt gián tiếp vẫn nhận được ngữ cảnh.
-   // Chỉ dùng bản ghi thuộc đúng Google subject và giới hạn tối đa 6 ghi nhớ.
-   const memories=(recent.results||[]).filter(x=>typeof x.body==='string'&&x.body.trim());
-   const relevant=memories.map((x,index)=>({body:x.body,score:scoreSegment(question,x.body),index}))
-     .filter(x=>x.score>0).sort((a,b)=>b.score-a.score||a.index-b.index);
-   // Multi-hop recall: preserve directly matching facts, then connect related facts
-   // through shared substantive terms. This is generic retrieval, not hardcoded
-   // people/relationships, and never crosses the signed-in user's memory scope.
-   const selected=relevant.slice(0,3);
-   const selectedIds=new Set(selected.map(x=>x.index));
-   const anchors=new Set(selected.flatMap(x=>extractTerms(x.body)));
-   const bridge=memories.map((x,index)=>({
-     body:x.body,index,overlap:extractTerms(x.body).filter(t=>anchors.has(t)).length,
-     direct:scoreSegment(question,x.body)
-   })).filter(x=>!selectedIds.has(x.index)&&x.overlap>0)
-     .sort((a,b)=>b.overlap-a.overlap||b.direct-a.direct||a.index-b.index);
-   for(const x of bridge){
-     if(selected.length>=6)break;
-     selected.push(x);selectedIds.add(x.index);
-   }
-   for(const x of relevant){
-     if(selected.length>=6)break;
-     if(!selectedIds.has(x.index)){selected.push(x);selectedIds.add(x.index)}
-   }
-   for(let i=0;i<memories.length&&selected.length<6;i++){
-     if(!selectedIds.has(i)){selected.push({body:memories[i].body,index:i});selectedIds.add(i)}
-   }
-   const ranked=selected;
+  // Supply the latest owner-scoped facts to GPT without hardcoded relationship
+  // graphs, lexical bridges, or phrase-specific selection rules.
+  const memories=(recent.results||[]).filter(x=>typeof x.body==='string'&&x.body.trim()).slice(0,20);
   const terms=extractTerms(question).slice(0,5);
   const rows=terms.length?await env.NMH_DB.prepare('SELECT c.body, c.segment, d.name FROM v3_chunks c JOIN v3_documents d ON d.id=c.doc_id AND d.user_id=c.user_id WHERE c.user_id=? AND ('+terms.map(()=>'c.body LIKE ?').join(' OR ')+') LIMIT 80').bind(sub,...terms.map(x=>'%'+x+'%')).all():{results:[]};
   const docs=(rows.results||[]).map(x=>({...x,score:scoreSegment(question,x.body)})).filter(x=>x.score>=3).sort((a,b)=>b.score-a.score).slice(0,4).map(x=>({name:x.name,segment:x.segment,text:x.body.slice(0,900)}));
-  return {personalPrompt:maxText(profile?.prompt,2500),memories:ranked.map(x=>x.body),documents:docs};
+  return {personalPrompt:maxText(profile?.prompt,2500),memories:memories.map(x=>x.body),documents:docs};
  }catch{return {personalPrompt:'',memories:[],documents:[],contextError:'Không truy cập được kho cá nhân, không thể xác minh tài liệu.'}}
 }
 export function voiceNoteIntent(question){
