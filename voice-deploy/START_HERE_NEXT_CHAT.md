@@ -1,5 +1,15 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## ĐIỂM CHỐT MỚI — NGỐ AUDIO + THEME ĐÃ DEPLOY BẢN CHÍNH 14/11/2026
+- Production: https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Version `cd66b9f6-b7a7-4970-abf8-ce1ef19e1446`. Source nhánh `nmh-voice-actions-reminders-p0-20261114` (KHÔNG deploy từ nhánh docs `nmh-voice-gpt-v1`).
+- Đã bổ sung WebAudio GainNode 1–2.5x (default 1.55x) + DynamicsCompressor bằng hậu xử lý `volume-ui.js`, để không xung đột `presence-ui.js` và avatar âm thanh. Thanh âm lượng ở SETUP.
+- Đã bổ sung `theme-ui.js`: theme Mặc định/Vịt/Corgi, SVG riêng và trạng thái động; không sửa micro/hội thoại/nhắc việc/Memory V2/OAuth. Ngáo không đụng.
+- Kế hoạch: https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-actions-reminders-p0-20261114/voice-deploy/NGO_AUDIO_THEME_PLAN_20261114.md . CI 71+20 PASS, sandbox real Cloudflare D1+rollback PASS tại run 43579648460; production release PASS tại https://github.com/hvnm1206/TikTak-Service/actions/runs/43579758792 .
+- Bằng chứng Guard/Operator hậu phát hành: /health 200; /api/v3/config 200; /api/reminders/capabilities 200 `enabled:true`. Rollback trước nâng cấp audio/theme: `08e0bbf2-a2e5-4b98-94dc-0cfee882e5b6`, D1 bookmark artifact tại run phát hành.
+- Chưa có kết quả nghe âm lượng thực và thử giao diện trên iPhone người dùng: chờ người dùng thử bản chính rồi sửa đúng lỗi nếu có. Không tuyên bố iPhone UAT PASS.
+- Dòng mô tả phiên bản cũ dưới đây đã bị thay thế bởi mốc chốt mới.
+
+
 ## ĐỌC ĐẦU TIÊN — NGỐ P0 ĐÃ DEPLOY PRODUCTION 14/11/2026
 - **URL chính thức giữ nguyên:** https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Version Worker hiện tại `08e0bbf2-a2e5-4b98-94dc-0cfee882e5b6`, branch nguồn `nmh-voice-actions-reminders-p0-20261114`.
 - Workflow phát hành guard và smoke **PASS**: https://github.com/hvnm1206/TikTak-Service/actions/runs/43578218605; independent Guard Operator HTTP GET health, config, reminders-capabilities đều 200/READY.
