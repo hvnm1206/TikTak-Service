@@ -31,7 +31,7 @@ jobs:
         run: |
           node --check voice-deploy/v3-backend.js
           node --check voice-deploy/v3-ui.js
-          node --test voice-deploy/v3-backend.test.mjs
+          node --test voice-deploy/v3-backend.test.mjs voice-deploy/voice-note.test.mjs
       - name: Validate V3 SQLite migration and guarded workflow YAML syntax
         shell: bash
         run: |
