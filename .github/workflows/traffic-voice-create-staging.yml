@@ -28,12 +28,16 @@ jobs:
           set -euo pipefail
           test -n "$CLOUDFLARE_API_TOKEN" || { echo 'CF_TOKEN_NOT_CONFIGURED'; exit 1; }
           curl --fail-with-body -sS --max-time 20 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts" -o /tmp/traffic-scripts.json
-          python3 -c 'import json; d=json.load(open("/tmp/traffic-scripts.json")); assert d.get("success"); names={x.get("id") for x in (d.get("result") or []) if isinstance(x,dict)}; assert "nmh-traffic-voice-v1" not in names, "TRAFFIC_WORKER_ALREADY_EXISTS_REFUSE_OVERWRITE"; assert "nmh-voice-gpt-test" in names, "NGO_BASELINE_NOT_VISIBLE"; print("CF_NEW_WORKER_PRECHECK=PASS")'
-      - name: Deploy only new Traffic Worker
+          python3 -c 'import json; d=json.load(open("/tmp/traffic-scripts.json")); assert d.get("success"); names={x.get("id") for x in (d.get("result") or []) if isinstance(x,dict)}; assert "nmh-voice-gpt-test" in names, "NGO_BASELINE_NOT_VISIBLE"; print("CF_DEPLOY_TARGET_ISOLATED=PASS"); print("TRAFFIC_WORKER_EXISTS="+str("nmh-traffic-voice-v1" in names))'
+      - name: Deploy only if Traffic Worker does not already exist
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes wrangler@4.102.0 deploy --config traffic-voice/wrangler.jsonc
+          if python3 -c 'import json;d=json.load(open("/tmp/traffic-scripts.json"));exit(0 if "nmh-traffic-voice-v1" in {x.get("id") for x in (d.get("result") or []) if isinstance(x,dict)} else 1)'; then
+            echo "EXISTING_TRAFFIC_WORKER=SKIP_DEPLOY_VERIFY_ONLY"
+          else
+            npx --yes wrangler@4.102.0 deploy --config traffic-voice/wrangler.jsonc
+          fi
       - name: Verify new independent URL and unchanged Ngố endpoint
         shell: bash
         run: |
@@ -45,7 +49,7 @@ jobs:
           done
           python3 -c 'import json;d=json.load(open("/tmp/traffic-health.json"));assert d.get("ok") is True and d.get("app")=="NMH Traffic Voice V1"; print("TRAFFIC_HEALTH=PASS"); print("TRAFFIC_CREDENTIALS_COMPLETE="+str(d.get("mapsConfigured") and d.get("aiConfigured") and d.get("accessConfigured")))'
           curl --fail -sS --max-time 15 "$TARGET/" -o /tmp/traffic-page.html
-          grep -q 'TRAFFIC' /tmp/traffic-page.html
+          grep -q 'NMH Traffic Voice V1' /tmp/traffic-page.html
           curl --fail -sS --max-time 15 'https://nmh-voice-gpt-test.magical-budget.workers.dev/health' -o /tmp/ngo-health.json
           python3 -c 'import json;d=json.load(open("/tmp/ngo-health.json"));assert d.get("ok") is True and d.get("app")=="NMH Voice GPT V2";print("NGO_UNCHANGED_HEALTH=PASS")'
           echo "TRAFFIC_URL=$TARGET"
