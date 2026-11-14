@@ -38,7 +38,7 @@ function createServer(){
   return {ok:status===200,status,json:async()=>result};
  }};
 }
-async function launch(server){
+async function launch(server,waitForLoad=true){
  const elements=new Map(),confirmations=[];
  const element=id=>{
   if(!elements.has(id))elements.set(id,{
@@ -56,7 +56,7 @@ async function launch(server){
   console
  };
  vm.runInNewContext(code,context);
- await sleep();await sleep();await sleep();await sleep();
+ if(waitForLoad){await sleep();await sleep();await sleep();await sleep()}
  return {elements,el:element,confirmations,context};
 }
 async function save(ui,text){
@@ -108,4 +108,47 @@ test('late profile refresh does not overwrite currently selected template before
  await ui.context.window.nmhV3Refresh();
  assert.equal(ui.el('v3Prompt').value,before);
  assert.equal(ui.confirmations.length,0);
+});
+
+test('late first profile response cannot remove early choice and must persist edited template to correct slot',async()=>{
+ const server=createServer();
+ let release;
+ const initialProfile=new Promise(resolve=>{release=resolve});
+ const originalFetch=server.fetch;
+ let first=true;
+ server.fetch=async(url,opts={})=>{
+  if(url==='/api/v3/profile'&&(!opts.method||opts.method==='GET')&&first){
+   first=false;await initialProfile;
+  }
+  return originalFetch(url,opts);
+ };
+ const ui=await launch(server,false);
+ ui.el('v3SampleChem').onclick();
+ assert.match(ui.el('v3ActivePreset').textContent,/CHÉM GIÓ/);
+ assert.match(ui.el('v3PromptSaveStatus').textContent,/MẪU GỐC/);
+ release();
+ await sleep();await sleep();await sleep();await sleep();
+ assert.match(ui.el('v3ActivePreset').textContent,/CHÉM GIÓ/);
+ await save(ui,'Chém Gió viết riêng ngay khi mở app.');
+ assert.equal(server.profile.activePreset,'chem');
+ assert.equal(server.profile.presets.chem,'Chém Gió viết riêng ngay khi mở app.');
+ assert.match(ui.el('v3PromptSaveStatus').textContent,/ĐÃ LƯU VÀ ĐỌC LẠI THÀNH CÔNG/);
+ ui.el('v3SampleDanh').onclick();
+ ui.el('v3SampleChem').onclick();
+ assert.equal(ui.el('v3Prompt').value,'Chém Gió viết riêng ngay khi mở app.');
+ assert.match(ui.el('v3PromptSaveStatus').textContent,/ĐÃ CÓ MẪU TÙY CHỈNH/);
+});
+
+test('legacy default Chém Gió profile is recognized as editing this template, never loses attribution',async()=>{
+ const server=createServer();
+ server.profile.prompt='Dí dỏm, thông minh, kể chuyện ngắn. Xưng tôi, gọi người dùng là anh. Không bịa.';
+ server.profile.revision=4;
+ const ui=await launch(server);
+ assert.match(ui.el('v3ActivePreset').textContent,/CHÉM GIÓ/);
+ await save(ui,'Nội dung Chém Gió mới được sửa từ mẫu gốc đang hiện.');
+ assert.equal(server.profile.activePreset,'chem');
+ assert.equal(server.profile.presets.chem,'Nội dung Chém Gió mới được sửa từ mẫu gốc đang hiện.');
+ const again=await launch(server);
+ again.el('v3SampleChem').onclick();
+ assert.equal(again.el('v3Prompt').value,server.profile.presets.chem);
 });
