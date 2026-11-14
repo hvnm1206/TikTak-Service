@@ -68,11 +68,38 @@ export async function removePersonalMemory(db,sub,id){
  return Number(r.meta?.changes||0)>0;
 }
 
-export async function learnPersonalMemory({db,sub,apiKey,messages,turnId,learnedAt,fetchImpl=fetch}){
+export async function getPersonalMemoryStatus(db,sub){
+ const row=await db.prepare('SELECT learned_at,state,saved_count,reason FROM v3_personal_memory_status WHERE user_id=?').bind(sub).first();
+ if(row?.state==='pending'&&Date.now()-row.learned_at>60000)return {...row,state:'analysis-failed',reason:'timeout'};
+ return row||null;
+}
+
+export async function observePersonalMemory({db,sub,apiKey,messages,learnedAt,skipAction=false}){
+ const pref=await db.prepare(PREFERENCE).bind(sub).first();
+ if(pref?.enabled!==1)return;
+ const turnId=crypto.randomUUID();
+ await db.prepare(
+  "INSERT INTO v3_personal_memory_status(user_id,turn_id,learned_at,state) SELECT ?,?,?,'pending' "+
+  'WHERE EXISTS (SELECT 1 FROM v3_memory_v2_preferences WHERE user_id=? AND enabled=1 AND revision=?) '+
+  "ON CONFLICT(user_id) DO UPDATE SET turn_id=excluded.turn_id,learned_at=excluded.learned_at,state='pending',saved_count=0,reason=NULL "+
+  'WHERE excluded.learned_at>=v3_personal_memory_status.learned_at'
+ ).bind(sub,turnId,learnedAt,sub,pref.revision).run();
+ let result;
+ try{
+  result=skipAction?{status:'skipped-action',count:0}:await learnPersonalMemory({db,sub,apiKey,messages,turnId,learnedAt,expectedRevision:pref.revision});
+ }catch(e){result={status:'analysis-failed',count:0,reason:['TimeoutError','AbortError'].includes(e?.name)?'timeout':'internal'}}
+ if(result.status==='disabled')return;
+ await db.prepare(
+  'UPDATE v3_personal_memory_status SET state=?,saved_count=?,reason=? WHERE user_id=? AND turn_id=? '+
+  'AND EXISTS (SELECT 1 FROM v3_memory_v2_preferences WHERE user_id=? AND enabled=1 AND revision=?)'
+ ).bind(result.status,result.count,result.reason??null,sub,turnId,sub,pref.revision).run();
+}
+
+export async function learnPersonalMemory({db,sub,apiKey,messages,turnId,learnedAt,expectedRevision,fetchImpl=fetch}){
  const utterance=clean(messages.at(-1)?.content,1800);
  if(utterance.length<4||credential.test(utterance))return {status:'ignored',count:0};
  const preference=await db.prepare(PREFERENCE).bind(sub).first();
- if(preference?.enabled!==1)return {status:'disabled',count:0};
+ if(preference?.enabled!==1||(expectedRevision!==undefined&&preference.revision!==expectedRevision))return {status:'disabled',count:0};
  const recent=messages.slice(-5,-1).filter(item=>!credential.test(item.content))
   .map(item=>({role:item.role,content:clean(item.content,1800).slice(0,450)}));
  const existing=await findCurrent(db,sub,[...recent.filter(x=>x.role==='user').map(x=>x.content),utterance].join(' '),true);
@@ -83,14 +110,14 @@ export async function learnPersonalMemory({db,sub,apiKey,messages,turnId,learned
    input:JSON.stringify({utterance,recent,memories:existing.map(({turn_id,learned_at,...row})=>row)}),
    text:{format},store:false,reasoning:{effort:'none'},max_output_tokens:1400})
  });
- if(!response.ok)return {status:'analysis-failed',count:0};
+ if(!response.ok)return {status:'analysis-failed',count:0,reason:'http-'+response.status};
  const result=await response.json();
- if(result.status==='incomplete')return {status:'analysis-failed',count:0};
+ if(result.status==='incomplete')return {status:'analysis-failed',count:0,reason:'incomplete'};
  const output=(result.output||[]).filter(x=>x.type==='message').flatMap(x=>x.content||[])
   .filter(x=>x.type==='output_text').map(x=>x.text).join('');
  let proposals;
- try{proposals=JSON.parse(output).ops}catch{return {status:'analysis-failed',count:0}}
- if(!Array.isArray(proposals))return {status:'analysis-failed',count:0};
+ try{proposals=JSON.parse(output).ops}catch{return {status:'analysis-failed',count:0,reason:'invalid-output'}}
+ if(!Array.isArray(proposals))return {status:'analysis-failed',count:0,reason:'invalid-output'};
  const prior=new Map(existing.map(x=>[x.id,x]));
  let count=0;
  for(const op of proposals.slice(0,3)){
@@ -128,5 +155,5 @@ export async function learnPersonalMemory({db,sub,apiKey,messages,turnId,learned
    sub,preference.revision,sub,key,target?.id??null).run();
   count+=Number(saved.meta?.changes||0);
  }
- return {status:count?'saved':'no-change',count};
+ return {status:count?'saved':'no-change',count,...(count?{}:{reason:proposals.length?'no-valid-change':'no-proposal'})};
 }

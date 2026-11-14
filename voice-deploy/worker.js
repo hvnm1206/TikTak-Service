@@ -1,4 +1,4 @@
-import {learnPersonalMemory,personalMemoryEnabled} from './personal-memory.js';
+import {observePersonalMemory,personalMemoryEnabled} from './personal-memory.js';
 import {previewRealtimeSpeech} from './realtime-speech.js';
 import {enhanceFastVoice} from './fast-voice-ui.js';
 import { runAgent } from './agent-v2.js';
@@ -139,7 +139,7 @@ async function chatTurn(request,env,ctx,body,key,signal,onEvent){
  const result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal,actionRuntime,onEvent});
  const latency={memoryMs:Math.round(perfMemory-perfStart),agentMs:Math.round(performance.now()-perfAgentStart),serverMs:Math.round(performance.now()-perfStart)};
  // Verified tool actions are completed synchronously and are not reinterpreted by the background memory observer.
- if(result.actionStatus)return {...result,latency};
+ if(result.actionStatus&&!personalMemoryEnabled(env))return {...result,latency};
  // The new analyzer is an isolated observer. Off by default, never changes the spoken reply.
  // No extra network call, SQL or mic/TTS handling when disabled.
  const mode=memoryMode(env);
@@ -151,7 +151,7 @@ async function chatTurn(request,env,ctx,body,key,signal,onEvent){
     const flag=await env.NMH_DB.prepare('SELECT enabled FROM v3_memory_v2_preferences WHERE user_id=?').bind(sub).first();
     if(flag?.enabled!==1)return; // opt-in only
     if(personalMemoryEnabled(env)){
-     await learnPersonalMemory({db:env.NMH_DB,sub,apiKey:key,messages:body.messages,turnId:crypto.randomUUID(),learnedAt});
+     await observePersonalMemory({db:env.NMH_DB,sub,apiKey:key,messages:body.messages,learnedAt,skipAction:!!result.actionStatus});
     }else await runMemoryV2({mode,sub,db:env.NMH_DB,apiKey:key,userText:question,assistantText:result.answer});
    }catch{} // never interrupt or modify existing voice/chat/search response
   })();

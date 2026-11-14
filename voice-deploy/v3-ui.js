@@ -19,6 +19,8 @@ const panel=String.raw`
    <p id="v3MemoryV2Status" class="hint">Chưa kích hoạt.</p>
    <button type="button" id="v3MemoryV2Toggle">BẬT GHI NHỚ THÔNG MINH</button>
    <div id="v3LearnedPanel" hidden>
+    <p class="hint" id="v3LearnedRun" role="status"></p>
+    <button type="button" id="v3LearnedReload">CẬP NHẬT KẾT QUẢ</button>
     <p class="hint">Những gì Ngố đã học và tín hiệu đang chờ thêm căn cứ.</p>
     <div id="v3LearnedItems"></div>
     <button type="button" id="v3LearnedMore" hidden>XEM TIẾP</button>
@@ -43,6 +45,7 @@ const panel=String.raw`
 const script=String.raw`
 (()=>{
  const $=id=>document.getElementById(id);
+ const pilotMemory=false;
  const msg=s=>{$('v3Msg').textContent=String(s)};
  let rev=0,loginClient='',promptDirty=false,promptSaving=false,profileLoaded=false,loadedPrompt='',activePreset='',presetSelectionPending=false;
  let savedPresets={},presetBaseline,earlyPresetConflict=false;
@@ -107,13 +110,20 @@ const script=String.raw`
  }
  let learnedOffset=0;
  const learnedLabels={identity:'Con người và quan hệ',context:'Mục tiêu và hoàn cảnh',ask:'ASK',disc:'DISC',collaboration:'Cách hỗ trợ'};
+ const runLabels={'pending':'Đang phân tích','saved':'Đã ghi hoặc cập nhật','no-change':'Không có mục mới đủ điều kiện ghi','ignored':'Bỏ qua lượt này','analysis-failed':'Phân tích gặp lỗi','skipped-action':'Lượt dùng công cụ ghi nhớ hoặc nhắc việc'};
+ const reasonLabels={'no-proposal':'GPT không đề xuất mục nào','no-valid-change':'Đề xuất trùng hoặc chưa qua kiểm tra','invalid-output':'GPT trả kết quả không hợp lệ','incomplete':'GPT chưa trả đủ kết quả','timeout':'Quá thời gian','internal':'Lỗi xử lý trên máy chủ'};
  const aspectLabels={attitude:'thái độ',skill:'kỹ năng',knowledge:'kiến thức',D:'D',I:'I',S:'S',C:'C'};
  async function showLearned(reset){
   const host=$('v3LearnedItems'),more=$('v3LearnedMore');
   more.disabled=true;
   try{
    const data=await req('/api/v3/personal-memory?offset='+(reset?0:learnedOffset));
-   if(reset)host.replaceChildren();
+   if(reset){
+    host.replaceChildren();
+    const r=data.lastRun;
+    const reason=r&&(reasonLabels[r.reason]||(/^http-[0-9]{3}$/.test(r.reason||'')?'OpenAI HTTP '+r.reason.slice(5):''));
+    $('v3LearnedRun').textContent=r?['Lượt gần nhất '+new Date(r.learned_at).toLocaleTimeString('vi-VN'),runLabels[r.state],r.saved_count?r.saved_count+' mục':'',reason].filter(Boolean).join(' · '):'Chưa có kết quả phân tích.';
+   }
    for(const item of data.entries||[]){
     const title=[learnedLabels[item.category],aspectLabels[item.aspect],item.domain,
      item.state==='candidate'?'Chờ căn cứ':item.kind==='inferred'?'Nhận định':'',item.body,'Nguồn: '+item.evidence].filter(Boolean).join(' · ');
@@ -127,20 +137,28 @@ const script=String.raw`
    more.hidden=learnedOffset===null;
   }finally{more.disabled=false}
  }
+ $('v3LearnedReload').onclick=()=>showLearned(true).catch(e=>{$('v3LearnedRun').textContent='Chưa đọc được kết quả: '+e.message});
  $('v3LearnedMore').onclick=()=>showLearned(false).catch(e=>msg(e.message));
  async function refreshMemoryV2(){
   try{
    const p=await req('/api/v3/memory-v2-preference');
    memoryV2=p;
-   $('v3MemoryV2Section').style.display=p.available?'block':'none';
+   $('v3MemoryV2Section').style.display=p.available||pilotMemory?'block':'none';
    $('v3LearnedPanel').hidden=!p.personalMemory;
-   if(!p.available)return;
-   if(p.personalMemory)await showLearned(true).catch(e=>msg(e.message));
+   $('v3MemoryV2Toggle').disabled=!p.available;
+   if(!p.available){$('v3MemoryV2Status').textContent='Ghi nhớ thông minh chưa được bật trên máy chủ.';return}
+   if(p.personalMemory)await showLearned(true).catch(e=>{$('v3LearnedRun').textContent='Chưa đọc được kết quả: '+e.message});
    $('v3MemoryV2Status').textContent=p.mode==='shadow'
     ? 'ĐANG THỬ NGHIỆM KHÔNG GHI DỮ LIỆU — '+(p.enabled?'Đã đồng ý phân tích':'Chưa đồng ý phân tích')
     : (p.enabled?'ĐANG BẬT — bộ nhớ có thể cập nhật sau mỗi lượt':'ĐANG TẮT — không tự ghi nhớ');
    $('v3MemoryV2Toggle').textContent=p.enabled?'TẮT GHI NHỚ THÔNG MINH':'BẬT GHI NHỚ THÔNG MINH';
-  }catch(e){$('v3MemoryV2Section').style.display='none';msg('Memory V2 chưa sẵn sàng: '+e.message)}
+  }catch(e){
+   if(pilotMemory){
+    $('v3MemoryV2Section').style.display='block';
+    $('v3MemoryV2Toggle').disabled=true;
+    $('v3MemoryV2Status').textContent='Chưa đọc được cài đặt ghi nhớ: '+e.message;
+   }else msg('Memory V2 chưa sẵn sàng: '+e.message);
+  }
  }
  $('v3MemoryV2Toggle').onclick=async()=>{
   const want=!memoryV2.enabled;
@@ -159,7 +177,7 @@ const script=String.raw`
    loginClient=conf.googleClientId;
    const me=await req('/api/v3/me').catch(()=>null);
    if(me?.signedIn){
-    $('v3Login').style.display='none';$('v3App').style.display='grid';$('v3State').textContent='Đã đồng bộ — chỉ bạn truy cập dữ liệu tài khoản này.';$('v3User').textContent=me.name||'Tài khoản Google';await populate();await refreshMemoryV2();
+    $('v3Login').style.display='none';$('v3App').style.display='grid';$('v3State').textContent='Đã đồng bộ — chỉ bạn truy cập dữ liệu tài khoản này.';$('v3User').textContent=me.name||'Tài khoản Google';await Promise.all([populate().catch(e=>msg('Chưa tải đủ hồ sơ: '+e.message)),refreshMemoryV2()]);
    }else{
     $('v3Login').style.display='block';$('v3App').style.display='none';$('v3State').textContent='Chưa đăng nhập Google — ghi nhớ và tài liệu chưa đồng bộ.';
     if(window.google?.accounts?.id&&loginClient){
@@ -241,7 +259,8 @@ export function enhanceV3Page(original,env={}){
  if(!original.includes('<section id="setup"')||!original.includes('</body>'))throw Error('Voice Setup layout changed');
  const id=String(env?.NMH_V3_GOOGLE_CLIENT_ID||'');
  const authorized=/^\d+-[a-z0-9-]+\.apps\.googleusercontent\.com$/.test(id);
+ const pilot=env.NMH_PERSONAL_MEMORY==='pilot';
  const google=authorized?'<script src="https://accounts.google.com/gsi/client" async defer onload="window.nmhV3GoogleReady?.()"></script>':'';
- return original.replace('<button id="back">QUAY LẠI</button></section>',panel+'<button id="back">QUAY LẠI</button></section>')
-  .replace('</body>',google+'<script>'+script+'</script></body>');
+ return original.replace('<button id="back">QUAY LẠI</button></section>', (pilot?panel.replace('id="v3MemoryV2Section" style="display:none"','id="v3MemoryV2Section" open'):panel)+'<button id="back">QUAY LẠI</button></section>')
+  .replace('</body>',google+'<script>'+(pilot?script.replace('const pilotMemory=false','const pilotMemory=true'):script)+'</script></body>');
 }

@@ -61,7 +61,7 @@ jobs:
           assert cfg['name']!='nmh-voice-gpt-test'
           with open('voice-deploy/wrangler-ngo-lab.generated.jsonc','w') as f:json.dump(cfg,f)
           PY
-          for file in 0001_v3.sql 0002_v3_d1_only.sql 0003_memory_v2.sql 0004_reminders.sql 0005_prompt_presets.sql 0006_personal_memory.sql;do
+          for file in 0001_v3.sql 0002_v3_d1_only.sql 0003_memory_v2.sql 0004_reminders.sql 0005_prompt_presets.sql 0006_personal_memory.sql 0007_personal_memory_status.sql;do
             CLOUDFLARE_API_TOKEN="$CLOUDFLARE_D1_TOKEN" npx --yes wrangler@4.102.0 d1 execute "$LAB_DB" --remote --config voice-deploy/wrangler-ngo-lab.generated.jsonc --file "voice-deploy/migrations/$file"
           done
           echo 'NGO_SANDBOX_REAL_REMOTE_D1_MIGRATION=PASS'
@@ -134,7 +134,7 @@ jobs:
           memory_id=str(uuid.uuid4())
           q('INSERT INTO v3_personal_memory(id,user_id,slot,category,aspect,subject,domain,body,evidence,search_text,kind,state,turn_id,learned_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
             [memory_id,sub,'ci preference','collaboration','preference','fixture','chung','Kết luận trước','Tôi muốn nghe kết luận trước',' ket luan ','stated','confirmed',str(uuid.uuid4()),now])
-          code,loaded=http('/api/v3/personal-memory');assert code==200 and loaded['entries'][0]['id']==memory_id
+          code,loaded=http('/api/v3/personal-memory');assert code==200 and loaded['entries'][0]['id']==memory_id and loaded['lastRun'] is None
           code,purged=http('/api/v3/personal-memory','DELETE',{'id':memory_id});assert code==200 and purged['ok']
           assert q('SELECT id FROM v3_personal_memory WHERE user_id=?',[sub])==[]
           print('NGO_SANDBOX_PERSONAL_MEMORY_CONSENT_READ_DELETE=PASS')
@@ -306,11 +306,20 @@ jobs:
           db=a+'/d1/database'
           items=call(db+'?per_page=100',os.environ['CLOUDFLARE_D1_TOKEN'])
           items=items if isinstance(items,list) else items.get('databases',[])
-          assert not any(x['name']==os.environ['PILOT_DB'] for x in items),'Pilot DB exists; no overwrite'
-          created=call(db,os.environ['CLOUDFLARE_D1_TOKEN'],'POST',{'name':os.environ['PILOT_DB']})
+          matches=[x for x in items if x['name']==os.environ['PILOT_DB']]
+          assert len(matches)<=1
+          existing=bool(matches)
+          created=matches[0] if existing else call(db,os.environ['CLOUDFLARE_D1_TOKEN'],'POST',{'name':os.environ['PILOT_DB']})
           uuid=created.get('uuid') or created.get('id')
           assert re.fullmatch(r'[0-9a-f-]{36}',str(uuid)) and uuid!=os.environ['PROD_DB']
-          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('PILOT_DB_UUID='+uuid+'\n')
+          if existing:
+           target='/workers/scripts/'+os.environ['PILOT_WORKER']
+           current=call(a+target+'/deployments',os.environ['CLOUDFLARE_API_TOKEN'])['deployments'][0]['versions']
+           assert len(current)==1 and current[0]['percentage']==100 and current[0]['version_id']=='baa20b5e-bd8f-4256-afd5-73f8cb25ff61'
+           settings=call(a+target+'/settings',os.environ['CLOUDFLARE_API_TOKEN'])
+           assert any(b.get('name')=='NMH_DB' and b.get('id')==uuid for b in settings['bindings']),'Existing pilot binding mismatch'
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+           f.write('PILOT_DB_UUID='+uuid+'\nPILOT_DB_EXISTING='+('1' if existing else '0')+'\n')
           print('PILOT_ISOLATION_AND_PROD_VERSION_GATE=PASS')
           PY
       - name: Gate 3 — migrate only separate pilot D1 and deploy only separate pilot Worker
@@ -326,7 +335,11 @@ jobs:
            'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT'],'NMH_REMINDERS_MODE':'active','NMH_MEMORY_V2_MODE':'active','NMH_PERSONAL_MEMORY':'pilot','NMH_FAST_VOICE':'active'}}
           with open('voice-deploy/wrangler-ngo-pilot.generated.jsonc','w') as f:json.dump(cfg,f)
           PY
-          for file in 0001_v3.sql 0002_v3_d1_only.sql 0003_memory_v2.sql 0004_reminders.sql 0005_prompt_presets.sql 0006_personal_memory.sql;do
+          files=(0007_personal_memory_status.sql)
+          if [ "$PILOT_DB_EXISTING" = 0 ]; then
+            files=(0001_v3.sql 0002_v3_d1_only.sql 0003_memory_v2.sql 0004_reminders.sql 0005_prompt_presets.sql 0006_personal_memory.sql 0007_personal_memory_status.sql)
+          fi
+          for file in "${files[@]}";do
             CLOUDFLARE_API_TOKEN="$CLOUDFLARE_D1_TOKEN" npx --yes wrangler@4.102.0 d1 execute "$PILOT_DB" --remote --config voice-deploy/wrangler-ngo-pilot.generated.jsonc --file "voice-deploy/migrations/$file"
           done
           deployed=0
@@ -359,7 +372,7 @@ jobs:
           code,cap=get('/api/reminders/capabilities');assert code==200 and json.loads(cap).get('enabled') is True
           code,unauth=get('/api/reminders/due');assert code==401,'Anonymous due access!'
           code,page=get('/');assert code==200
-          for marker in ('nmhReminderToast','id="start"','id="resume"','id="fastVoiceEnabled"','/api/chat-stream','id="testRealtime"','id="v3LearnedPanel"','/api/v3/personal-memory'):
+          for marker in ('nmhReminderToast','id="start"','id="resume"','id="fastVoiceEnabled"','/api/chat-stream','id="testRealtime"','id="v3LearnedPanel"','id="v3LearnedReload"','id="v3MemoryV2Section" open','/api/v3/personal-memory'):
            assert marker in page,marker
           a='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']
           def cf(path,token):

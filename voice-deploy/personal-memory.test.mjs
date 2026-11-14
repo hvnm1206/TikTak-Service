@@ -10,7 +10,7 @@ const origin='https://voice.example';
 const key='sk-'+'a'.repeat(43);
 function fixture(){
  const sqlite=new DatabaseSync(':memory:');
- for(const file of ['0001_v3.sql','0002_v3_d1_only.sql','0003_memory_v2.sql','0004_reminders.sql','0005_prompt_presets.sql','0006_personal_memory.sql'])
+ for(const file of ['0001_v3.sql','0002_v3_d1_only.sql','0003_memory_v2.sql','0004_reminders.sql','0005_prompt_presets.sql','0006_personal_memory.sql','0007_personal_memory_status.sql'])
   sqlite.exec(readFileSync(new URL('./migrations/'+file,import.meta.url),'utf8'));
  const db={prepare(sql){return {bind(...args){const statement=sqlite.prepare(sql);return{
   first:async()=>statement.get(...args),all:async()=>({results:statement.all(...args)}),
@@ -117,4 +117,31 @@ test('voice chat schedules learning in the background and a separate turn receiv
   assert.match(seen[1],/Từng tự kiểm tra thiết bị bằng nhật ký lỗi/);
   assert.match(seen[1],/Muốn nghe kết luận trước/);
  }finally{release();globalThis.fetch=prior}
+});
+
+test('pilot exposes the section before loading and records only account-scoped status for the last turn',async()=>{
+ const f=fixture(),before=globalThis.fetch;
+ const page=await (await worker.fetch(new Request(origin),f.env)).text();
+ assert.match(page,/id="v3MemoryV2Section" open/);
+ assert.match(page,/id="v3LearnedReload"/);
+ const jobs=[];
+ let rejectAnalysis=true;
+ globalThis.fetch=async(_url,o)=>JSON.parse(o.body).text?.format?.name==='ngo_personal_memory'
+  ? rejectAnalysis?new Response('{}',{status:429}):propose()
+  : Response.json({output:[{type:'message',content:[{type:'output_text',text:'Tôi đã hiểu.'}]}]});
+ try{
+  const chat=()=>worker.fetch(f.request('/api/chat','first','POST',{apiKey:key,messages:[{role:'user',content:'Hôm nay tôi đi bộ.'}]}),f.env,{waitUntil:p=>jobs.push(p)});
+  const profile=async who=>(await worker.fetch(f.request('/api/v3/personal-memory',who),f.env)).json();
+  await chat();await Promise.all(jobs.splice(0));
+  const failed=(await profile('first')).lastRun;
+  assert.equal(failed.state,'analysis-failed');
+  assert.equal(failed.reason,'http-429');
+  assert.equal((await profile('second')).lastRun,null);
+  assert.deepEqual(Object.keys(failed).sort(),['learned_at','reason','saved_count','state']);
+  rejectAnalysis=false;
+  await chat();await Promise.all(jobs.splice(0));
+  const done=(await profile('first')).lastRun;
+  assert.equal(done.state,'no-change');
+  assert.equal(done.reason,'no-proposal');
+ }finally{globalThis.fetch=before}
 });

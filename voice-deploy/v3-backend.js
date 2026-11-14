@@ -1,4 +1,4 @@
-import {getPersonalContext,listPersonalMemory,removePersonalMemory,personalMemoryEnabled} from './personal-memory.js';
+import {getPersonalMemoryStatus,getPersonalContext,listPersonalMemory,removePersonalMemory,personalMemoryEnabled} from './personal-memory.js';
 // NMH Voice V3: authenticated, explicitly controlled per-user sync.
 const JSON_HEADERS={'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'};
 const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{...JSON_HEADERS,...headers}});
@@ -182,7 +182,8 @@ export async function handleV3(req,env){
    if(method==='GET'){
     const offset=Number(u.searchParams.get('offset')||0);
     if(!Number.isSafeInteger(offset)||offset<0)return fail('Trang ghi nhớ không hợp lệ.');
-    return json(await listPersonalMemory(env.NMH_DB,sub,offset));
+    const page=await listPersonalMemory(env.NMH_DB,sub,offset);
+    return json(offset===0?{...page,lastRun:await getPersonalMemoryStatus(env.NMH_DB,sub)}:page);
    }
    if(method==='DELETE'){
     const data=await readJson(req,150);
