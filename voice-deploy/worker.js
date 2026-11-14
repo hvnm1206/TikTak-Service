@@ -98,7 +98,14 @@ try{
  if(memoryResult)return respond(memoryResult);
  const personalization=await loadV3Context(request,env,question);
  if(personalization.contextError)return respond({error:personalization.contextError},503);
- const result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal:ctl.signal});
+ const result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal:ctl.signal,onSaveNote:async(content)=>{
+  // Defense in depth: never let model persist data without an explicit user save cue.
+  if(!/(?:ghi|lưu|chép|nhớ|note|ghi chú)/iu.test(question))return {ok:false,data:{error:"Không có yêu cầu ghi chú rõ ràng. Chưa lưu."}};
+  const text=typeof content==="string"?content.trim():"";
+  if(text.length<2||text.length>500)return {ok:false,data:{error:"Nội dung ghi chú không hợp lệ. Chưa lưu."}};
+  const result=await handleVoiceNote(request,env,"Ghi vào file ghi chú "+text);
+  return {ok:!!result?.tools?.includes("save_note"),data:{error:result?.answer||"Chưa lưu."}};
+ }});
  return respond(result);
 }catch(e){
  const msg=e?.name==="AbortError"?"Quá thời gian xử lý":String(e?.message||"Không kết nối được OpenAI").slice(0,160);
