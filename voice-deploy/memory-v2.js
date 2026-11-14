@@ -116,5 +116,8 @@ export async function runMemoryV2({mode,apiKey,userText,assistantText,sub,db,fet
  const proposal=await analyzeMemory({apiKey,userText,existing,fetchImpl,signal});
  const review=validateProposal(proposal,existing,userText);
  if(mode==='shadow')return {status:'shadow',proposed:review.accepted.length,rejected:review.rejected.length};
+ // Consent may be revoked while the model analyzes. Re-check immediately before any D1 write.
+ const preference=await db.prepare('SELECT enabled FROM v3_memory_v2_preferences WHERE user_id=?').bind(sub).first();
+ if(preference?.enabled!==1)return {status:'opted-out'};
  return saveMemoryOps({db,sub,userText,assistantText,ops:review.accepted,makeId});
 }
