@@ -92,3 +92,5 @@ jobs:
           echo 'PRODUCTION_WORKER_UNCHANGED=1'
 
 # Run isolated D1 and Worker sandbox, never target nmh-voice-gpt-test.
+
+# One-shot staged sandbox verification; no production deployment.
