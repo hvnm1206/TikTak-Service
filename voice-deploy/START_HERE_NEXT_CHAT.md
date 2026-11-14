@@ -1,5 +1,21 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## 14/11/2026 — HOTFIX: SAVE_NOTE CHIẾM LUỒNG HỘI THOẠI SAU MỘT LỆNH LƯU (MỚI NHẤT)
+
+**Báo lỗi thực tế từ người dùng:** Sau khi ra một lệnh ghi chú, mọi câu hỏi tiếp theo đều bị phản hồi "Không có yêu cầu ghi chú rõ ràng. Chưa lưu." Đây là hồi quy nghiêm trọng của release trước.
+
+**Nguyên nhân xác minh từ source:** `runAgent()` trước đây luôn khai báo function `save_note` cho mọi lượt khi Worker truyền callback `onSaveNote`, kể cả khi lượt người dùng mới không yêu cầu lưu. GPT có thể chọn nhầm function do lịch sử ghi chú; Worker từ chối đúng về quyền ghi nhưng Agent lại lấy nội dung lỗi từ công cụ làm câu trả lời chính và không tiếp tục xử lý câu hỏi. Khi có `save_note` bất hợp lệ, code cũ còn có nguy cơ gọi callback trước khi kiểm tra điều kiện cho phép.
+
+**Đã sửa:** Trong `agent-v2.js`, chỉ khai báo `save_note` khi *lượt người dùng hiện tại* có tín hiệu ghi/lưu rõ ràng; lệnh lưu các lượt trước không được cấp tiếp. Khi model vẫn gửi bất ngờ `save_note` trên lượt không có quyền: không gọi callback/không ghi D1/không hiển thị lỗi lưu, gửi tool-output từ chối cho model để tiếp tục trả lời câu hỏi mới. Loại bỏ việc đẩy `response.output` lặp lại; thêm hướng dẫn không mang ý định ghi chú của lượt trước qua lượt sau. Không thay đổi nội dung đã lưu, dữ liệu người dùng, OAuth, D1 schema, STT, Marin, Web Search, UI hay endpoint.
+
+**Bằng chứng regression:** [Actions 43544388336](https://github.com/hvnm1206/TikTak-Service/actions/runs/43544388336): 40/40 Voice PASS + 10/10 V3/note PASS, gồm 3 test mới: (1) lưu ở lượt trước, lượt sau hỏi kiến thức vẫn được trả lời, không có `save_note` trong tools; (2) giả lập upstream gửi `save_note` trái phép, callback không được gọi và lượt tiếp theo trả lời bình thường; (3) sau hội thoại bình thường, yêu cầu lưu hợp lệ vẫn ghi một lần. Các CI thất bại trung gian 43544203357/43544281746/43544320933 đã được xử lý; không phải production deploy.
+
+**Production đã phát hành:** Worker `nmh-voice-gpt-test`; URL `https://nmh-voice-gpt-test.magical-budget.workers.dev/`; Cloudflare version **`73b787ad-dcb9-427b-aea1-cddaca235295`** theo Wrangler. [Actions 43544520392](https://github.com/hvnm1206/TikTak-Service/actions/runs/43544520392): `verify=SUCCESS`, `deploy-note-hijack-fix-once=SUCCESS`, `deploy=SKIPPED`, `NOTE_HIJACK_EDGE_READY=1`, `NOTE_HIJACK_SMOKE=VOICE_WEB_V3_D1_OAUTH_UI_SECURITY_PASS`, `NOTE_HIJACK_RELEASE=DEPLOYED`. Version cũ `17252e9a-c3b4-4784-a71c-cbca7190085d` được ghi nhận làm baseline nhưng **có lỗi note hijack**, không xem là bản sạch để rollback tính năng này. Job phát hành một lần đã được gỡ khỏi nhánh sau deploy.
+
+**Giới hạn nghiệm thu:** CI mô phỏng và HTTP runtime PASS; chưa có bằng chứng hội thoại thực với API key OpenAI và Google session của người dùng trên iPhone sau hotfix. Không tuyên bố E2E hoàn thành. Nếu vẫn tái diễn, phải thu thập văn bản câu hỏi và câu trả lời trong nhật ký (không thu API key hoặc token), kiểm tra logic lượt hiện tại. Không vá chuỗi cố định hoặc thêm prompt theo từng câu lỗi.
+
+---
+
 ## 14/11/2026 — SỬA GHI CHÚ KHÔNG LƯU KHI RA LỆNH TỰ NHIÊN (MỚI NHẤT)
 
 **Tình trạng tiếp nhận:** Người dùng báo “Nó không hề ghi khi yêu cầu”. Kiểm tra source production phát hiện `noteIntent()` ban đầu chỉ chấp nhận các mẫu rất hẹp (ví dụ “Ghi vào file ghi chú ...”), còn “Ngố, ghi lại cho tao ...” hoặc “Ghi lại ...” trả `null` và bị chuyển tới GPT như hội thoại thông thường, không thực hiện ghi D1. Ngoài ra KHO TÀI LIỆU chỉ gọi `populate()` khi load/login, không tự refresh lúc mở SETUP nên có thể hiển thị danh sách cũ.
