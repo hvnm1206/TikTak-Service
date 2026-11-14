@@ -98,3 +98,5 @@ jobs:
 # Rerun with correct structured-output mock; probe Worker auto-deletes.
 
 # Verify consent re-check with Cloudflare native D1 on isolated users.
+
+# Recheck direct voice-note create and append against live isolated D1.
