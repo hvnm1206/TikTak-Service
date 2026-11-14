@@ -33,6 +33,12 @@ test('pilot QR and link open the pilot Worker instead of production',async()=>{
  assert.match(html,/viewBox="0 0 45 45"/);
  assert.ok(!html.includes('href="'+NGO_APP_URL+'"'));
 });
+test('production channel keeps the official QR when personal memory is enabled',async()=>{
+ const response=await worker.fetch(new Request('https://voice.test/'),{NMH_PERSONAL_MEMORY:'pilot',NMH_APP_CHANNEL:'production'});
+ const html=await response.text();
+ assert.ok(html.includes('href="'+NGO_APP_URL+'"'));
+ assert.ok(!html.includes('href="'+NGO_PILOT_APP_URL+'"'));
+});
 test('SETUP includes QR and public-only link with no external QR service and preserved voice',async()=>{
  const response=await worker.fetch(new Request('https://voice.test/'),{NMH_REMINDERS_MODE:'active'});
  assert.equal(response.status,200);
