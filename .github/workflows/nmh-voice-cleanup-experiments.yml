@@ -88,7 +88,7 @@ jobs:
           else:
               assert status==200 and p.get('success'),'Cannot verify Worker identity before deletion'
               status,p=req('DELETE',root+target+'?force=true')
-              assert status in (200,202,204) and p.get('success',True),'Cloudflare staging delete rejected HTTP '+str(status)+' codes '+str([e.get('code') for e in p.get('errors',[])]))
+              assert status in (200,202,204) and p.get('success',True),'Cloudflare staging delete rejected HTTP '+str(status)+' codes '+str([e.get('code') for e in p.get('errors',[])])
               print('STAGING_WORKER_DELETE=SUCCESS')
           code,_=req('GET',root+target)
           assert code==404,'Staging Worker still exists (HTTP '+str(code)+')'
