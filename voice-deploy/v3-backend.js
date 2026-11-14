@@ -179,6 +179,34 @@ export async function handleV3(req,env){
   const person=await env.NMH_DB.prepare('SELECT name FROM v3_users WHERE id=?').bind(sub).first();
   return json({signedIn:true,name:person?.name||'',userId:sub});
  }
+ if(path==='/api/v3/memory-v2-preference'){
+  const mode=['shadow','active'].includes(env?.NMH_MEMORY_V2_MODE)?env.NMH_MEMORY_V2_MODE:'off';
+  if(method==='GET'){
+   if(mode==='off')return json({available:false,mode:'off',enabled:false,revision:0});
+   try{
+    const p=await env.NMH_DB.prepare('SELECT enabled,revision FROM v3_memory_v2_preferences WHERE user_id=?').bind(sub).first();
+    return json({available:true,mode,enabled:p?.enabled===1,revision:p?.revision||0});
+   }catch{return fail('Memory V2 chưa sẵn sàng. Chưa thay đổi ghi nhớ.',503)}
+  }
+  if(method==='PUT'){
+   if(mode==='off')return fail('Memory V2 chưa được kích hoạt trên máy chủ',409);
+   let data;try{data=await readJson(req,300)}catch(e){return fail(e.message)}
+   if(typeof data?.enabled!=='boolean'||!Number.isInteger(data.revision)||data.revision<0)return fail('Cấu hình ghi nhớ không hợp lệ',400);
+   try{
+    const row=await env.NMH_DB.prepare('SELECT enabled,revision FROM v3_memory_v2_preferences WHERE user_id=?').bind(sub).first();
+    if((row?.revision||0)!==data.revision)return fail('Thiết bị khác đã thay đổi. Hãy tải lại.',409);
+    if(row){
+     const result=await env.NMH_DB.prepare('UPDATE v3_memory_v2_preferences SET enabled=?,revision=revision+1,updated_at=? WHERE user_id=? AND revision=?').bind(data.enabled?1:0,Date.now(),sub,data.revision).run();
+     if(Number(result?.meta?.changes||0)!==1)return fail('Cấu hình vừa thay đổi',409);
+    }else{
+     await env.NMH_DB.prepare('INSERT INTO v3_memory_v2_preferences (user_id,enabled,revision,updated_at) VALUES (?,?,1,?)').bind(sub,data.enabled?1:0,Date.now()).run();
+    }
+    const saved=await env.NMH_DB.prepare('SELECT enabled,revision FROM v3_memory_v2_preferences WHERE user_id=?').bind(sub).first();
+    if(saved?.enabled!==(data.enabled?1:0))return fail('Chưa xác nhận được thay đổi cấu hình',503);
+    return json({ok:true,enabled:!!saved.enabled,revision:saved.revision,mode});
+   }catch{return fail('Không cập nhật được lựa chọn ghi nhớ. Dữ liệu cũ không đổi.',503)}
+  }
+ }
  if(path==='/api/v3/profile'){
   if(method==='GET'){
    const data=await env.NMH_DB.prepare('SELECT prompt, revision FROM v3_profiles WHERE user_id=?').bind(sub).first();
