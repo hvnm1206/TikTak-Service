@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 import {executeReminderAction,handleReminderApi,remindersEnabled,reminderToolSchemas} from './reminders.js';
 import {enhanceReminderPage} from './reminders-client.js';
 import {runAgent} from './agent-v2.js';
+import {matchesCurrentUtterance} from './action-registry.js';
 
 function dbFixture(){
  const sqlite=new DatabaseSync(':memory:');
@@ -130,4 +131,11 @@ test('GPT tool execution returns only backend receipt, not a model-invented conf
  assert.equal(calls,1);assert.equal(actions,1);assert.equal(r.actionOk,true);assert.equal(r.answer,'Đã đặt nhắc sau readback D1.');
  const err=await runAgent({apiKey:'sk-abcdefghijklmnopqrstuvwxyz123456',messages:[{role:'user',content:'2 phút nữa nhắc tao uống thuốc'}],fetchImpl:toolFetch,actionRuntime:{tools:reminderToolSchemas,execute:async()=>({ok:false,status:'failed',answer:'Chưa đặt: D1 lỗi',errorCode:'DB_ERROR'})}});
  assert.equal(err.actionOk,false);assert.equal(err.answer,'Chưa đặt: D1 lỗi');
+});
+
+test('action tools require evidence from the current user turn, never previous conversation',()=>{
+ assert.equal(matchesCurrentUtterance({utterance_quote:'nhắc tao uống thuốc'},'2 phút nữa nhắc tao uống thuốc'),true);
+ assert.equal(matchesCurrentUtterance({utterance_quote:'nhắc tao uống thuốc'},'Ngày mai trời mưa không?'),false);
+ assert.equal(matchesCurrentUtterance({utterance_quote:'nhắc'},'nhắc tao uống thuốc'),false);
+ assert.ok(reminderToolSchemas.every(x=>x.parameters.required.includes('utterance_quote')));
 });
