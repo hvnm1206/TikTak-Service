@@ -99,82 +99,6 @@ jobs:
 
 
 
-  deploy-natural-notes-once:
-    needs: verify
-    if: >-
-      github.event_name == 'push' &&
-      startsWith(github.event.head_commit.message, 'release(voice): natural note saving repaired 20261114')
-    runs-on: ubuntu-latest
-    timeout-minutes: 18
-    concurrency:
-      group: nmh-voice-gpt-production-deploy
-      cancel-in-progress: false
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
-      GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Verify exact production version and rollback baseline
-        run: |
-          set -euo pipefail
-          test -n "$CLOUDFLARE_API_TOKEN"
-          curl --fail-with-body --silent --show-error --max-time 20 \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/nmh-voice-gpt-test/deployments" -o /tmp/nmh-before-note-fix.json
-          python3 - <<'PY'
-          import json,os
-          d=json.load(open('/tmp/nmh-before-note-fix.json'));vs=d['result']['deployments'][0]['versions']
-          assert d.get('success') and len(vs)==1 and vs[0]['percentage']==100
-          assert vs[0]['version_id']=='cb25a9bc-83ab-4607-99b8-70df2b58b1f0', 'Production version has drifted. Refuse deployment'
-          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('NMH_STABLE_VERSION='+vs[0]['version_id']+'\n')
-          print('NATURAL_NOTES_ROLLBACK_BASELINE='+vs[0]['version_id'])
-          PY
-          curl --fail --silent --show-error --max-time 15 'https://nmh-voice-gpt-test.magical-budget.workers.dev/health' | \
-            python3 -c 'import sys,json;h=json.load(sys.stdin);assert h["ok"] and h["voice"]=="browser-stt+marin-tts" and h["uiVersion"]=="presence-canvas-v1" and h["v3Version"]=="d1-only-google-v3"'
-      - name: Release same Worker and preserve D1, Google OAuth; rollback on failure
-        run: |
-          set -Eeuo pipefail
-          rollback(){
-            echo "::error::Natural notes deployment failed; rolling back"
-            npx --yes wrangler@4.102.0 rollback "$NMH_STABLE_VERSION" --name nmh-voice-gpt-test --config voice-deploy/wrangler.jsonc || echo "::error::ROLLBACK_FAILED"
-          }
-          trap rollback ERR
-          python3 - <<'PY'
-          import json,os,re
-          assert re.fullmatch('[0-9]+-[a-z0-9-]+[.]apps[.]googleusercontent[.]com',os.environ['GOOGLE_CLIENT']),'Existing Google client unavailable'
-          c={'name':'nmh-voice-gpt-test','main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'observability':{'enabled':False},'d1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':'3ce295cb-a84d-4a50-abee-d14fdd903514'}],'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT']}}
-          with open('voice-deploy/wrangler-v3-natural-notes.generated.jsonc','w') as f:json.dump(c,f)
-          PY
-          npx --yes wrangler@4.102.0 deploy --config voice-deploy/wrangler-v3-natural-notes.generated.jsonc
-          TARGET="https://nmh-voice-gpt-test.magical-budget.workers.dev"
-          ready=0
-          for i in 1 2 3 4 5 6 7 8 9 10; do
-            sleep 5
-            if curl --fail --silent --show-error --max-time 12 "$TARGET/health" -o /tmp/nmh-notes-health.json && \
-               curl --fail --silent --show-error --max-time 12 "$TARGET/api/v3/config" -o /tmp/nmh-notes-v3.json && \
-               python3 - <<'PY'
-          import json
-          h=json.load(open('/tmp/nmh-notes-health.json'));c=json.load(open('/tmp/nmh-notes-v3.json'))
-          assert h.get('ok') and h.get('voice')=='browser-stt+marin-tts' and h.get('uiVersion')=='presence-canvas-v1' and h.get('v3Version')=='d1-only-google-v3'
-          assert c.get('ready') and c.get('sync') and c.get('storage')=='Cloudflare D1' and c.get('r2Required')==False and c.get('googleClientId','').endswith('.apps.googleusercontent.com')
-          PY
-            then ready=1;echo "NATURAL_NOTES_EDGE_READY=$i";break;fi
-          done
-          [[ "$ready" == 1 ]]
-          curl --fail --silent --show-error --max-time 15 "$TARGET/" -o /tmp/nmh-notes-home.html
-          for marker in 'id="avatar"' 'id="v3Prompt"' 'id="v3Memories"' 'id="v3Documents"' 'id="start"' 'id="resume"' 'getByteTimeDomainData' 'ttsPrefetchCtl' 'webUsd' 'Nguồn tham khảo (' 'nmhV3Refresh';do
-            grep -q "$marker" /tmp/nmh-notes-home.html || { echo "::error::Missing UI marker $marker";false; }
-          done
-          test "$(curl --silent --max-time 15 -o /tmp/nmh-notes-unauth.json -w '%{http_code}' "$TARGET/api/v3/memories")" = 401
-          test "$(curl --silent --max-time 15 -o /tmp/nmh-notes-doc-unauth.json -w '%{http_code}' "$TARGET/api/v3/documents")" = 401
-          test "$(curl --silent --max-time 15 -o /tmp/nmh-notes-bad-chat.json -w '%{http_code}' -X POST -H "Origin: $TARGET" -H 'Content-Type: application/json' --data '{"apiKey":"invalid","messages":[{"role":"user","content":"hello"}]}' "$TARGET/api/chat")" = 400
-          echo "NATURAL_NOTES_SMOKE=VOICE_WEB_V3_D1_OAUTH_UI_SECURITY_PASS"
-          trap - ERR
-          echo "NATURAL_NOTES_RELEASE=DEPLOYED"
   deploy:
     needs: verify
     if: >-
@@ -285,4 +209,3 @@ jobs:
 
 
 
-# Natural-language note saving bugfix explicitly requested by user 2026-11-14; release to existing Worker with rollback.
