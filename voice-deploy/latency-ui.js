@@ -28,12 +28,12 @@ function once(text,from,to){
 export function enhanceLatencyPage(original){
  let p=original;
  p=once(p,' const labels={idle:',CODE+' const labels={idle:');
- p=once(p,'void ask(text,g)};r.start();','window.nmhVoiceLatencyMark?.("recognized");void ask(text,g)};r.start();');
- p=once(p,'try{const d=await api("/api/chat",key,{messages:','try{window.nmhVoiceLatencyMark?.("chatStart");const d=await api("/api/chat",key,{messages:');
- p=once(p,'style});if(!active||g!==gen)return;recordCost({gptUsd:','style});window.nmhVoiceLatencyMark?.("chatDone");window.nmhVoiceLatencyServer?.(d.latency);if(!active||g!==gen)return;recordCost({gptUsd:');
- p=once(p,'const ctl=new AbortController();\n    // Always settle the prefetch promise:','if(i===0)window.nmhVoiceLatencyMark?.("ttsStart");const ctl=new AbortController();\n    // Always settle the prefetch promise:');
- p=once(p,'if(result.error)throw result.error;\n      const audio=await playAudioBuffer','if(result.error)throw result.error;\n      if(index===0)window.nmhVoiceLatencyMark?.("ttsReady");\n      const audio=await playAudioBuffer');
- p=once(p,'if(!valid())return;\n      recordCost({ttsSeconds:audio.duration','if(!valid())return;\n      if(index===0)window.nmhVoiceLatencyMark?.("firstAudio");\n      recordCost({ttsSeconds:audio.duration');
+ p=once(p,'void ask(text,g)};r.start();','globalThis.nmhVoiceLatencyMark?.("recognized");void ask(text,g)};r.start();');
+ p=once(p,'try{const d=await api("/api/chat",key,{messages:','try{globalThis.nmhVoiceLatencyMark?.("chatStart");const d=await api("/api/chat",key,{messages:');
+ p=once(p,'style});if(!active||g!==gen)return;recordCost({gptUsd:','style});globalThis.nmhVoiceLatencyMark?.("chatDone");globalThis.nmhVoiceLatencyServer?.(d.latency);if(!active||g!==gen)return;recordCost({gptUsd:');
+ p=once(p,'const ctl=new AbortController();\n    // Always settle the prefetch promise:','if(i===0)globalThis.nmhVoiceLatencyMark?.("ttsStart");const ctl=new AbortController();\n    // Always settle the prefetch promise:');
+ p=once(p,'if(result.error)throw result.error;\n      const audio=await playAudioBuffer','if(result.error)throw result.error;\n      if(index===0)globalThis.nmhVoiceLatencyMark?.("ttsReady");\n      const audio=await playAudioBuffer');
+ p=once(p,'if(!valid())return;\n      recordCost({ttsSeconds:audio.duration','if(!valid())return;\n      if(index===0)globalThis.nmhVoiceLatencyMark?.("firstAudio");\n      recordCost({ttsSeconds:audio.duration');
  // Limit ONLY the first synthesized chunk, subsequent chunks retain established 440-char ceiling.
  // Preserves every word in order; splits at whitespace when possible.
  const old='while(s.length>440){let at=s.lastIndexOf(" ",440);if(at<180)at=440;out.push(s.slice(0,at).trim());s=s.slice(at).trim()}';
