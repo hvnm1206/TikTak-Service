@@ -1,4 +1,4 @@
-name: NGỐ Natural Reminder Time — guarded production fix
+name: NGỐ Memory Relational Reasoning — guarded production fix
 on:
   push:
     branches: [nmh-voice-actions-reminders-p0-20261114]
@@ -10,7 +10,7 @@ concurrency:
 jobs:
   release:
     if: >-
-      startsWith(github.event.head_commit.message, 'release(ngo): natural reminder time 20261114')
+      startsWith(github.event.head_commit.message, 'release(ngo): memory relationship reasoning 20261114')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -20,7 +20,7 @@ jobs:
       GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
       PROD_DB_ID: '3ce295cb-a84d-4a50-abee-d14fdd903514'
       PROD_WORKER: nmh-voice-gpt-test
-      PROD_EXPECTED_VERSION: 253c198a-5af6-4a98-9776-ebe9b06aa424
+      PROD_EXPECTED_VERSION: b4b18bd1-3562-4bab-9d59-2cee3c3a399c
       TARGET: https://nmh-voice-gpt-test.magical-budget.workers.dev
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +39,7 @@ jobs:
           with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
           assert j['conclusion']=='success' and j['name']=='NGỐ P0 — persistent isolated iPhone pilot'
           print('NGO_REAL_WORKER_AND_D1_PILOT_GATE=PASS')
-          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43581134027',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-AUDIO-THEME-GATE'})
+          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43582105083',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-AUDIO-THEME-GATE'})
           with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
           assert j['conclusion']=='success' and j['name']=='NGỐ P0 — isolated real Cloudflare Worker and D1 sandbox'
           print('NGO_AUDIO_THEME_REAL_D1_SANDBOX_AND_ROLLBACK_GATE=PASS')
@@ -172,7 +172,7 @@ jobs:
           PY
           deployed=0
           trap - ERR
-          echo 'NGO_NATURAL_REMINDER_TIME_PRODUCTION_RELEASE=SUCCESS'
+          echo 'NGO_MEMORY_RELATIONSHIP_PRODUCTION_RELEASE=SUCCESS'
       - name: Write release summary
         if: success()
         run: |
