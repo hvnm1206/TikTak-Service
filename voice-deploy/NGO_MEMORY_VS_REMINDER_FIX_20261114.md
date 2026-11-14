@@ -20,3 +20,10 @@
 ## Kết quả
 - CI source và 71 legacy/P0 tests đã chạy thành công sau chỉnh sửa và bản kiểm thử nhận dữ liệu tiếng Việt đúng.
 - Sandbox và production gate phải PASS trước khi tuyên bố release. Nghiệm thu nói thực trên iPhone phải dựa trên thử nghiệm sau bản phát hành.
+
+## Nâng cấp suy luận quan hệ nhiều bước — scope bổ sung
+- Người dùng đã cung cấp: Minh mèo là con người dùng, Thanh Vịt là mẹ Minh mèo. Ngố cần rút ra quan hệ cùng nuôi dạy/con chung, nhưng chỉ kết luận vợ chồng nếu có thông tin hôn nhân được xác minh.
+- Truy nguyên code: loadV3Context trước đây lấy 6 dòng Memory có khớp từ khóa, có thể bỏ sót dữ kiện thứ hai nối qua cùng một người. Đã sửa phương pháp truy xuất multi-hop bằng token chung (không hardcode tên Thanh/Minh hay quan hệ), giữ đúng Google subject.
+- Agent có chỉ dẫn nối các dữ kiện có chung thực thể, phân biệt suy luận chắc chắn và tình trạng hôn nhân chưa xác minh.
+- Test: 5 memory facts, yêu cầu quan hệ Thanh Vịt và người dùng, kiểm tra cả facts Minh là con và Thanh là mẹ được trả về đồng thời; kiểm tra user khác không leak.
+- CI 71 legacy và 27 mới PASS: https://github.com/hvnm1206/TikTak-Service/actions/runs/43582072410 . Chưa release tại thời điểm bổ sung này.
