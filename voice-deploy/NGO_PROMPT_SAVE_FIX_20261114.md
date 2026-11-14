@@ -26,3 +26,9 @@
 SETUP → nhập/sửa Prompt → LƯU PROMPT → đọc status ngay bên dưới. “ĐÃ LƯU VÀ ĐỌC LẠI THÀNH CÔNG” chỉ xuất hiện khi D1 được xác nhận. Tự thử thoát/đăng nhập lại và hỏi câu mới để xác minh Prompt được sử dụng.
 
 Tình trạng cụ thể cập nhật thêm sau CI/sandbox/deploy.
+## Kết quả thực thi đã xác minh
+- CI **114/114 bài PASS** (74 nhóm lõi + 40 nhóm voice/reminder/theme/QR): https://github.com/hvnm1206/TikTak-Service/actions/runs/43612304741.
+- Sandbox **Cloudflare Worker + D1 thật**, tài khoản thử tách biệt: tạo Prompt, GET đọc lại, sửa Prompt, GET, stale revision trả 409, kiểm SQL trực tiếp D1, rollback Worker exact version, cleanup: **PASS** https://github.com/hvnm1206/TikTak-Service/actions/runs/43612304708. Log có `NGO_SANDBOX_PROMPT_CREATE_EDIT_READBACK_CONFLICT=PASS`.
+- Guard release production: **SUCCESS** https://github.com/hvnm1206/TikTak-Service/actions/runs/43612444869. Worker production mới `c35801d0-a840-4d4c-adc1-155c6070489a`, rollback code `c1755bd1-5e2a-4af8-b542-d4557446cef4`. D1 Time Travel bookmark được ghi trong artifact release.
+- Guarded Operator GET production root HTTP 200; HTML có `v3SavePrompt`, `v3PromptSaveStatus`, trạng thái `ĐÃ LƯU VÀ ĐỌC LẠI THÀNH CÔNG`, `CHƯA LƯU ĐƯỢC` và kiểm tra `confirmed.prompt!==draft`; các marker `SpeechRecognition`, QR vẫn có.
+- Giới hạn: chưa đăng nhập phiên Google thật của người dùng hoặc đọc/sửa Prompt production cá nhân. Không kết luận đã nghiệm thu thao tác trên iPhone từ sandbox.
