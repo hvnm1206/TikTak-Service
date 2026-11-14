@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## 14/11/2026 — NGỐ NHẮC GIỜ TỰ NHIÊN ĐÃ CẬP NHẬT
+- Worker chính: https://nmh-voice-gpt-test.magical-budget.workers.dev/ phiên bản `b4b18bd1-3562-4bab-9d59-2cee3c3a399c`.
+- Đã sửa câu “7 giờ tối nay gọi tao dậy xem bóng đá”: GPT hiểu giờ theo ngữ cảnh, backend nhận HH:mm hoặc ISO thiếu giây, không đòi người dùng đọc ngày ISO; vẫn xác minh D1.
+- CI 71+23 PASS; sandbox rollback PASS run 43581134027; deploy + smoke PASS run 43581221209. Rollback `253c198a-5af6-4a98-9776-ebe9b06aa424`. Ngáo không sửa. iPhone chưa UAT sau bản vá.
+
+
 ## CHỐT CUỐI CÙNG 14/11/2026 — NGỐ VOLUME + MASCOT LAYOUT HOTFIX PRODUCTION PASS
 - Trạng thái mới nhất: Worker chính `nmh-voice-gpt-test`, URL **https://nmh-voice-gpt-test.magical-budget.workers.dev/**, version **`253c198a-5af6-4a98-9776-ebe9b06aa424`**.
 - Sau release audio/theme version `cd66b9f6-b7a7-4970-abf8-ce1ef19e1446`, source audit phát hiện mascot Vịt/Corgi bị chèn vào vùng chú thích gây trùng avatar. Đã sửa: mascot vào `.visual-field`, ẩn canvas cũ CHỈ khi chọn vịt/corgi, chế độ Mặc định giữ nguyên NMH Presence. Không đổi logic mic/TTS.
