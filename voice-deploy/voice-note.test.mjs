@@ -46,12 +46,12 @@ test('explicit note commands append to a single per-user Markdown file and are r
  assert.equal(await handleVoiceNote(req(),e,'Xin chào'),null);
  assert.equal(e.NMH_DB.writes,0);
  let r=await handleVoiceNote(req(),e,'Ghi vào file ghi chú mua bóng đèn ngày mai');
- assert.equal(r.answer,'Đã ghi vào file ghi chú.');
+ assert.equal(r.answer,'Đã ghi và kiểm tra trong GHI_CHU.md, mục 1.');
  assert.equal(r.saved,true);
  assert.equal(r.noteSegment,1);
  assert.deepEqual(r.tools,['save_note']);
  r=await handleVoiceNote(req(),e,'Thêm vào ghi chú kiểm tra máy bơm');
- assert.equal(r.answer,'Đã ghi vào file ghi chú.');
+ assert.equal(r.answer,'Đã ghi và kiểm tra trong GHI_CHU.md, mục 2.');
  assert.equal(e.NMH_DB.documents.size,1);
  const doc=[...e.NMH_DB.documents.values()][0];
  assert.equal(doc.name,'GHI_CHU.md');
@@ -86,7 +86,7 @@ test('never claims saved when D1 write returns success but subsequent read is mi
    return statement;
  };
  const r=await handleVoiceNote(req(),e,'Ghi vào file ghi chú kiểm tra chứng từ');
- assert.match(r.answer,/chưa lưu thành công/i);
+ assert.match(r.answer,/chưa xác minh được/i);
  assert.ok(!r.saved);
  assert.ok(!r.tools.includes('save_note'));
 });
