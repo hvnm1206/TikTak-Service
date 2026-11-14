@@ -83,7 +83,9 @@ test('analysis uses a dedicated JSON-only non-stored model call, not web_search 
  let options;
  const out=await analyzeMemory({apiKey:'sk-'+'a'.repeat(42),existing:[],userText:'Con chó tao tên Mít',fetchImpl:async(_,o)=>{options=JSON.parse(o.body);return result([add('Người dùng có chó tên Mít','Con chó tao tên Mít')])}});
  assert.equal(out.ops.length,1);assert.equal(options.store,false);
- assert.equal(options.text.format.type,'json_object');
+ assert.equal(options.text.format.type,'json_schema');
+ assert.equal(options.text.format.strict,true);
+ assert.deepEqual(options.text.format.schema.required,['ops']);
  assert.ok(!options.tools);
 });
 test('shadow analyzes but performs zero D1 writes, and off makes zero GPT calls',async()=>{
