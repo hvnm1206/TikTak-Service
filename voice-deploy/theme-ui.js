@@ -7,9 +7,10 @@ const css=String.raw`<style id="ngoThemeCSS">
 :root[data-ngo-theme="duck"] button.primary,:root[data-ngo-theme="duck"] button.selected,
 :root[data-ngo-theme="corgi"] button.primary,:root[data-ngo-theme="corgi"] button.selected{background:var(--ngo-accent);color:#101827}
 :root[data-ngo-theme="duck"] .panel,:root[data-ngo-theme="corgi"] .panel{background:var(--ngo-panel)}
-#ngoMascotStage{margin:10px auto 16px;width:min(100%,280px);height:190px;display:none;align-items:center;justify-content:center;position:relative;border-radius:22px;background:radial-gradient(circle at 50% 45%,#334e5d99,transparent 72%);overflow:hidden;pointer-events:none}
+#ngoMascotStage{margin:0 auto;width:min(100%,350px);height:275px;display:none;align-items:center;justify-content:center;position:relative;border-radius:22px;background:radial-gradient(circle at 50% 45%,#334e5d99,transparent 72%);overflow:hidden;pointer-events:none}
 #ngoMascotStage[data-theme="duck"],#ngoMascotStage[data-theme="corgi"]{display:flex}
-#ngoMascotStage svg{width:174px;height:174px;filter:drop-shadow(0 8px 9px #0007);transform-origin:50% 65%;animation:ngoMascotFloat 3.4s ease-in-out infinite}
+:root[data-ngo-theme="duck"] #avatar,:root[data-ngo-theme="corgi"] #avatar{display:none}
+#ngoMascotStage svg{width:245px;height:245px;filter:drop-shadow(0 8px 9px #0007);transform-origin:50% 65%;animation:ngoMascotFloat 3.4s ease-in-out infinite}
 #ngoMascotStage[data-state="speaking"] svg{animation:ngoMascotTalk .45s ease-in-out infinite alternate}
 #ngoMascotStage[data-state="listening"] svg{animation:ngoMascotListen 1.2s ease-in-out infinite}
 #ngoMascotStage[data-state="processing"] svg{animation:ngoMascotThink 1.5s ease-in-out infinite}
@@ -33,7 +34,7 @@ const script=String.raw`<script id="ngoThemeScript">
   const corgi='<svg viewBox="0 0 210 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Chó corgi Ngố vui nhộn"><path d="M52 105 L25 23 Q23 11 37 21 L81 57 Q108 47 130 55 L175 21 Q190 11 187 29 L168 108Z" fill="#df943d" stroke="#252a28" stroke-width="7" stroke-linejoin="round"/><path d="M55 75 42 40 69 69 M153 74 172 41 151 71" fill="#f5bcae" stroke="#eec1b7" stroke-width="9" stroke-linecap="round"/><ellipse cx="106" cy="117" rx="79" ry="70" fill="#e9a348" stroke="#232a28" stroke-width="7"/><path d="M105 53 Q94 95 98 133 Q80 157 62 153 Q69 184 104 184 Q139 181 150 152 Q120 159 113 128 Q114 99 105 53Z" fill="#fff0ce"/><ellipse cx="67" cy="127" rx="29" ry="23" fill="#fff0ce"/><ellipse cx="143" cy="127" rx="29" ry="23" fill="#fff0ce"/><circle cx="75" cy="112" r="13" fill="#232a28"/><circle cx="137" cy="112" r="13" fill="#232a28"/><circle cx="78" cy="108" r="4" fill="#fff"/><circle cx="140" cy="108" r="4" fill="#fff"/><ellipse cx="107" cy="136" rx="17" ry="13" fill="#20262a"/><path d="M87 154 Q107 174 126 152" fill="none" stroke="#25282b" stroke-width="5" stroke-linecap="round"/><path d="M99 164 Q103 193 116 188 Q128 174 113 167Z" fill="#e16c78" stroke="#a84751" stroke-width="3"/></svg>';
   const stage=document.createElement('div');stage.id='ngoMascotStage';stage.setAttribute('aria-label','Nhân vật giao diện Ngố');
   stage.innerHTML='<span id="ngoMascotName"></span>';
-  status.insertAdjacentElement('afterend',stage);
+  const field=document.querySelector('.visual-field');if(field)field.append(stage);else status.insertAdjacentElement('afterend',stage);
   const picker=document.createElement('section');picker.id='ngoThemePicker';
   picker.innerHTML='<label for="ngoThemeSelect">GIAO DIỆN NGỐ</label><select id="ngoThemeSelect"><option value="default">Mặc định — giữ giao diện cũ</option><option value="duck">Vịt Ngố</option><option value="corgi">Corgi Ngố</option></select><p class="hint">Chỉ đổi nhân vật và màu giao diện; giữ nguyên micro, Marin, GPT, nhắc việc, bộ nhớ.</p>';
   const heading=setup.querySelector('h2');if(heading)heading.insertAdjacentElement('afterend',picker);else setup.prepend(picker);
