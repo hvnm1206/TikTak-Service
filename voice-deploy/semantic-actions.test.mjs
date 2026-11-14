@@ -163,3 +163,23 @@ test('read-only GPT memory retrieval makes a second model call and answers natur
  assert.equal(out.answer,'Chưa có thông tin dự án đã lưu.');
  assert.equal(out.actionStatus,undefined);
 });
+
+test('failed D1 receipt overrides any later model claim of success',async()=>{
+ const utterance='Tôi muốn lưu ghi nhớ về lịch làm việc';
+ let calls=0;
+ const result=await runAgent({apiKey:key,messages:[{role:'user',content:utterance}],
+  actionRuntime:{tools:[{type:'function',name:'save_memory',description:'Store memory',parameters:{type:'object',properties:{body:{type:'string'},utterance_quote:{type:'string'}},required:['body','utterance_quote'],additionalProperties:false},strict:true}],
+    execute:async()=>({ok:false,status:'failed',errorCode:'MEMORY_DB_ERROR',answer:'Ghi nhớ chưa được lưu do D1 báo lỗi.'})},
+  fetchImpl:async()=>{
+   calls++;
+   return calls===1?toolResponse('save_memory',{body:'lịch làm việc',utterance_quote:'lưu ghi nhớ về lịch làm việc'}):
+    Response.json({output:[{type:'message',content:[{type:'output_text',text:'Đã ghi nhớ thành công!'}]}],usage:{input_tokens:40,output_tokens:15}});
+  }
+ });
+ assert.equal(calls,2);
+ assert.equal(result.actionOk,false);
+ assert.equal(result.actionStatus,'failed');
+ assert.equal(result.actionErrorCode,'MEMORY_DB_ERROR');
+ assert.equal(result.answer,'Ghi nhớ chưa được lưu do D1 báo lỗi.');
+ assert.doesNotMatch(result.answer,/Đã ghi nhớ thành công/);
+});
