@@ -15,6 +15,7 @@ export default {
   let result={ok:false,steps:[]};
   try{
    await db.batch([db.prepare('INSERT INTO v3_users (id,name,created_at) VALUES (?,?,?)').bind(sub,'Sandbox probe A',now),db.prepare('INSERT INTO v3_users (id,name,created_at) VALUES (?,?,?)').bind(other,'Sandbox probe B',now)]);
+   await db.prepare('INSERT INTO v3_memory_v2_preferences (user_id,enabled,revision,updated_at) VALUES (?,?,?,?)').bind(sub,1,1,now).run();
    const foreignId=crypto.randomUUID();
    await db.prepare('INSERT INTO v3_memories (id,user_id,body,created_at) VALUES (?,?,?,?)').bind(foreignId,other,'Sandbox other owner must remain',now).run();
    const request='Con chó của tao tên Mít';
@@ -50,6 +51,7 @@ export default {
    try{
     for(const user of [sub,other]){
      await db.prepare('DELETE FROM v3_memory_v2_turns WHERE user_id=?').bind(user).run();
+     await db.prepare('DELETE FROM v3_memory_v2_preferences WHERE user_id=?').bind(user).run();
      await db.prepare('DELETE FROM v3_memories WHERE user_id=?').bind(user).run();
      await db.prepare('DELETE FROM v3_users WHERE id=?').bind(user).run();
     }
