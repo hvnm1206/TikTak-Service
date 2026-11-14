@@ -102,19 +102,6 @@ export async function loadV3Context(req,env,question){
   return {personalPrompt:maxText(profile?.prompt,2500),memories:memories.map(x=>x.body),documents:docs};
  }catch{return {personalPrompt:'',memories:[],documents:[],contextError:'Không truy cập được kho cá nhân, không thể xác minh tài liệu.'}}
 }
-export function voiceNoteIntent(question){
- const text=String(question||'').trim();
- const match=text.match(/^(?:hãy\s+)?(?:ghi|lưu|chép)(?:\s+(?:lại|giúp\s+(?:tôi|tao|anh)|cho\s+(?:tôi|tao|anh)))?\s+(?:(?:vào|trong)\s+)?(?:file|tệp|sổ)\s+(?:ghi\s+chú|note)(?:\s+(?:rằng|nội\s+dung|là))?\s*[:：,]?\s+(.+)$/isu)
-   ||text.match(/^(?:hãy\s+)?(?:ghi\s+chú|lưu\s+(?:lại\s+)?ghi\s+chú|chép\s+vào\s+ghi\s+chú)(?:\s+(?:rằng|nội\s+dung|là))?\s*[:：,]?\s+(.+)$/isu);
- if(!match)return null;
- const body=match[1].trim();
- return body.length>=2&&body.length<=2200?body:null;
-}
-export async function handleVoiceNote(req,env,question){
- const note=voiceNoteIntent(question);
- if(!note)return null;
- return storeVoiceNote(req,env,note);
-}
 export async function storeVoiceNote(req,env,note){
  if(typeof note!=='string'||note.trim().length<2||note.length>2200)return {answer:'Nội dung ghi chú không hợp lệ.',saved:false};
  const result=(answer,saved=false)=>({answer,saved,sources:[],tools:[],model:'local-d1-note',usage:{input_tokens:0,output_tokens:0}});
@@ -153,49 +140,6 @@ export async function storeVoiceNote(req,env,note){
   if(!verify?.raw_text?.includes(note)||chunk?.body!==note)return result('Đã gửi thao tác nhưng chưa đọc lại được ghi chú, không xác nhận thành công.');
   return result('Đã ghi và kiểm tra trong file GHI_CHU.md: '+note,true);
  }catch{return result('Ghi chú chưa được xác nhận trong D1. Hãy kiểm tra SETUP trước khi thử lại.')}
-}
-export function memoryIntent(question){
- const text=String(question||'').trim();
- const save=text.match(/^(?:hãy\s+)?(?:nhớ\s+rằng|ghi\s+nhớ(?:\s+rằng)?|lưu\s+vào\s+bộ\s+nhớ|ghi(?:\s+(?:lại|giúp\s+(?:tôi|tao|anh)|cho\s+(?:tôi|tao|anh)))?|lưu(?:\s+(?:lại|giúp\s+(?:tôi|tao|anh)))?)\s*[:：,]?\s+(.+)$/isu);
- if(save&&save[1].trim().length>=2){
-  const body=save[1].trim().slice(0,500);
-  // File notes are handled by the dedicated document route; never misfile them as personal facts.
-  if(/^(?:vào\s+)?(?:file|tệp|sổ)\s+(?:ghi\s+chú|note)(?:\s|$)/iu.test(body))return null;
-  return {action:'save',body};
- }
- const edit=text.match(/^(?:hãy\s+)?sửa\s+ghi\s+nhớ\s+(.+?)\s+thành\s+(.+)$/isu);
- if(edit&&edit[1].trim().length>=2&&edit[2].trim().length>=2)return {action:'edit',query:edit[1].trim(),body:edit[2].trim().slice(0,500)};
- const erase=text.match(/^(?:hãy\s+)?(?:quên\s+điều|xóa\s+ghi\s+nhớ(?:\s+về)?)\s*[:：,]?\s+(.+)$/isu);
- if(erase&&erase[1].trim().length>=2)return {action:'erase',query:erase[1].trim()};
- return null;
-}
-
-export async function handleVoiceMemory(req,env,question){
- const intent=memoryIntent(question);if(!intent)return null;
- if(!productionReady(env))return {answer:'Bộ nhớ đồng bộ chưa được cấu hình. Chưa lưu thông tin nào.',sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
- const {sub,error}=await ensureAuth(req,env);
- if(error)return {answer:'Cần đăng nhập Google trong SETUP để ghi nhớ đồng bộ. Chưa lưu.',sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
- try{
-  if(intent.action==='save'){
-   const k=id();
-   const write=await env.NMH_DB.prepare('INSERT INTO v3_memories (id,user_id,body,created_at) VALUES (?,?,?,?)').bind(k,sub,intent.body,Date.now()).run();
-   if(Number(write?.meta?.changes||0)!==1)throw Error('Memory insert unconfirmed');
-   const checked=await env.NMH_DB.prepare('SELECT body FROM v3_memories WHERE user_id=? AND id=?').bind(sub,k).first();
-   if(checked?.body!==intent.body)throw Error('Memory readback unconfirmed');
-   return {answer:'Đã lưu và kiểm tra ghi nhớ: '+intent.body,saved:true,sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
-  }
-  const results=await env.NMH_DB.prepare('SELECT id,body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 100').bind(sub).all();
-  const q=intent.query.toLocaleLowerCase('vi');
-  const hits=(results.results||[]).filter(x=>x.body.toLocaleLowerCase('vi').includes(q));
-  if(hits.length!==1)return {answer:hits.length?'Tìm thấy nhiều ghi nhớ liên quan, hãy xóa trong SETUP để tránh xóa nhầm.':'Không tìm thấy ghi nhớ tương ứng. Chưa xóa.',sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
-  if(intent.action==='edit'){
-   const update=await env.NMH_DB.prepare('UPDATE v3_memories SET body=? WHERE user_id=? AND id=?').bind(intent.body,sub,hits[0].id).run();
-   if(Number(update.meta?.changes||0)!==1)throw Error('Failed memory update');
-   return {answer:'Đã sửa ghi nhớ thành: '+intent.body,sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
-  }
-  await env.NMH_DB.prepare('DELETE FROM v3_memories WHERE user_id=? AND id=?').bind(sub,hits[0].id).run();
-  return {answer:'Đã xóa ghi nhớ: '+hits[0].body,sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
- }catch{return {answer:'Không lưu được vào bộ nhớ. Vui lòng thử lại; chưa xác nhận thành công.',sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}}}
 }
 function splitText(text){
  const clean=String(text).replace(/\r\n/g,'\n').replace(/\u0000/g,'').trim();
