@@ -148,80 +148,27 @@ test('speech text omits URLs and citation lists while keeping source links separ
  assert.equal(y,'Chi tiết xem trang quán, không đọc đường dẫn.');
 });
 
-test('GPT can call authenticated save_note for a naturally phrased request without a regex match',async()=>{
- let seen=false,body;
- const fetchImpl=async(_,opts)=>{body=JSON.parse(opts.body);return tool('save_note',{content:'Ngày mai họp 8 giờ'})};
- const r=await runAgent({apiKey:key,messages:[{role:'user',content:'Ngố, hãy giữ lại giúp tao là ngày mai họp 8 giờ nhé'}],fetchImpl,onSaveNote:async content=>{assert.equal(content,'Ngày mai họp 8 giờ');seen=true;return {ok:true,data:{}}}});
- assert.ok(body.tools.some(x=>x.name==='save_note'));
- assert.equal(seen,true);
- assert.equal(r.answer,'Đã ghi vào file ghi chú.');
- assert.deepEqual(r.tools,['save_note']);
-});
-test('save_note never claims success when backend reports no Google session',async()=>{
- const r=await runAgent({apiKey:key,messages:[{role:'user',content:'Ghi lời nhắc này giúp tao'}],fetchImpl:async()=>tool('save_note',{content:'Việc thử'}),onSaveNote:async()=>({ok:false,data:{error:'Cần đăng nhập Google để lưu. Chưa lưu.'}})});
- assert.equal(r.answer,'Cần đăng nhập Google để lưu. Chưa lưu.');
-});
-test('save_note disabled without authenticated backend callback',async()=>{
- let tools;
- const r=await runAgent({apiKey:key,messages:msg,fetchImpl:async(_,o)=>{tools=JSON.parse(o.body).tools;return say('Xin chào')}});
- assert.ok(!tools.some(x=>x.name==='save_note'));
- assert.equal(r.answer,'Xin chào');
-});
 
-test('a saved note on prior turn NEVER exposes save_note on unrelated next question',async()=>{
+test('regular conversation continues after a historical note request without save_note tool',async()=>{
  const history=[
-  {role:'user',content:'Ngố, ghi lại cho tao mai gọi anh Nam'},
+  {role:'user',content:'Ghi lại giúp tao việc ngày mai'},
   {role:'assistant',content:'Đã ghi vào file ghi chú.'},
   {role:'user',content:'Hà Nội là thủ đô nước nào?'}
  ];
  let body;
- let writes=0;
- const r=await runAgent({apiKey:key,messages:history,onSaveNote:async()=>{writes++;return {ok:true,data:{}}},fetchImpl:async(_,o)=>{
-   body=JSON.parse(o.body);
-   return say('Hà Nội là thủ đô của Việt Nam.');
+ const r=await runAgent({apiKey:key,messages:history,fetchImpl:async(_,opts)=>{
+  body=JSON.parse(opts.body);
+  return say('Hà Nội là thủ đô Việt Nam.');
  }});
- assert.equal(writes,0);
- assert.ok(!body.tools.some(t=>t.name==='save_note'),'no saved note tool on unrelated question');
- assert.equal(r.answer,'Hà Nội là thủ đô của Việt Nam.');
- assert.deepEqual(r.tools,[]);
+ assert.ok(!body.tools.some(x=>x.name==='save_note'));
+ assert.equal(r.answer,'Hà Nội là thủ đô Việt Nam.');
 });
-test('unrequested save_note from upstream is refused without invoking D1 or hijacking answer',async()=>{
- const messages=[
-  {role:'user',content:'Ghi vào file ghi chú mua đèn'},
-  {role:'assistant',content:'Đã ghi vào file ghi chú.'},
-  {role:'user',content:'Hai cộng ba bằng bao nhiêu?'}
- ];
- let n=0,writes=0;
- let secondBody;
- const r=await runAgent({apiKey:key,messages,onSaveNote:async()=>{writes++;return {ok:true,data:{}}},fetchImpl:async(_,o)=>{
-   n++;
-   if(n===1)return tool('save_note',{content:'mua đèn'});
-   secondBody=JSON.parse(o.body);
-   return say('Bằng năm.');
+test('the removed note feature cannot intercept a new voice request',async()=>{
+ let body;
+ const r=await runAgent({apiKey:key,messages:[{role:'user',content:'Ghi lại rằng ngày mai đi công tác'}],fetchImpl:async(_,opts)=>{
+  body=JSON.parse(opts.body);
+  return say('Hiện chưa có chức năng lưu ghi chú trực tiếp bằng giọng nói.');
  }});
- assert.equal(writes,0,'save callback must never fire on unrelated turn');
- assert.equal(n,2);
- assert.equal(r.answer,'Bằng năm.');
- assert.ok(!r.tools.includes('save_note'));
- assert.equal(secondBody.input.filter(x=>x.type==='function_call').length,1);
- assert.equal(secondBody.input.filter(x=>x.type==='function_call_output').length,1,'no duplicated upstream tool call');
-});
-test('explicit note request remains writeable even after an ordinary question',async()=>{
- const history=[
-  {role:'user',content:'Thời tiết thế nào?'},
-  {role:'assistant',content:'Trời mát.'},
-  {role:'user',content:'Ghi lại cho tao ngày mai kiểm tra dây điện'}
- ];
- let writes=0;
- const r=await runAgent({apiKey:key,messages:history,onSaveNote:async text=>{
-   writes++;
-   assert.equal(text,'ngày mai kiểm tra dây điện');
-   return {ok:true,data:{}};
- },fetchImpl:async(_,o)=>{
-   const b=JSON.parse(o.body);
-   assert.ok(b.tools.some(x=>x.name==='save_note'));
-   return tool('save_note',{content:'ngày mai kiểm tra dây điện'});
- }});
- assert.equal(writes,1);
- assert.equal(r.answer,'Đã ghi vào file ghi chú.');
+ assert.equal(body.tools.some(x=>x.name==='save_note'),false);
+ assert.ok(r.answer.includes('chưa có chức năng'));
 });
