@@ -1,4 +1,4 @@
-name: NGỐ Reminder 10min — guarded production release
+name: NGỐ SETUP Offline QR — guarded production release
 on:
   push:
     branches: [nmh-voice-actions-reminders-p0-20261114]
@@ -10,7 +10,7 @@ concurrency:
 jobs:
   release:
     if: >-
-      startsWith(github.event.head_commit.message, 'release(ngo): reminder 10min 20261114')
+      startsWith(github.event.head_commit.message, 'release(ngo): setup offline qr 20261114')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -40,7 +40,7 @@ jobs:
           with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
           assert j['conclusion']=='success' and j['name']=='NGỐ P0 — persistent isolated iPhone pilot'
           print('NGO_REAL_WORKER_AND_D1_PILOT_GATE=PASS')
-          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43604149856',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-AUDIO-THEME-GATE','Authorization':'Bearer '+os.environ['GH_ACTIONS_TOKEN']})
+          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43610054623',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-AUDIO-THEME-GATE','Authorization':'Bearer '+os.environ['GH_ACTIONS_TOKEN']})
           with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
           assert j['conclusion']=='success' and j['name']=='NGỐ P0 — isolated real Cloudflare Worker and D1 sandbox'
           print('NGO_AUDIO_THEME_REAL_D1_SANDBOX_AND_ROLLBACK_GATE=PASS')
@@ -189,11 +189,11 @@ jobs:
           PY
           deployed=0
           trap - ERR
-          echo 'NGO_REMINDER_10MIN_PRODUCTION_RELEASE=SUCCESS'
+          echo 'NGO_SETUP_OFFLINE_QR_PRODUCTION_RELEASE=SUCCESS'
       - name: Write release summary
         if: success()
         run: |
-          echo "## NGỐ Reminder 10min production deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "## NGỐ SETUP Offline QR production deployed" >> "$GITHUB_STEP_SUMMARY"
           echo "Production: $TARGET" >> "$GITHUB_STEP_SUMMARY"
           echo "Rollback version: $PROD_EXPECTED_VERSION" >> "$GITHUB_STEP_SUMMARY"
           echo "D1 Time Travel bookmark stored in 30-day artifact." >> "$GITHUB_STEP_SUMMARY"
