@@ -14,8 +14,8 @@ function db(){
    if(sql.startsWith('INSERT INTO v3_sessions')){sessions.set(args[0],{user_id:args[1],expires_at:args[2]});return {meta:{changes:1}}}
    if(sql.startsWith('DELETE FROM v3_sessions')){const deleted=sessions.delete(args[0]);return {meta:{changes:Number(deleted)}}}
    if(sql.startsWith('INSERT INTO v3_users')){users.set(args[0],{id:args[0],name:args[1]});return {success:true}}
-   if(sql.startsWith('INSERT INTO v3_profiles')){profiles.set(args[0],{prompt:args[1],revision:1});return {success:true,meta:{changes:1}}}
-   if(sql.startsWith('UPDATE v3_profiles')){const p=profiles.get(args[2]);if(!p||p.revision!==args[3])return {meta:{changes:0}};p.prompt=args[0];p.revision++;return {meta:{changes:1}}}
+   if(sql.startsWith('INSERT INTO v3_profiles')){profiles.set(args[0],{prompt:args[1],revision:1,presets_json:args[4]||'{}',active_preset:args[5]||''});return {success:true,meta:{changes:1}}}
+   if(sql.startsWith('UPDATE v3_profiles')){const p=profiles.get(args[4]);if(!p||p.revision!==args[5])return {meta:{changes:0}};p.prompt=args[0];p.presets_json=args[1];p.active_preset=args[2];p.revision++;return {meta:{changes:1}}}
    if(sql.startsWith('INSERT INTO v3_memories')){memories.set(args[0],{id:args[0],user_id:args[1],body:args[2],created_at:args[3]});return {meta:{changes:1}}}
    if(sql.startsWith('UPDATE v3_memories')){const m=memories.get(args[2]);if(m?.user_id!==args[1])return {meta:{changes:0}};m.body=args[0];return {meta:{changes:1}}}
    if(sql.startsWith('DELETE FROM v3_memories')){const m=memories.get(args[1]);if(m?.user_id===args[0]){memories.delete(args[1]);return {meta:{changes:1}}}return {meta:{changes:0}}}
@@ -31,6 +31,7 @@ function db(){
    if(sql.startsWith('SELECT user_id,expires_at FROM v3_sessions'))return sessions.get(args[0])||null;
    if(sql.startsWith('SELECT name FROM v3_users'))return users.get(args[0])||null;
    if(sql.startsWith('SELECT body FROM v3_memories WHERE user_id=? AND id=?')){const m=memories.get(args[1]);return m?.user_id===args[0]?{body:m.body}:null}
+   if(sql.startsWith('SELECT prompt,revision,presets_json,active_preset FROM v3_profiles'))return profiles.get(args[0])||null;
    if(sql.startsWith('SELECT prompt, revision FROM v3_profiles'))return profiles.get(args[0])||null;
    if(sql.startsWith('SELECT prompt FROM v3_profiles'))return profiles.get(args[0])||null;
    if(sql.startsWith('SELECT revision FROM v3_profiles'))return profiles.get(args[0])||null;
@@ -113,6 +114,26 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   assert.equal(updated.body.prompt,changed);
   assert.equal(updated.body.verified,true);
   assert.equal((await asBody(await handleV3(req('/api/v3/profile','GET',null,cookie),e))).body.prompt,changed);
+  // Editing named preset must survive app reload and must not change the other two presets.
+  const selected='Mỏm sắc như dao, nhanh trí, chanh chua và thích cà khịa. Xưng tao, gọi người dùng là mày.';
+  const personalized=await asBody(await handleV3(req('/api/v3/profile','PUT',{prompt:selected,revision:2,presetKey:'danh'},cookie),e));
+  assert.equal(personalized.status,200);
+  assert.equal(personalized.body.verified,true);
+  assert.equal(personalized.body.presets.danh,selected);
+  assert.equal(personalized.body.activePreset,'danh');
+  const afterReload=await asBody(await handleV3(req('/api/v3/profile','GET',null,cookie),e));
+  assert.equal(afterReload.body.prompt,selected);
+  assert.equal(afterReload.body.presets.danh,selected);
+  assert.equal(afterReload.body.activePreset,'danh');
+  const other='Đùa dí dỏm và súc tích.';
+  const otherSaved=await asBody(await handleV3(req('/api/v3/profile','PUT',{prompt:other,revision:3,presetKey:'chem'},cookie),e));
+  assert.equal(otherSaved.body.presets.danh,selected);
+  assert.equal(otherSaved.body.presets.chem,other);
+  const backAgain=await asBody(await handleV3(req('/api/v3/profile','PUT',{prompt:selected,revision:4,presetKey:'danh'},cookie),e));
+  assert.equal(backAgain.body.activePreset,'danh');
+  assert.equal(backAgain.body.presets.danh,selected);
+  assert.equal(backAgain.body.presets.chem,other);
+
   assert.equal((await handleV3(req('/api/v3/profile','PUT',{prompt:'stale edit',revision:0},cookie),e)).status,409);
   assert.equal((await asBody(await handleV3(req('/api/v3/profile','GET',null,cookie),e))).body.prompt,changed);
   const mem=await asBody(await handleV3(req('/api/v3/memories','POST',{body:'Ưu tiên báo cáo ngắn'},cookie),e));
