@@ -235,7 +235,7 @@ test('a Vietnamese personal fact is a memory, never a reminder; Google session s
  assert.equal(saved.ok,true,JSON.stringify(saved));
  assert.equal(saved.status,'verified');
  const m=sqlite.prepare('SELECT user_id,body FROM v3_memories').all();
- assert.deepEqual(m,[{user_id:subject,body:'Mẹ của Minh mèo tên là Thanh Vịt'}]);
+ assert.deepEqual(m.map(x=>({user_id:x.user_id,body:x.body})),[{user_id:subject,body:'Mẹ của Minh mèo tên là Thanh Vịt'}]);
  assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM nmh_reminders').get().n,0);
  const forged=await action.execute('save_memory',{body:'Thông tin không được yêu cầu',utterance_quote:'đây không phải lời nói người dùng'});
  assert.equal(forged.ok,false);
