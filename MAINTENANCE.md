@@ -1,5 +1,22 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## HIỆN HÀNH 14/11/2026 — SỬA LƯU PROMPT MỚI VÀ SỬA PROMPT
+
+- **Worker production chính:** `nmh-voice-gpt-test` — https://nmh-voice-gpt-test.magical-budget.workers.dev/ ; **version `c35801d0-a840-4d4c-adc1-155c6070489a`**. Mốc rollback code **`c1755bd1-5e2a-4af8-b542-d4557446cef4`**.
+- **Triệu chứng:** người dùng phản ánh bấm LƯU PROMPT trong TÍNH CÁCH — PROMPT không lưu được nội dung mới hoặc sửa. Ảnh hiển thị textarea và nút nhưng không cung cấp HTTP/D1 log, vì vậy nguyên nhân cụ thể của lần lỗi cá nhân chưa xác định độc lập.
+- **Lỗ hổng đã xác minh trong source cũ:** phản hồi lưu chỉ dựa vào PUT 200, không kiểm D1 readback; thông báo nằm xa nút ở cuối khu setup; hàm refresh có thể ghi đè nội dung đang nhập. Revision conflict 409 không được hướng dẫn ngay tại chỗ.
+- **Khắc phục:** backend D1 INSERT/UPDATE owner-scoped theo revision, đọc lại đúng chuỗi Prompt và revision trước khi phát receipt `ok:true,verified:true`; trả 409 nếu đã bị sửa ở thiết bị khác, 503 nếu không xác minh được. Giao diện thêm status dưới nút LƯU PROMPT, hiển thị ĐANG LƯU / ĐÃ LƯU VÀ ĐỌC LẠI THÀNH CÔNG / CHƯA LƯU ĐƯỢC; giữ bản nháp khi lỗi hoặc refresh, chặn bấm trùng, kiểm lại server lần hai trước khi báo đạt.
+- **Kiểm thử:** 114/114 bài PASS [CI #43612304741](https://github.com/hvnm1206/TikTak-Service/actions/runs/43612304741). Cloudflare Worker+D1 **thật, tách biệt** kiểm create/edit/GET/readback/409 và rollback exact version, cleanup PASS [sandbox #43612304708](https://github.com/hvnm1206/TikTak-Service/actions/runs/43612304708). [Release production #43612444869](https://github.com/hvnm1206/TikTak-Service/actions/runs/43612444869) SUCCESS, có D1 Time Travel bookmark artifact.
+- **Guard độc lập sau deploy:** GET URL Ngố chính HTTP 200, xác minh các marker status/nút save/đọc lại cùng SpeechRecognition và QR vẫn còn trong HTML.
+- **Chưa nghiệm thu:** chưa kiểm trực tiếp một lượt save→refresh→hỏi lại trong phiên Google cá nhân trên iPhone của người dùng. Không tự nhận đã xác minh dữ liệu thật của người dùng; không chỉnh dữ liệu production của người dùng.
+- **Hướng dẫn:** SETUP → chỉnh Prompt → LƯU PROMPT → nhìn status ngay dưới nút. Chỉ coi đã lưu khi thấy **ĐÃ LƯU VÀ ĐỌC LẠI THÀNH CÔNG**. Nếu báo 409, nội dung đang gõ vẫn giữ, kiểm tra thay đổi từ thiết bị khác rồi chọn lưu lại.
+- **Nhật ký kỹ thuật:** https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-actions-reminders-p0-20261114/voice-deploy/NGO_PROMPT_SAVE_FIX_20261114.md
+
+**Những mục version bên dưới chỉ là lịch sử**, không dùng làm baseline phát hành. Không sửa Ngáo, mic, Marin, GPT, D1 schema, Memory hoặc nhắc việc trong lần fix này.
+
+---
+
+
 ## TRẠNG THÁI CHÍNH THỨC — QR MỞ APP TRONG SETUP (14/11/2026)
 
 - **App Ngố chính:** https://nmh-voice-gpt-test.magical-budget.workers.dev/
