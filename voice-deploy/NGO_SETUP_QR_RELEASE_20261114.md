@@ -19,3 +19,13 @@ Hiển thị mã QR quét bằng camera trên điện thoại trong tab SETUP; U
 
 ## Bàn giao
 Cập nhật BẢO TRÌ và START_HERE_NEXT_CHAT sau khi có run IDs, version production và rollback thực, không dùng tên phiên bản giả định.
+
+## Bằng chứng phát hành cuối (14/11/2026)
+- Đã scan độc lập ma trận QR bằng OpenCV từ hình ảnh gốc: nội dung chính xác `https://nmh-voice-gpt-test.magical-budget.workers.dev/` (không kèm dữ liệu cá nhân).
+- CI kiểm tra mã hiện tại: **114/114 PASS** (74 core + 40 voice/reminder/theme/QR) — https://github.com/hvnm1206/TikTak-Service/actions/runs/43610054668
+- Cloudflare sandbox thực với D1, rollback đúng version và dọn tài nguyên: **PASS** — https://github.com/hvnm1206/TikTak-Service/actions/runs/43610054623
+- Production release có Guard, mốc D1 Time Travel, rollback tự động: **PASS** — https://github.com/hvnm1206/TikTak-Service/actions/runs/43610159478
+- Cloudflare Worker `nmh-voice-gpt-test` new production version: **`c1755bd1-5e2a-4af8-b542-d4557446cef4`**, rollback code version **`4f2c3cd2-e814-41f1-87da-85dc6e371079`**.
+- Guarded Operator GET chính xác production root URL: **HTTP 200**, có `ngoQrShare`, `ngoAppQrCode`, `ngoAppQrLink`, `ngoAppQrCopy`, URL chính xác, giọng nói `SpeechRecognition` và `audioCtx` vẫn hiện diện; không tải QR từ bên thứ ba.
+- **Chưa nghiệm thu quét mã trực tiếp bằng camera iPhone của người dùng**. SVG/ma trận đã được giải mã độc lập; trải nghiệm Safari và camera cần kiểm chứng trên thiết bị.
+- Không sửa mã âm thanh, D1, API key, nghiệp vụ hay nhắc việc trong lần phát hành này.
