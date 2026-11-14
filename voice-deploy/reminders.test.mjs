@@ -241,6 +241,11 @@ test('a Vietnamese personal fact is a memory, never a reminder; Google session s
  assert.equal(forged.ok,false);
  assert.equal(forged.errorCode,'TURN_MISMATCH');
  assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM v3_memories').get().n,1);
+ const noLogin=buildActionRuntime({request:new Request('https://ngo.example/api/chat'),env,utterance,requestId:'mem-no-login'});
+ const denied=await noLogin.execute('save_memory',{body:'Không được lưu',utterance_quote:'mẹ của Minh mèo tên là Thanh Vịt'});
+ assert.equal(denied.ok,false);
+ assert.equal(denied.errorCode,'AUTH');
+ assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM v3_memories').get().n,1);
 });
 test('natural GPT memory tool is returned as verified storage, never an invalid timed reminder',async()=>{
  let instructions='';
