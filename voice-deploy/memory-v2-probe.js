@@ -1,6 +1,7 @@
 // Disposable sandbox-only integration probe. NEVER imported by production worker.js.
 // Must be deployed under a separate name with a fresh secret and removed after test.
 import {runMemoryV2} from './memory-v2.js';
+import {handleVoiceNote,handleVoiceMemory} from './v3-backend.js';
 const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','cache-control':'no-store'}});
 export default {
  async fetch(req,env){
@@ -45,6 +46,23 @@ export default {
    if(shadow.status!=='shadow')throw Error('shadow mode failed');
    if((await db.prepare('SELECT id,body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 100').bind(sub).all()).results.length)throw Error('shadow wrote memory');
    result.steps.push('shadow-no-write');
+   // Synthetic authenticated Google session on sandbox, no real user identity.
+   const raw=btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+   const hashed=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw)))).map(x=>x.toString(16).padStart(2,'0')).join('');
+   await db.prepare('INSERT INTO v3_sessions (token_hash,user_id,expires_at,created_at) VALUES (?,?,?,?)').bind(hashed,sub,Date.now()+90000,now).run();
+   const authRequest=new Request('https://nmh-memory-v2-native-probe-20261114.magical-budget.workers.dev/api/chat',{headers:{cookie:'__Host-nmhv3='+raw}});
+   const note1=await handleVoiceNote(authRequest,{...env,NMH_V3_GOOGLE_CLIENT_ID:'1234567890-probe.apps.googleusercontent.com'},'Ghi vào file ghi chú kiểm tra máy bơm thử nghiệm');
+   if(!note1?.saved)throw Error('voice-note first write failed: '+note1?.answer);
+   const note2=await handleVoiceNote(authRequest,{...env,NMH_V3_GOOGLE_CLIENT_ID:'1234567890-probe.apps.googleusercontent.com'},'Ghi vào file ghi chú kiểm tra van an toàn thử nghiệm');
+   if(!note2?.saved)throw Error('voice-note append failed: '+note2?.answer);
+   const files=await db.prepare("SELECT id,raw_text,segment_count FROM v3_documents WHERE user_id=? AND name='GHI_CHU.md'").bind(sub).all();
+   if(files.results.length!==1||files.results[0].segment_count!==2||!files.results[0].raw_text.includes('kiểm tra van an toàn'))throw Error('note file persistence invalid');
+   result.steps.push('voice-note-create-append-readback');
+   const remember=await handleVoiceMemory(authRequest,{...env,NMH_V3_GOOGLE_CLIENT_ID:'1234567890-probe.apps.googleusercontent.com'},'Ghi lại con mèo của tao tên Tép');
+   if(!remember?.saved||!remember.answer.includes('Đã lưu'))throw Error('explicit remember failed: '+remember?.answer);
+   const remembered=await db.prepare('SELECT body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 1').bind(sub).first();
+   if(remembered?.body!=='con mèo của tao tên Tép')throw Error('voice memory readback mismatch');
+   result.steps.push('voice-memory-explicit-save-readback');
    result.ok=true;
   }catch(e){result.error=String(e?.message||e).slice(0,200)}
   finally{
@@ -52,6 +70,9 @@ export default {
     for(const user of [sub,other]){
      await db.prepare('DELETE FROM v3_memory_v2_turns WHERE user_id=?').bind(user).run();
      await db.prepare('DELETE FROM v3_memory_v2_preferences WHERE user_id=?').bind(user).run();
+     await db.prepare('DELETE FROM v3_chunks WHERE user_id=?').bind(user).run();
+     await db.prepare('DELETE FROM v3_documents WHERE user_id=?').bind(user).run();
+     await db.prepare('DELETE FROM v3_sessions WHERE user_id=?').bind(user).run();
      await db.prepare('DELETE FROM v3_memories WHERE user_id=?').bind(user).run();
      await db.prepare('DELETE FROM v3_users WHERE id=?').bind(user).run();
     }
