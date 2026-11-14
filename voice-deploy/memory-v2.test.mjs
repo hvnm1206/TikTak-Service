@@ -69,14 +69,15 @@ test('allow durable fact with verbatim quote and reject invention, transient and
 });
 test('delete cannot be inferred by model, needs explicit user forget cue and known id',()=>{
  assert.equal(validateProposal({ops:[del(id1,'chó tên Mít')]},old,'Tao có chó tên Mít').accepted.length,0);
- assert.equal(validateProposal({ops:[del(id1,'Quên con chó')]},old,'Quên con chó tên Mít đi').accepted.length,1);
- assert.equal(validateProposal({ops:[del(id2,'Quên con chó')]},old,'Quên con chó tên Mít đi').accepted.length,0,'wrong memory ID must not be deleted');
- assert.equal(validateProposal({ops:[del('33333333-3333-4333-8333-333333333333','Quên con chó')]},old,'Quên con chó tên Mít đi').accepted.length,0);
+ assert.equal(validateProposal({ops:[del(id1,'Quên con chó tên Mít')]},old,'Quên con chó tên Mít đi').accepted.length,1);
+ assert.equal(validateProposal({ops:[del(id2,'Quên con chó tên Mít')]},old,'Quên con chó tên Mít đi').accepted.length,0,'wrong memory ID must not be deleted');
+ assert.equal(validateProposal({ops:[del('33333333-3333-4333-8333-333333333333','Quên con chó tên Mít')]},old,'Quên con chó tên Mít đi').accepted.length,0);
 });
 test('update requires explicit correction, preserves immutable original until commit',()=>{
  assert.equal(validateProposal({ops:[mod(id1,'Người dùng nuôi chó tên Bông','chó tên Bông')]},old,'Con chó tên Bông').accepted.length,0);
- const r=validateProposal({ops:[mod(id1,'Người dùng nuôi chó tên Bông','Từ nay chó tên Bông')]},old,'Từ nay chó tên Bông');
+ const r=validateProposal({ops:[mod(id1,'Người dùng nuôi chó tên Bông','Từ nay chó Mít đổi thành Bông')]},old,'Từ nay chó Mít đổi thành Bông');
  assert.equal(r.accepted[0].oldBody,'Người dùng nuôi chó tên Mít');
+ assert.equal(validateProposal({ops:[mod(id1,'Người dùng nuôi chó tên Bông','Từ nay chó tên Bông')]},old,'Từ nay chó tên Bông').accepted.length,0,'ambiguous correction cannot auto-overwrite');
 });
 test('analysis uses a dedicated JSON-only non-stored model call, not web_search or voice tools',async()=>{
  let options;
