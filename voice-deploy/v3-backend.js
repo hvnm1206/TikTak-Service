@@ -115,6 +115,58 @@ export function memoryIntent(question){
  if(erase&&erase[1].trim().length>=2)return {action:'erase',query:erase[1].trim()};
  return null;
 }
+
+// A persistent TXT/Markdown document in the EXISTING D1 file store.
+// Only an explicit voice instruction may write. Ordinary conversations never auto-save.
+const NOTE_FILE='GHI_CHU.md';
+export function noteIntent(question){
+ const q=String(question||'').trim();
+ const save=q.match(/^(?:hãy\s+|mày\s+|bạn\s+|ngố\s+)?(?:ghi(?:\s+lại)?(?:\s+giúp\s+(?:tao|tôi|mình))?\s+(?:vào|trong)\s+(?:(?:file|tệp)\s+)?ghi\s+chú|thêm\s+(?:vào|trong)\s+(?:(?:file|tệp)\s+)?ghi\s+chú|ghi\s+chú\s+(?:lại\s+)?(?:rằng|là|:))\s*[:：,]?\s*(.+)$/isu);
+ if(save)return {action:'append',body:save[1].trim()};
+ if(/^(?:(?:hãy|mày|bạn|ngố)\s+)?(?:đọc|xem|mở)\s+(?:(?:file|tệp)\s+)?ghi\s+chú(?:\s+(?:của\s+(?:tao|tôi|mình)))?[.!?]?$/isu.test(q))return {action:'read'};
+ return null;
+}
+export async function handleVoiceNote(req,env,question){
+ const intent=noteIntent(question);
+ if(!intent)return null;
+ if(!productionReady(env))return {answer:'Chưa kết nối được kho ghi chú. Không lưu.',sources:[],tools:[],model:'local-note'};
+ const {sub,error}=await ensureAuth(req,env);
+ if(error)return {answer:'Cần đăng nhập Google trong SETUP để ghi vào file ghi chú. Chưa lưu.',sources:[],tools:[],model:'local-note'};
+ try{
+  if(intent.action==='append'&&(intent.body.length<2||intent.body.length>500))
+   return {answer:'Nội dung ghi chú phải từ 2 đến 500 ký tự. Chưa lưu.',sources:[],tools:[],model:'local-note'};
+  const db=env.NMH_DB;
+  let doc=await db.prepare('SELECT id,raw_text,segment_count FROM v3_documents WHERE user_id=? AND name=? ORDER BY created_at ASC LIMIT 1').bind(sub,NOTE_FILE).first();
+  if(intent.action==='read'){
+   if(!doc?.raw_text)return {answer:'File ghi chú đang trống.',sources:[],tools:[],model:'local-note'};
+   const entries=String(doc.raw_text).trim().split('\n').filter(Boolean);
+   return {answer:'Các ghi chú gần đây: '+entries.slice(-5).join('. ').slice(0,1000),sources:[],tools:[],model:'local-note'};
+  }
+  if(!doc){
+   const text=intent.body;
+   const uid=id(),now=Date.now();
+   await db.batch([
+    db.prepare('INSERT INTO v3_documents (id,user_id,name,mime,segment_count,created_at,raw_text) VALUES (?,?,?,?,?,?,?)').bind(uid,sub,NOTE_FILE,'text/markdown',1,now,text),
+    db.prepare('INSERT INTO v3_chunks (doc_id,user_id,segment,body) VALUES (?,?,?,?)').bind(uid,sub,1,text)
+   ]);
+  }else{
+   const prev=String(doc.raw_text||''),part=intent.body;
+   const segments=Number(doc.segment_count||0);
+   if(segments>=100||prev.length+part.length+1>60000)
+    return {answer:'File ghi chú đã đạt giới hạn. Chưa lưu thêm; hãy quản lý file trong KHO TÀI LIỆU.',sources:[],tools:[],model:'local-note'};
+   // D1 batch is transactional: duplicate segment prevents a concurrent stale append.
+   const results=await db.batch([
+    db.prepare('UPDATE v3_documents SET raw_text=?,segment_count=? WHERE id=? AND user_id=? AND segment_count=?').bind(prev+(prev?'\n':'')+part,segments+1,doc.id,sub,segments),
+    db.prepare('INSERT INTO v3_chunks (doc_id,user_id,segment,body) VALUES (?,?,?,?)').bind(doc.id,sub,segments+1,part)
+   ]);
+   if(Number(results?.[0]?.meta?.changes||0)!==1)throw Error('Concurrent note update not applied');
+  }
+  return {answer:'Đã ghi vào file ghi chú.',sources:[],tools:['save_note'],model:'local-note'};
+ }catch{
+  return {answer:'Ghi chú chưa lưu thành công. Không xác nhận đã lưu.',sources:[],tools:[],model:'local-note'};
+ }
+}
+
 export async function handleVoiceMemory(req,env,question){
  const intent=memoryIntent(question);if(!intent)return null;
  if(!productionReady(env))return {answer:'Bộ nhớ đồng bộ chưa được cấu hình. Chưa lưu thông tin nào.',sources:[],tools:[],model:'local-memory',usage:{input_tokens:0,output_tokens:0}};
