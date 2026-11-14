@@ -163,7 +163,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
       toolCalls.push(c.name);
       if(c.name==="save_note"){
         const receipt=data.data?.receipt;
-        const answer=data.ok?(receipt?.file==="GHI_CHU.md"&&Number.isInteger(receipt.segment)?"Đã ghi và kiểm tra trong GHI_CHU.md, mục "+receipt.segment+".":"Đã lưu ghi chú.") :str(data.data?.error||"Không lưu được ghi chú. Chưa lưu.",180);
+        const answer=data.ok?(receipt?.file==="GHI_CHU.md"&&Number.isInteger(receipt.segment)?"Đã ghi và kiểm tra trong GHI_CHU.md, mục "+receipt.segment+".":"Đã ghi vào file ghi chú.") :str(data.data?.error||"Không lưu được ghi chú. Chưa lưu.",180);
         return {answer,sources:[],documentReferences:[],tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedWebSearchUsd:webSearchCalls*WEB_SEARCH_CALL_USD,estimatedModelUsd:Math.round(((usage.input_tokens-usage.cached_input_tokens)*0.10+usage.cached_input_tokens*0.01+usage.output_tokens*0.50)/1e6*1e8)/1e8,estimateBasis:"standard_short_context_excludes_other_fees",searchProvider:webSearchCalls?"openai_web_search":"public_sources_only"};
       }
       for(const item of data.sources||[]){const url=safeURL(item.url);if(url)allSources.push({title:str(item.title,120),url})}
