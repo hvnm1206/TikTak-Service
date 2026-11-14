@@ -7,7 +7,7 @@ permissions:
 jobs:
   pilot-release:
     if: >-
-      startsWith(github.event.head_commit.message, 'release(voice): verified voice-write repair 20261114')
+      startsWith(github.event.head_commit.message, 'release(voice): synchronous-write-confirmation 20261114')
     runs-on: ubuntu-latest
     timeout-minutes: 22
     concurrency:
@@ -56,7 +56,7 @@ jobs:
           items=call(root+'/workers/scripts/nmh-voice-gpt-test/deployments',os.environ['CLOUDFLARE_API_TOKEN'])['deployments']
           assert items and len(items[0].get('versions',[]))==1 and items[0]['versions'][0].get('percentage')==100
           version=items[0]['versions'][0]['version_id']
-          assert version=='76688639-c6be-483c-920b-367e81a9a51d','Production drift; deny release'
+          assert version=='7aeddff7-ccf8-4b70-ae83-b27a67a98743','Production drift; deny release'
           bookmark=call(root+'/d1/database/'+os.environ['PROD_D1_ID']+'/time_travel/bookmark',os.environ['CLOUDFLARE_D1_TOKEN']).get('bookmark')
           assert isinstance(bookmark,str) and len(bookmark)>20,'No D1 restore bookmark: refuse release'
           qurl=root+'/d1/database/'+os.environ['PROD_D1_ID']+'/query'
@@ -135,6 +135,12 @@ jobs:
             fi
           done
           test "$ready" = 1
+          python3 - <<'PY'
+          import json
+          h=json.load(open('/tmp/pilot-health.json'))
+          assert h.get('writeVersion')=='voice-write-synchronous-ack-v1','Voice writer backend not deployed'
+          print('WRITE_VERSION=voice-write-synchronous-ack-v1')
+          PY
           curl --fail --silent --show-error --max-time 20 "$TARGET/" -o /tmp/pilot-ui.html
           for mark in 'id="start"' 'id="resume"' 'id="avatar"' 'id="v3Prompt"' 'id="v3Memories"' 'id="v3Documents"' 'id="v3MemoryV2Section"' 'id="v3MemoryV2Toggle"' 'getByteTimeDomainData' 'ttsPrefetchCtl' 'webUsd' 'Marin';do
             grep -q "$mark" /tmp/pilot-ui.html || { echo "::error::Missing UI marker $mark";false; }
