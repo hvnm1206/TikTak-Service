@@ -145,7 +145,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     if(!calls.length){
       // A failed write receipt cannot be overridden by an unverified model sentence.
       // This is transaction safety, not phrase-based language classification.
-      if(lastActionFailure)return {answer:lastActionFailure.answer||"Thao tác chưa hoàn tất.",actionStatus:'failed',actionOk:false,actionErrorCode:lastActionFailure.errorCode||'ACTION_FAILED',sources:[],documentReferences:[],tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedWebSearchUsd:webSearchCalls*WEB_SEARCH_CALL_USD,estimatedModelUsd:0,searchProvider:webSearchCalls?'openai_web_search':'public_sources_only'};
+      if(lastActionFailure&&lastActionFailure.errorCode!=='TURN_MISMATCH')return {answer:lastActionFailure.answer||"Thao tác chưa hoàn tất.",actionStatus:'failed',actionOk:false,actionErrorCode:lastActionFailure.errorCode||'ACTION_FAILED',sources:[],documentReferences:[],tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedWebSearchUsd:webSearchCalls*WEB_SEARCH_CALL_USD,estimatedModelUsd:0,searchProvider:webSearchCalls?'openai_web_search':'public_sources_only'};
       const answer=cleanVoiceAnswer(extractText(response.output));
       if(!answer)throw Error("AI trả câu rỗng");
       const known=new Set(),sources=allSources.filter(x=>{if(!x?.url||known.has(x.url))return false;known.add(x.url);return true}).slice(0,8);
