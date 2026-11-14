@@ -1,0 +1,149 @@
+name: NMH Voice Memory V2 — protected one-time production pilot
+on:
+  push:
+    branches: [nmh-voice-memory-v2-stage-20261114]
+permissions:
+  contents: read
+jobs:
+  pilot-release:
+    if: >-
+      startsWith(github.event.head_commit.message, 'release(memory-v2): authorized production pilot')
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    concurrency:
+      group: nmh-voice-gpt-production-deploy
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CLOUDFLARE_D1_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+      GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
+      PROD_D1_ID: '3ce295cb-a84d-4a50-abee-d14fdd903514'
+      TARGET: 'https://nmh-voice-gpt-test.magical-budget.workers.dev'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Test exact source, legacy Voice and new Memory code
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in worker.js agent-v2.js v3-backend.js v3-ui.js memory-v2.js;do node --check "voice-deploy/$f";done
+          node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs voice-deploy/v3-backend.test.mjs voice-deploy/memory-v2.test.mjs voice-deploy/memory-v2.preference.test.mjs
+          python3 - <<'PY'
+          import sqlite3,pathlib
+          db=sqlite3.connect(':memory:')
+          for f in ('0001_v3.sql','0002_v3_d1_only.sql','0003_memory_v2.sql'):
+           db.executescript((pathlib.Path('voice-deploy/migrations')/f).read_text())
+          assert len(db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('v3_memory_v2_preferences','v3_memory_v2_turns')").fetchall())==2
+          print('PILOT_SCHEMA_SQLITE=PASS')
+          PY
+      - name: Lock production version and obtain D1 preflight Time Travel bookmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_D1_TOKEN"
+          python3 - <<'PY'
+          import os,json,urllib.request,re
+          account=os.environ['CLOUDFLARE_ACCOUNT_ID']
+          root='https://api.cloudflare.com/client/v4/accounts/'+account
+          def call(url,token,body=None):
+           h={'Authorization':'Bearer '+token,'User-Agent':'NMH-Memory-Pilot/1','Content-Type':'application/json'}
+           request=urllib.request.Request(url,headers=h,data=json.dumps(body).encode() if body is not None else None,method='POST' if body is not None else 'GET')
+           with urllib.request.urlopen(request,timeout=30) as r:d=json.load(r)
+           assert d.get('success'), 'Cloudflare API unsuccessful'
+           return d['result']
+          items=call(root+'/workers/scripts/nmh-voice-gpt-test/deployments',os.environ['CLOUDFLARE_API_TOKEN'])['deployments']
+          assert items and len(items[0].get('versions',[]))==1 and items[0]['versions'][0].get('percentage')==100
+          version=items[0]['versions'][0]['version_id']
+          assert version=='51bd4dde-0d73-455c-b1ed-6bac8965de66','Production drift; deny release'
+          bookmark=call(root+'/d1/database/'+os.environ['PROD_D1_ID']+'/time_travel/bookmark',os.environ['CLOUDFLARE_D1_TOKEN']).get('bookmark')
+          assert isinstance(bookmark,str) and len(bookmark)>20,'No D1 restore bookmark: refuse release'
+          qurl=root+'/d1/database/'+os.environ['PROD_D1_ID']+'/query'
+          def query(sql):
+           rows=call(qurl,os.environ['CLOUDFLARE_D1_TOKEN'],{'sql':sql,'params':[]})
+           assert len(rows)==1 and rows[0]['success']
+           return rows[0]['results']
+          originals=['v3_users','v3_sessions','v3_profiles','v3_memories','v3_documents','v3_chunks']
+          for t in originals:
+           assert len(query("SELECT name FROM sqlite_master WHERE type='table' AND name='"+t+"'"))==1,'Missing prior table: '+t
+          exists=query("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('v3_memory_v2_preferences','v3_memory_v2_turns')")
+          assert len(exists) in (0,2),'Partial V2 migration detected; refuse'
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+           f.write('NMH_STABLE_VERSION='+version+'\n')
+           f.write('NMH_PRODUCTION_BOOKMARK='+bookmark+'\n')
+           f.write('NMH_V2_TABLE_COUNT='+str(len(exists))+'\n')
+          print('PREPILOT_CLOUDFLARE_VERSION='+version)
+          print('PREPILOT_D1_BOOKMARK='+bookmark)
+          print('PREPILOT_EXISTING_TABLES=PASS')
+          print('PREPILOT_D1_V2_TABLES='+str(len(exists)))
+          PY
+          curl --fail --silent --show-error --max-time 20 "$TARGET/health" -o /tmp/pre-health.json
+          curl --fail --silent --show-error --max-time 20 "$TARGET/api/v3/config" -o /tmp/pre-v3.json
+          python3 - <<'PY'
+          import json
+          h=json.load(open('/tmp/pre-health.json'));c=json.load(open('/tmp/pre-v3.json'))
+          assert h.get('ok') and h.get('voice')=='browser-stt+marin-tts' and h.get('v3Version')=='d1-only-google-v3'
+          assert c.get('ready') and c.get('storage')=='Cloudflare D1'
+          print('PREPILOT_RUNTIME=PASS')
+          PY
+      - name: Apply additive Memory V2 D1 tables, preserve old data
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,re
+          assert re.fullmatch('[0-9]+-[a-z0-9-]+[.]apps[.]googleusercontent[.]com',os.environ['GOOGLE_CLIENT'])
+          cfg={'name':'nmh-voice-gpt-test','main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'d1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':os.environ['PROD_D1_ID']}],'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT'],'NMH_MEMORY_V2_MODE':'active'}}
+          assert cfg['d1_databases'][0]['database_id']=='3ce295cb-a84d-4a50-abee-d14fdd903514'
+          with open('voice-deploy/wrangler-memory-v2-prod.generated.jsonc','w') as f:json.dump(cfg,f)
+          PY
+          if [ "$NMH_V2_TABLE_COUNT" = 0 ];then
+            CLOUDFLARE_API_TOKEN="$CLOUDFLARE_D1_TOKEN" npx --yes wrangler@4.102.0 d1 execute nmh-voice-v3 --remote --config voice-deploy/wrangler-memory-v2-prod.generated.jsonc --file voice-deploy/migrations/0003_memory_v2.sql
+          fi
+          python3 - <<'PY'
+          import json,os,urllib.request
+          root='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/d1/database/'+os.environ['PROD_D1_ID']+'/query'
+          headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_D1_TOKEN'],'Content-Type':'application/json'}
+          sql="SELECT name FROM sqlite_master WHERE type='table' AND name IN ('v3_memory_v2_preferences','v3_memory_v2_turns')"
+          request=urllib.request.Request(root,headers=headers,data=json.dumps({'sql':sql,'params':[]}).encode(),method='POST')
+          with urllib.request.urlopen(request,timeout=30) as r:d=json.load(r)
+          assert d['success'] and d['result'][0]['success'] and len(d['result'][0]['results'])==2
+          print('PILOT_ADDITIVE_D1_SCHEMA=PASS')
+          PY
+      - name: Deploy original Worker URL with fail-safe rollback if smoke fails
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rollback(){
+            echo "::error::Pilot smoke failed: try Worker code rollback, leave user data untouched"
+            npx --yes wrangler@4.102.0 rollback "$NMH_STABLE_VERSION" --name nmh-voice-gpt-test --message "Automatic rollback Memory V2 pilot" --config voice-deploy/wrangler-memory-v2-prod.generated.jsonc || echo "::error::AUTOMATIC_WORKER_ROLLBACK_FAILED"
+          }
+          trap rollback ERR
+          npx --yes wrangler@4.102.0 deploy --config voice-deploy/wrangler-memory-v2-prod.generated.jsonc
+          ready=0
+          for i in 1 2 3 4 5 6 7 8;do
+            sleep 4
+            if curl --fail --silent --show-error --max-time 20 "$TARGET/health" -o /tmp/pilot-health.json && curl --fail --silent --show-error --max-time 20 "$TARGET/api/v3/config" -o /tmp/pilot-v3.json;then
+              if python3 - <<'PY'
+          import json
+          h=json.load(open('/tmp/pilot-health.json'));v=json.load(open('/tmp/pilot-v3.json'))
+          assert h.get('ok') and h.get('voice')=='browser-stt+marin-tts' and h.get('v3Version')=='d1-only-google-v3'
+          assert v.get('ready') and v.get('storage')=='Cloudflare D1'
+          PY
+              then ready=1;break;fi
+            fi
+          done
+          test "$ready" = 1
+          curl --fail --silent --show-error --max-time 20 "$TARGET/" -o /tmp/pilot-ui.html
+          for mark in 'id="start"' 'id="resume"' 'id="avatar"' 'id="v3Prompt"' 'id="v3Memories"' 'id="v3Documents"' 'id="v3MemoryV2Section"' 'id="v3MemoryV2Toggle"' 'getByteTimeDomainData' 'ttsPrefetchCtl' 'webUsd' 'Marin';do
+            grep -q "$mark" /tmp/pilot-ui.html || { echo "::error::Missing UI marker $mark";false; }
+          done
+          test "$(curl --silent --show-error --max-time 15 -o /tmp/pilot-auth.json -w '%{http_code}' "$TARGET/api/v3/memory-v2-preference")" = 401
+          test "$(curl --silent --show-error --max-time 15 -o /tmp/pilot-badchat -w '%{http_code}' "$TARGET/api/chat" -X POST -H "Origin: $TARGET" -H 'Content-Type: application/json' --data '{"apiKey":"invalid","messages":[{"role":"user","content":"hi"}]}')" = 400
+          test "$(curl --silent --show-error --max-time 15 -o /tmp/pilot-badtts -w '%{http_code}' "$TARGET/api/tts" -X POST -H "Origin: $TARGET" -H 'Content-Type: application/json' --data '{"apiKey":"invalid","text":"hi"}')" = 400
+          curl --fail --silent --show-error --max-time 20 "$TARGET/api/docs/maintenance" -o /tmp/pilot-maintenance.md
+          grep -q '## A. HIỆN TRẠNG ĐANG CHẠY' /tmp/pilot-maintenance.md
+          echo 'MEMORY_V2_PRODUCTION_SMOKE=VOICE_MARIN_SEARCH_OAUTH_D1_UI_SECURITY_PASS'
+          echo 'MEMORY_V2_PRODUCTION_PILOT=DEPLOYED_ACTIVE_BUT_ACCOUNT_OPT_IN_REQUIRED'
+          trap - ERR
