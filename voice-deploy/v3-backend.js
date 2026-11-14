@@ -211,11 +211,23 @@ export async function handleV3(req,env){
   if(method==='PUT'){
    let body;try{body=await readJson(req,4500)}catch(e){return fail(e.message)}
    if(typeof body.prompt!=='string'||body.prompt.length>2500||!Number.isInteger(body.revision)||body.revision<0)return fail('Prompt hoặc phiên bản không hợp lệ');
-   const row=await env.NMH_DB.prepare('SELECT revision FROM v3_profiles WHERE user_id=?').bind(sub).first();
-   if((row?.revision||0)!==body.revision)return fail('Dữ liệu đã thay đổi ở thiết bị khác. Tải lại trước khi lưu.',409);
-   if(row){const update=await env.NMH_DB.prepare('UPDATE v3_profiles SET prompt=?,revision=revision+1,updated_at=? WHERE user_id=? AND revision=?').bind(body.prompt,Date.now(),sub,body.revision).run();if(Number(update.meta?.changes||0)!==1)return fail('Dữ liệu đã thay đổi ở thiết bị khác',409)}
-   else {try{await env.NMH_DB.prepare('INSERT INTO v3_profiles (user_id,prompt,revision,updated_at) VALUES (?,?,1,?)').bind(sub,body.prompt,Date.now()).run()}catch{return fail('Dữ liệu đã thay đổi ở thiết bị khác',409)}}
-   return json({ok:true,revision:body.revision+1});
+   try{
+    const row=await env.NMH_DB.prepare('SELECT revision FROM v3_profiles WHERE user_id=?').bind(sub).first();
+    if((row?.revision||0)!==body.revision)return fail('Dữ liệu đã thay đổi ở thiết bị khác. Prompt đang nhập chưa bị xóa; vui lòng kiểm tra trước khi lưu lại.',409);
+    if(row){
+     const updated=await env.NMH_DB.prepare('UPDATE v3_profiles SET prompt=?,revision=revision+1,updated_at=? WHERE user_id=? AND revision=?').bind(body.prompt,Date.now(),sub,body.revision).run();
+     if(Number(updated.meta?.changes||0)!==1)return fail('Prompt đã thay đổi ở thiết bị khác. Nội dung đang nhập được giữ nguyên.',409);
+    }else{
+     try{await env.NMH_DB.prepare('INSERT INTO v3_profiles (user_id,prompt,revision,updated_at) VALUES (?,?,1,?)').bind(sub,body.prompt,Date.now()).run()}
+     catch{return fail('Prompt đã thay đổi ở thiết bị khác. Nội dung đang nhập được giữ nguyên.',409)}
+    }
+    // D1 readback is the sole success receipt, including correct owner and revision.
+    const saved=await env.NMH_DB.prepare('SELECT prompt, revision FROM v3_profiles WHERE user_id=?').bind(sub).first();
+    if(saved?.prompt!==body.prompt||saved?.revision!==body.revision+1)return fail('Chưa xác minh được Prompt đã lưu trên D1. Không thể báo thành công.',503);
+    return json({ok:true,prompt:saved.prompt,revision:saved.revision,verified:true});
+   }catch(e){
+    return fail('Lỗi truy cập kho Prompt. Chưa xác nhận được thao tác lưu.',503);
+   }
   }
  }
  if(path==='/api/v3/memories'){
