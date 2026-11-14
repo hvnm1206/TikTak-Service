@@ -34,7 +34,7 @@ const env=()=>{
 };
 const req=(authenticated=true)=>new Request(origin+'/api/chat',{headers:authenticated?{cookie:'__Host-nmhv3='+raw}:{}});
 test('recognizes explicit natural voice instructions and ignores ordinary discussion',()=>{
- for(const q of ['Ghi vào file ghi chú mua bóng đèn ngày mai','Ghi chú rằng cần gọi anh Nam','Thêm vào ghi chú kiểm tra máy bơm']){
+ for(const q of ['Ghi vào file ghi chú mua bóng đèn ngày mai','Ghi chú rằng cần gọi anh Nam','Thêm vào ghi chú kiểm tra máy bơm','Ngố ghi lại cho tao ngày mai kiểm tra thiết bị','Ngố, ghi lại cho tao ngày mai kiểm tra thiết bị','Ghi lại ngày mai phải gọi Nam','Ghi chú: ngày mai gặp Nam','Lưu vào ghi chú ngày mai đi khám','Ghi chú lại là tuần tới đi công tác']){
   assert.equal(noteIntent(q)?.action,'append',q);
  }
  assert.deepEqual(noteIntent('Đọc file ghi chú'),{action:'read'});
