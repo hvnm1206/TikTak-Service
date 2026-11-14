@@ -218,7 +218,7 @@ test('reminder prompt instructs GPT to understand natural time, not demand dates
   }
  });
  assert.equal(r.actionOk,true);assert.match(r.answer,/Đã đặt nhắc/);
- assert.match(instructions,/không bắt người dùng nói ngày tháng/);
+ assert.match(instructions,/không bắt người dùng nói định dạng máy/);
 });
 
 test('a Vietnamese personal fact is a memory, never a reminder; Google session scoped D1 readback',async()=>{
@@ -264,7 +264,7 @@ test('natural GPT memory tool is returned as verified storage, never an invalid 
   }});
  assert.equal(out.actionOk,true);
  assert.match(out.answer,/Đã ghi nhớ/);
- assert.match(instructions,/KHÔNG phải đặt lời nhắc/);
+ assert.match(instructions,/Phân biệt lưu thông tin dài hạn/);
 });
 test('wrong reminder time routes tool feedback back to GPT to recover as memory',async()=>{
  const memoryMessage='Ghi nhớ rằng mẹ của Minh mèo tên là Thanh Vịt';
