@@ -1,5 +1,15 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## CẬP NHẬT MỚI NHẤT 14/11/2026 — NGỐ P0 ĐÃ DEPLOY BẢN CHÍNH
+- Theo yêu cầu, đã phát hành Ngố P0 vào Worker CHÍNH `nmh-voice-gpt-test`, URL **https://nmh-voice-gpt-test.magical-budget.workers.dev/**; version mới `08e0bbf2-a2e5-4b98-94dc-0cfee882e5b6`.
+- Workflow https://github.com/hvnm1206/TikTak-Service/actions/runs/43578218605 **SUCCESS**: 71 kiểm thử cũ + 17 mới PASS; D1 migration 0004 chỉ bổ sung hai bảng; source deploy trên đúng nhánh `nmh-voice-actions-reminders-p0-20261114`; smoke voice, Marin marker, V3, Google config, status/unauth PASS.
+- Kiểm tra độc lập sau deploy bằng Guard/Operator: /health HTTP 200, /api/v3/config HTTP 200 ready, /api/reminders/capabilities HTTP 200 với `enabled:true`, `foregroundOnly:true`.
+- D1 Time Travel bookmark và Worker baseline đã lưu artifact 30 ngày tại run trên. **Rollback code chính xác**: `fb2bacc5-b26e-4abc-9ee1-78cc222ac221`; cần lưu ý code rollback không tự undo D1 (migration chỉ cộng bảng).
+- `NMH_REMINDERS_MODE=active`, `NMH_MEMORY_V2_MODE=active`. Giữ nguyên URL, micro/SpeechRecognition, Marin chính, Web Search, Google OAuth, V3 và Memory V2. Không chạm Ngáo.
+- **Chưa có bằng chứng UAT giọng nói trên iPhone thực**. Người dùng sẽ thử trên bản chính: đăng nhập Google, API key, nói “2 phút nữa nhắc tao uống thuốc” khi app đang mở, kiểm tra xác nhận lưu và phát Marin đúng hạn. Nếu gặp lỗi thì khóa tính năng/rollback sau khi phân tích lỗi, không tuyên bố nghiệm thu iPhone trước.
+- Mọi dòng “CHƯA DEPLOY production” dưới đây là nhật ký lịch sử **đã được thay thế** bởi bản cập nhật này.
+
+
 ## BỔ SUNG 14/11/2026 — NGỐ P0 PILOT ĐÃ CHẠY CLOUDFARE (KHÔNG PHẢI PRODUCTION)
 - Pilot độc lập: https://nmh-ngo-p0-pilot-20261114.magical-budget.workers.dev/ — Worker + D1 riêng, cờ nhắc việc active CHỈ trong pilot.
 - GitHub Actions bốn gate PASS: https://github.com/hvnm1206/TikTak-Service/actions/runs/43577570928 ; Guarded Operator GET /health PASS, HTTP 200. 71 bài cũ + 17 bài mới PASS. Sandbox rollback phiên bản chính xác PASS trước đó.
