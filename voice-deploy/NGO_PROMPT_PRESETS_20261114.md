@@ -19,3 +19,9 @@
 
 ## Sandbox retry
 - The first isolated run found an **obsolete test assertion** that expected the old five-field response without preset metadata; D1 returned the new correct response. Updated test to validate old fields plus new presets and activePreset. Re-run required before release.
+
+## Kết quả và giới hạn đã kiểm chứng
+- CI source, 74 core + 40 theme/reminder/UI = **114/114 PASS**; sandbox #43613858183 SUCCESS, có marker `NGO_SANDBOX_NAMED_PROMPTS_D1_PERSIST_ACROSS_SWITCHES=PASS` và `NGO_SANDBOX_WORKER_ROLLBACK_EXACT_VERSION=PASS`.
+- Production Guard release #43613990687 **SUCCESS**, D1 schema `presets_json`, `active_preset` được bổ sung (không xóa dữ liệu), Time Travel backup artifact được tạo. Worker version mới **`fcd54e1a-6611-4b13-8748-d73e71f5fdc1`**; rollback code **`c35801d0-a840-4d4c-adc1-155c6070489a`**.
+- Guard/Operator GET app chính HTTP 200, HTML có `savedPresets`, `selectPreset`, `activePreset`, `presetKey:selectedKey`; micro/QR còn hiện diện.
+- **Giới hạn dữ liệu cũ:** Prompt đã lưu trước migration vẫn còn, nhưng vì hệ thống cũ không lưu tên mẫu, không thể tự gắn nó với Đanh Đá nếu không có căn cứ. Người dùng cần gán/lưu một lần cho đúng mẫu nếu muốn cập nhật nút này. Không tự khẳng định đã thử bằng phiên Google/iPhone cá nhân.
