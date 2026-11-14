@@ -1,5 +1,13 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## NGỐ P0 PILOT — CẬP NHẬT 14/11/2026
+- URL iPhone thử nghiệm: https://nmh-ngo-p0-pilot-20261114.magical-budget.workers.dev/ (Worker + D1 hoàn toàn riêng production).
+- Cloudflare thực đã deploy, HTTP health 200 qua Guard/Operator, CI 71+17 PASS và 4 gate pilot PASS: https://github.com/hvnm1206/TikTak-Service/actions/runs/43577570928 .
+- Cờ nhắc việc ACTIVE CHỈ pilot. Production cũ chưa deploy, nguyên version fb2bacc5-b26e-4abc-9ee1-78cc222ac221; Ngáo không đụng.
+- Chưa DONE: cần iPhone thật đăng nhập Google trên pilot, API key cá nhân, nói “2 phút nữa nhắc tao uống thuốc”, xem nhận đúng TTS/nhắc đúng hạn, kiểm tra tab/refresh, lưu bằng chứng trước khi promote production.
+- Báo cáo nguồn: https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-actions-reminders-p0-20261114/voice-deploy/NGO_P0_EXECUTION_REPORT_20261114.md .
+
+
 ## CẬP NHẬT THỰC THI NGỐ P0 — 14/11/2026 (NHÁNH CÁCH LY, CHƯA DEPLOY PRODUCTION)
 
 - Mã mới NGỐ: https://github.com/hvnm1206/TikTak-Service/tree/nmh-voice-actions-reminders-p0-20261114/voice-deploy
