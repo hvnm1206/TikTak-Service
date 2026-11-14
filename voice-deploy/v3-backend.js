@@ -112,7 +112,8 @@ export async function loadV3Context(req,env,question){
 }
 export function voiceNoteIntent(question){
  const text=String(question||'').trim();
- const match=text.match(/^(?:hãy\s+)?(?:ghi|lưu|chép)(?:\s+(?:lại|giúp\s+(?:tôi|tao|anh)|cho\s+(?:tôi|tao|anh)))?\s+(?:(?:vào|trong)\s+)?(?:file|tệp|sổ)\s+(?:ghi\s+chú|note)(?:\s+(?:rằng|nội\s+dung|là))?\s*[:：,]?\s+(.+)$/isu);
+ const match=text.match(/^(?:hãy\s+)?(?:ghi|lưu|chép)(?:\s+(?:lại|giúp\s+(?:tôi|tao|anh)|cho\s+(?:tôi|tao|anh)))?\s+(?:(?:vào|trong)\s+)?(?:file|tệp|sổ)\s+(?:ghi\s+chú|note)(?:\s+(?:rằng|nội\s+dung|là))?\s*[:：,]?\s+(.+)$/isu)
+   ||text.match(/^(?:hãy\s+)?(?:ghi\s+chú|lưu\s+(?:lại\s+)?ghi\s+chú|chép\s+vào\s+ghi\s+chú)(?:\s+(?:rằng|nội\s+dung|là))?\s*[:：,]?\s+(.+)$/isu);
  if(!match)return null;
  const body=match[1].trim();
  return body.length>=2&&body.length<=2200?body:null;
