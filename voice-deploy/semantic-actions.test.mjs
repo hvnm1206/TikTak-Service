@@ -45,6 +45,8 @@ test('single GPT path stores user-requested personal fact without timed reminder
   const result=await response.json();
   assert.equal(result.actionOk,true,JSON.stringify(result));
   assert.equal(result.actionStatus,'verified');
+  for(const key of ['memoryMs','agentMs','serverMs'])assert.ok(Number.isInteger(result.latency[key])&&result.latency[key]>=0,key);
+  assert.ok(!JSON.stringify(result.latency).includes('Lan'),'timing must not contain user text');
   assert.match(result.answer,/Đã ghi nhớ/);
   assert.equal(calls,1,'one GPT call, no separate regex classifier');
   assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM v3_memories').get().n,1);
