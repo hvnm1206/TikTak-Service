@@ -66,7 +66,7 @@ jobs:
           assert deployments and len(deployments[0]['versions'])==1 and deployments[0]['versions'][0]['percentage']==100
           actual=deployments[0]['versions'][0]['version_id']
           print('NGO_PRODUCTION_ACTUAL_VERSION='+actual)
-          assert actual=='fc8ba001-038c-4a18-a0ac-84d3f8fff952','PRODUCTION_VERSION_DRIFT: no release allowed'
+          assert actual=='d0622605-7d01-47ba-a5aa-bbb7e5262ee9','PRODUCTION_VERSION_DRIFT: no release allowed'
           db='3ce295cb-a84d-4a50-abee-d14fdd903514'
           info=call(a+'/d1/database/'+db,os.environ['CLOUDFLARE_D1_TOKEN'])
           assert info.get('name')=='nmh-voice-v3','D1 identity mismatch'
