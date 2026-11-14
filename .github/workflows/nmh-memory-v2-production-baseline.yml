@@ -58,3 +58,5 @@ jobs:
           print('PRODUCTION_ACTIVE_VERSION='+actual)
           print('PRODUCTION_MEMORY_V2_BASELINE_READONLY=PASS')
           PY
+
+# No D1 writes, no Worker deployment, no Ngáo access.
