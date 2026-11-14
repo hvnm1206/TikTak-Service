@@ -13,7 +13,7 @@ const MODEL_V2="gpt-6-luna";
 export default {async fetch(request,env={},ctx={}){
 const u=new URL(request.url);
 if(request.method==="GET"&&u.pathname==="/")return new Response(enhanceV3Page(PAGE,env),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'none'; script-src 'unsafe-inline' https://accounts.google.com/gsi/client; style-src 'unsafe-inline' https://accounts.google.com/gsi/style; connect-src 'self' https://accounts.google.com; frame-src https://accounts.google.com; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'","x-frame-options":"DENY","referrer-policy":"no-referrer"}});
-if(request.method==="GET"&&u.pathname==="/health")return respond({ok:true,app:"NMH Voice GPT V2",voice:"browser-stt+marin-tts",agent:"gpt-6-luna",version:"v2-tts-audioctx",uiVersion:"presence-canvas-v1",v3Version:"d1-only-google-v3"});
+if(request.method==="GET"&&u.pathname==="/health")return respond({ok:true,app:"NMH Voice GPT V2",voice:"browser-stt+marin-tts",agent:"gpt-6-luna",version:"v2-tts-audioctx",uiVersion:"presence-canvas-v1",v3Version:"d1-only-google-v3",writeVersion:"voice-write-synchronous-ack-v1"});
 if(u.pathname.startsWith('/api/v3/'))return handleV3(request,env);
 if(request.method==="GET"&&u.pathname.startsWith("/api/docs/")){
 const names={"handover":"voice-deploy/START_HERE_NEXT_CHAT.md","maintenance":"MAINTENANCE.md"};
