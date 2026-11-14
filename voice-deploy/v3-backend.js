@@ -88,7 +88,17 @@ export async function loadV3Context(req,env,question){
  try{
   const profile=await env.NMH_DB.prepare('SELECT prompt FROM v3_profiles WHERE user_id=?').bind(sub).first();
   const recent=await env.NMH_DB.prepare('SELECT body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 40').bind(sub).all();
-  const ranked=(recent.results||[]).map(x=>({body:x.body,score:scoreSegment(question,x.body)})).sort((a,b)=>b.score-a.score).filter(x=>x.score>0).slice(0,6);
+  // Ghi nhớ do người dùng chủ động lưu: ưu tiên khớp ngữ nghĩa/từ khóa,
+   // nhưng luôn có lớp nền gần đây để câu hỏi diễn đạt gián tiếp vẫn nhận được ngữ cảnh.
+   // Chỉ dùng bản ghi thuộc đúng Google subject và giới hạn tối đa 6 ghi nhớ.
+   const memories=(recent.results||[]).filter(x=>typeof x.body==='string'&&x.body.trim());
+   const relevant=memories.map((x,index)=>({body:x.body,score:scoreSegment(question,x.body),index}))
+     .filter(x=>x.score>0).sort((a,b)=>b.score-a.score||a.index-b.index);
+   const selected=relevant.slice(0,6);
+   for(let i=0;i<memories.length&&selected.length<6;i++){
+     if(!selected.some(x=>x.index===i))selected.push({body:memories[i].body,index:i});
+   }
+   const ranked=selected;
   const terms=extractTerms(question).slice(0,5);
   const rows=terms.length?await env.NMH_DB.prepare('SELECT c.body, c.segment, d.name FROM v3_chunks c JOIN v3_documents d ON d.id=c.doc_id AND d.user_id=c.user_id WHERE c.user_id=? AND ('+terms.map(()=>'c.body LIKE ?').join(' OR ')+') LIMIT 80').bind(sub,...terms.map(x=>'%'+x+'%')).all():{results:[]};
   const docs=(rows.results||[]).map(x=>({...x,score:scoreSegment(question,x.body)})).filter(x=>x.score>=3).sort((a,b)=>b.score-a.score).slice(0,4).map(x=>({name:x.name,segment:x.segment,text:x.body.slice(0,900)}));
