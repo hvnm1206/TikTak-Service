@@ -173,9 +173,14 @@ jobs:
            return obj['result'][0].get('results',[])
           def http(path,method='GET',data=None):
            payload=json.dumps(data).encode() if data is not None else None
-           hdr={'Cookie':'__Host-nmhv3='+session,'Origin':host,'Content-Type':'application/json'}
+           hdr={'Cookie':'__Host-nmhv3='+session,'Origin':host,'Content-Type':'application/json','User-Agent':'Mozilla/5.0 (compatible; NMH-Voice-E2E/1.0)','Accept':'application/json'}
            req=urllib.request.Request(host+path,data=payload,headers=hdr,method=method)
-           with urllib.request.urlopen(req,timeout=25) as resp:return resp.status,json.load(resp)
+           try:
+            with urllib.request.urlopen(req,timeout=25) as resp:return resp.status,json.load(resp)
+           except urllib.error.HTTPError as e:
+            snippet=e.read(800).decode('utf-8','replace')
+            print('LIVE_HTTP_FAILURE',path,'status',e.code,'content_type',e.headers.get('content-type',''),'body_prefix',snippet[:250].replace(session,'[redacted]'))
+            raise
           try:
            query('INSERT INTO v3_users (id,name,created_at) VALUES (?,?,?)',[sub,'Synthetic CI transient',int(time.time()*1000)])
            query('INSERT INTO v3_sessions (token_hash,user_id,expires_at,created_at) VALUES (?,?,?,?)',[digest,sub,int(time.time()*1000)+600000,int(time.time()*1000)])
