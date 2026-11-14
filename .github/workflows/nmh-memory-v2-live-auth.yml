@@ -85,3 +85,5 @@ jobs:
            assert not query('SELECT id FROM v3_users WHERE id=?',[owners[0]]),'Sandbox cleanup failed'
            print('SANDBOX_LIVE_SYNTHETIC_CLEANUP=PASS')
           PY
+
+# One-shot sandbox live owner-isolation check; never writes production data.
