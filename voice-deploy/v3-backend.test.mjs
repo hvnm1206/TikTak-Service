@@ -203,7 +203,7 @@ test('V3 Setup panel is attached without removing NMH Presence or exposing secre
  assert.match(html,/ĐANG LƯU/);
  assert.match(html,/ĐÃ LƯU VÀ ĐỌC LẠI THÀNH CÔNG/);
  assert.match(html,/CHƯA LƯU ĐƯỢC/);
- assert.match(html,/if\(!promptDirty&&!promptSaving\)/);
+ assert.match(html,/if\(!promptDirty&&!promptSaving&&!presetSelectionPending\)/);
  assert.match(html,/confirmed.prompt!==draft/);
  assert.match(html,/Prompt đã được sửa trên thiết bị khác/);
 
