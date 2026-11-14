@@ -40,6 +40,22 @@ KHÔNG NHẬN TRIỂN KHAI TRONG ĐỢT NÀY:
 - Không nhập dữ liệu Ngáo, không thu/copy API key người dùng, không gửi nội dung sức khỏe vào log.
 - Thời gian nhắc uống thuốc là tính năng tiện ích, KHÔNG coi là hệ thống cảnh báo y tế bảo đảm; không cam kết nếu app bị đóng, tắt âm thanh, mất mạng, hệ điều hành treo timer.
 
+## B2. ĐÁNH GIÁ KHẢ THI THỰC THI VỚI CÔNG CỤ ĐÃ KIỂM CHỨNG
+| Hạng mục | Công cụ/bằng chứng sẵn có | Đánh giá |
+|---|---|---|
+| Đọc/sửa mã NGỐ, tạo nhánh, test CI | GitHub connector có fetch/create/update/compare; Actions verify staging PASS | KHẢ THI, không phụ thuộc Ngáo |
+| Triển khai Worker giữ nguyên URL, kiểm version | GitHub Actions production đã deploy thành công, run 43569160880; rollback được cấu hình, vẫn phải thử theo phiên mới | KHẢ THI CÓ CỔNG |
+| D1 schema thêm bảng + kiểm owner và readback | D1 sandbox/native CI run 43564162174 và production synthetic run 43569516448 đã dùng thật | KHẢ THI CÓ CỔNG |
+| GPT function calling xác định lệnh nhắc và trả ACK | agent-v2.js đã có công cụ get_current_time/get_weather và web_search; cần viết action handler mới và test | KHẢ THI KỸ THUẬT, CHƯA XÂY |
+| Nhắc khi app ĐANG MỞ, kiểm F5/multi-tab | JS + fetch D1 + timer polling, không phụ thuộc background OS; phải test trình duyệt/iPhone | KHẢ THI CÓ ĐIỀU KIỆN |
+| Kiểm thao tác vật lý iPhone của người dùng từ công cụ hiện có | Không có phiên điều khiển iPhone vật lý đáng tin cậy trong bộ công cụ được xác minh | KHÔNG TỰ XÁC NHẬN; CẦN BẰNG CHỨNG TỪ THIẾT BỊ |
+| Nhắc khi Safari ĐÓNG hoặc khóa màn hình | Chưa có Web Push/PWA/service-worker và quyền notification được xác nhận | KHÔNG NHẬN Ở ĐỢT NÀY |
+| Đảm bảo đúng giờ tuyệt đối để uống thuốc | iOS có thể tạm dừng timer/mạng/âm thanh khi app ẩn | KHÔNG CAM KẾT, PHẢI NÓI RÕ GIỚI HẠN |
+
+Lý do chọn ít hạng mục: CÓ THỂ tự làm và kiểm chứng backend/CI/D1 qua công cụ hiện có. Phần iPhone thật không biến thành PASS giả nếu chưa có bằng chứng. Mục tiêu là phiên bản nhỏ vận hành được, có rollback, không "đạt trên giấy" rồi gây hỏng mic.
+
+---
+
 ## C. HỢP ĐỒNG KỸ THUẬT MỤC TIÊU
 ### C1. Action Router — incremental, không đại tu luồng Voice
 - Thêm module MỚI ở voice-deploy (tên dự kiến action-registry.js, reminders.js, reminders-client.js; tên cuối do kỹ thuật chọn có bằng chứng).
