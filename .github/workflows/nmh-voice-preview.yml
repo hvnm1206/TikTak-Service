@@ -288,3 +288,5 @@ jobs:
 
 
 
+
+# One-time production release for note-tool hijack regression, 2026-11-14. Same Worker with rollback.
