@@ -99,6 +99,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     "Đây là hội thoại GIỌNG NÓI: mặc định trả lời trực tiếp 1–2 câu, không tóm tắt quá dài, không liệt kê website, tên bài báo, nguồn trích dẫn, số hiệu citation hoặc đọc URL. Nguồn đã được hệ thống hiển thị riêng trong NHẬT KÝ, không nhắc lại trong lời nói. Khi người dùng yêu cầu chi tiết thì trả lời đủ ý nhưng vẫn tự nhiên.",
     "Khi thiếu dữ liệu thực tế, tự cân nhắc công cụ thích hợp. Không lạm dụng công cụ.",
     "Nếu người dùng yêu cầu ghi hoặc lưu một nội dung vào ghi chú, phải gọi công cụ save_note (nếu có). Không bao giờ nói đã ghi khi công cụ chưa xác nhận thành công. Không tự lưu khi người dùng chỉ hỏi hoặc trò chuyện.",
+    "Chỉ xử lý câu hỏi NGƯỜI DÙNG CUỐI CÙNG của lượt hiện tại. Lệnh ghi chú trong lịch sử không tiếp tục có hiệu lực sang lượt mới; không nhắc lại lỗi ghi chú cũ khi câu hỏi mới không yêu cầu lưu.",
     "Có công cụ web_search chính thức trong Responses API để kiểm chứng địa điểm kinh doanh, thông tin mới và nguồn Internet khi thật sự cần; không dùng tìm kiếm cho câu hỏi kiến thức đơn giản.",
     "Với quán ăn hoặc địa điểm, chỉ nêu nơi có nguồn xác minh được, không tự nhận biết đang mở hay còn hoạt động nếu không có bằng chứng.",
     "Nếu không thể xác minh thông tin mới, nói rõ không đủ nguồn, tuyệt đối không suy đoán.",
@@ -151,16 +152,15 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     }
     input.push(...response.output);
     for(const c of calls.slice(0,3)){
+      if(c.name==="save_note"&&!allowNoteTool){
+        // No callback, no write, no user-facing note error: the current turn has no save intent.
+        input.push({type:"function_call_output",call_id:c.call_id,output:JSON.stringify({ok:false,error:"Tool not available for this turn. Answer the latest user question."})});
+        continue;
+      }
       let data;
       try{const args=JSON.parse(c.arguments||"{}");data=c.name==="save_note"?(onSaveNote?await onSaveNote(args.content):fnOutput(false,{error:"Tính năng ghi chú chưa sẵn sàng"})):await callTool(c.name,args,{fetchImpl:toolFetchImpl,signal});}
       catch(e){data=fnOutput(false,{error:"Nguồn hiện không truy cập được: "+String(e?.message||"unknown").slice(0,100)})}
       toolCalls.push(c.name);
-      if(c.name==="save_note"&&!allowNoteTool){
-        // Upstream model made an unrequested call: NEVER surface a save-note error as the conversation answer.
-        input.push(...response.output);
-        input.push({type:"function_call_output",call_id:c.call_id,output:JSON.stringify({ok:false,error:"Do not save. Respond to the actual current user question."})});
-        continue;
-      }
       if(c.name==="save_note"){
         const answer=data.ok?"Đã ghi vào file ghi chú.":str(data.data?.error||"Không lưu được ghi chú. Chưa lưu.",180);
         return {answer,sources:[],documentReferences:[],tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedWebSearchUsd:webSearchCalls*WEB_SEARCH_CALL_USD,estimatedModelUsd:Math.round(((usage.input_tokens-usage.cached_input_tokens)*0.10+usage.cached_input_tokens*0.01+usage.output_tokens*0.50)/1e6*1e8)/1e8,estimateBasis:"standard_short_context_excludes_other_fees",searchProvider:webSearchCalls?"openai_web_search":"public_sources_only"};
