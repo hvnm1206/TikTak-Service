@@ -7,6 +7,9 @@ const validId=s=>typeof s==='string'&&/^[0-9a-f-]{36}$/i.test(s);
 const secret=/mật khẩu|api[\s_-]*key|token|otp|mã pin|cccd|số tài khoản|thẻ ngân hàng/iu;
 const forget=/quên|xóa|xoá|bỏ ghi nhớ/iu;
 const change=/từ nay|đổi thành|sửa thành|đính chính|không phải|thực ra|thật ra/iu;
+const stopwords=new Set(['người','dùng','chủ','nhân','tao','tôi','mình','con','cái','quên','xóa','xoá','điều','này','thông','tin','từ','nay','tên','thành','sửa','ghi','nhớ','lại','của','là','có','với']);
+const meaningful=s=>new Set((fold(s).match(/[\p{L}\p{N}]{3,}/gu)||[]).filter(w=>!stopwords.has(w)));
+
 export function validateProposal(raw,existing,userText){
  const text=tidy(userText).slice(0,1500);
  const entries=Array.isArray(existing)?existing.filter(x=>validId(x?.id)&&typeof x.body==='string').slice(0,100):[];
@@ -24,6 +27,9 @@ export function validateProposal(raw,existing,userText){
    accepted.push({type,body});continue;
   }
   if(!validId(op.id)||!rows.has(op.id)||seen.has(op.id)){rejected.push('id');continue}
+  const sourceTerms=meaningful(proof),priorTerms=meaningful(rows.get(op.id));
+  if(![...sourceTerms].some(t=>priorTerms.has(t))){rejected.push('unrelated-target');continue}
+
   if(type==='delete'&&!forget.test(text)){rejected.push('delete-not-requested');continue}
   if(type==='update'&&!change.test(text)){rejected.push('update-not-requested');continue}
   if(type==='update'&&fold(rows.get(op.id))===fold(body)){rejected.push('unchanged');continue}
@@ -92,6 +98,10 @@ export async function runMemoryV2({mode,apiKey,userText,assistantText,sub,db,fet
  if(mode!=='shadow'&&mode!=='active')return {status:'off'};
  if(!sub||!db||!apiKey)return {status:'no-session'};
  if(tidy(userText).length<4)return {status:'ignored'};
+ if(mode==='active'){
+  const turnId=await hash(sub+'\n'+tidy(userText)+'\n'+tidy(assistantText));
+  if(await db.prepare('SELECT turn_id FROM v3_memory_v2_turns WHERE user_id=? AND turn_id=?').bind(sub,turnId).first())return {status:'duplicate'};
+ }
  const r=await db.prepare('SELECT id,body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 100').bind(sub).all();
  const existing=r?.results||[];
  const proposal=await analyzeMemory({apiKey,userText,existing,fetchImpl,signal});
