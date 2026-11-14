@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {Script} from 'node:vm';
 import worker from './worker.js';
-import {NGO_APP_URL,NGO_QR_SIZE,NGO_QR_HEX_ROWS,NGO_QR_MATRIX_SHA256,buildQrSvg,enhanceQrPage} from './qr-ui.js';
+import {NGO_APP_URL,NGO_QR_SIZE,NGO_QR_HEX_ROWS,NGO_QR_MATRIX_SHA256,NGO_PILOT_APP_URL,NGO_PILOT_QR_SIZE,NGO_PILOT_QR_HEX_ROWS,NGO_PILOT_QR_MATRIX_SHA256,buildQrSvg,enhanceQrPage} from './qr-ui.js';
 
 test('QR code contains exact app URL, valid independently decoded QR matrix and four-module border',()=>{
  assert.equal(NGO_APP_URL,'https://nmh-voice-gpt-test.magical-budget.workers.dev/');
@@ -21,6 +21,17 @@ test('QR code contains exact app URL, valid independently decoded QR matrix and 
  assert.match(svg,/shape-rendering:crispEdges/);
  assert.match(svg,/<path d="M/);
  assert.ok(svg.includes('fill="#000"'));
+});
+test('pilot QR and link open the pilot Worker instead of production',async()=>{
+ assert.equal(NGO_PILOT_APP_URL,'https://nmh-ngo-memory-pilot-20261115.magical-budget.workers.dev/');
+ assert.equal(NGO_PILOT_QR_HEX_ROWS.length,NGO_PILOT_QR_SIZE);
+ const bits=NGO_PILOT_QR_HEX_ROWS.map(x=>BigInt('0x'+x).toString(2).padStart(NGO_PILOT_QR_SIZE,'0'));
+ assert.equal(createHash('sha256').update(bits.join('')).digest('hex'),NGO_PILOT_QR_MATRIX_SHA256);
+ const response=await worker.fetch(new Request('https://voice.test/'),{NMH_PERSONAL_MEMORY:'pilot'});
+ const html=await response.text();
+ assert.ok(html.includes(NGO_PILOT_APP_URL));
+ assert.match(html,/viewBox="0 0 45 45"/);
+ assert.ok(!html.includes('href="'+NGO_APP_URL+'"'));
 });
 test('SETUP includes QR and public-only link with no external QR service and preserved voice',async()=>{
  const response=await worker.fetch(new Request('https://voice.test/'),{NMH_REMINDERS_MODE:'active'});
