@@ -3,13 +3,19 @@
 ## 1. Production đã kiểm chứng
 - URL giữ nguyên: https://nmh-voice-gpt-test.magical-budget.workers.dev/
 - Cloudflare Worker: `nmh-voice-gpt-test`
-- Phiên bản phát hành: `d0622605-7d01-47ba-a5aa-bbb7e5262ee9`
-- Version rollback tức thời: `fc8ba001-038c-4a18-a0ac-84d3f8fff952`
+- Phiên bản phát hành: `fa391d70-0eaa-4e7d-8643-1943e119619e`
+- Version rollback tức thời: `d0622605-7d01-47ba-a5aa-bbb7e5262ee9`
 - D1 production: `nmh-voice-v3` (ID `3ce295cb-a84d-4a50-abee-d14fdd903514`).
 - Source: [GitHub branch](https://github.com/hvnm1206/TikTak-Service/tree/nmh-voice-actions-reminders-p0-20261114).
-- Release CI: https://github.com/hvnm1206/TikTak-Service/actions/runs/43584681227 — SUCCESS; 97/97 regression PASS, prior version gate PASS, D1 Time Travel bookmark được lưu artifact 30 ngày và rollback có cấu hình.
-- Sandbox Cloudflare Worker + D1 thật: https://github.com/hvnm1206/TikTak-Service/actions/runs/43584484084 — SUCCESS, kiểm tra migration, quyền truy cập, reminder claim, rollback và cleanup.
+- Release CI: https://github.com/hvnm1206/TikTak-Service/actions/runs/43586216466 — SUCCESS; 99/99 regression PASS, prior version gate PASS, D1 Time Travel bookmark được lưu artifact 30 ngày và rollback có cấu hình.
+- Sandbox Cloudflare Worker + D1 thật: https://github.com/hvnm1206/TikTak-Service/actions/runs/43586024270 — SUCCESS, kiểm tra migration, quyền truy cập, reminder claim, rollback và cleanup.
 - Sau deploy, Guarded Operator GET `/health` HTTP 200, `writeVersion=semantic-actions-d1-readback-v1`; GET `/api/v3/config` 200 `ready:true`; GET `/api/reminders/capabilities` 200 `enabled:true,foregroundOnly:true`. Lần kiểm tra health ban đầu còn nhãn cũ; gọi lại không cache và URL chuẩn đều đã ra nhãn mới.
+
+## 1B. Sửa nguyên nhân gốc hậu phát hành
+- Bảo đảm GPT không thể phủ định lỗi D1 bằng câu “đã lưu” không có receipt; `TURN_MISMATCH` không chặn trả lời câu hỏi thường. Có bài kiểm thử giả lập GPT cố báo lưu thành công sau D1 lỗi.
+- Bỏ hardcode tiêu đề `## A. HIỆN TRẠNG ĐANG CHẠY` trong đường dự phòng GitHub docs và trong smoke test. Khi dùng bản Raw dự phòng, header `x-nmh-doc-source` báo rõ `github-raw-fallback-freshness-unverified`; không tự nhận dữ liệu mới đã được xác minh.
+- Lần phát hành bị lỗi smoke đều tự rollback đúng bản `d062...`; bản cuối cùng 99/99 test PASS và Guard HTTP production/health/docs đều PASS.
+- Mới xác minh backend và test mô phỏng OpenAI. **Nghiệm thu iPhone + key/API thực chưa có**.
 
 ## 2. Thay đổi kiến trúc — chỉ bản chính Ngố
 - Xóa `voice-write.js`, `voice-write.test.mjs`, regex phân loại ý định từ lời nói và các luồng lưu ghi chú/ghi nhớ song song trong `/api/chat`.
