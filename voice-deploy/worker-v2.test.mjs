@@ -317,3 +317,17 @@ test('Memory V2 SHADOW with authenticated consent runs after chat but cannot wri
   assert.equal(writes,0,'no D1 mutation allowed in shadow');
  }finally{globalThis.fetch=old}
 });
+
+test('Memory V2 controls remain separate from mic/Marin UI and injected Setup script is parseable',async()=>{
+ const env={NMH_V3_GOOGLE_CLIENT_ID:'792345678901-sandbox-oauth.apps.googleusercontent.com'};
+ const page=await (await worker.fetch(new Request(host+'/'),env)).text();
+ const blocks=[...page.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g)].map(x=>x[1]).filter(Boolean);
+ assert.ok(blocks.length>=2);
+ for(const [i,code] of blocks.entries())assert.doesNotThrow(()=>new Function(code),'inline script '+i+' invalid');
+ assert.match(page,/id="v3MemoryV2Toggle"/);
+ assert.match(page,/id="v3MemoryV2Section"/);
+ assert.match(page,/id="start"/);
+ assert.match(page,/id="resume"/);
+ assert.match(page,/id="v3Documents"/);
+ assert.match(page,/id="v3Memories"/);
+});
