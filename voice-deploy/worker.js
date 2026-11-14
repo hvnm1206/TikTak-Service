@@ -56,8 +56,8 @@ try{
    const r=await fetch(target,{headers:{"Accept":"text/plain","Cache-Control":"no-cache"}});
    if(r.ok){
     const raw=await r.text();
-    const valid=file==="MAINTENANCE.md"?raw.includes("## A. HIỆN TRẠNG ĐANG CHẠY"):raw.includes("## CẬP NHẬT GIAO DIỆN NMH PRESENCE");
-    if(valid){data=raw;source="github-raw-fallback"}
+    const valid=raw.length>=50&&raw.length<=60000&&/^#\s+\S/m.test(raw)&&!/<(?:html|script|!doctype)\b/i.test(raw);
+    if(valid){data=raw;source="github-raw-fallback-freshness-unverified"}
    }
   }catch{}
  }
