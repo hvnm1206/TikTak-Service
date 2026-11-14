@@ -32,10 +32,10 @@ const validate=(args,now)=>{
  if(due<=now+1000||due>now+2592000000)return fail('TIME_RANGE','Chưa đặt: giờ đã qua hoặc vượt quá 30 ngày.');
  return {ok:true,text,due};
 };
-async function audit(db,sub,name,id,phase,errorCode,elapsed,ack,now){
+async function audit(db,sub,traceId,name,id,phase,errorCode,elapsed,ack,now){
  try{
-  await db.prepare('INSERT INTO nmh_reminder_audit (id,owner_ref,action_name,reminder_id,phase,error_code,elapsed_ms,ack_status,created_at_ms) VALUES (?,?,?,?,?,?,?,?,?)')
-   .bind(crypto.randomUUID(),(await digest(sub)).slice(0,20),name,id||null,phase,errorCode||null,elapsed,ack,now).run();
+  await db.prepare('INSERT INTO nmh_reminder_audit (id,trace_id,owner_ref,action_name,reminder_id,phase,error_code,elapsed_ms,ack_status,created_at_ms) VALUES (?,?,?,?,?,?,?,?,?,?)')
+   .bind(crypto.randomUUID(),traceId,(await digest(sub)).slice(0,20),name,id||null,phase,errorCode||null,elapsed,ack,now).run();
   return true;
  }catch{return false;}
 }
@@ -43,57 +43,73 @@ async function setReminder(db,sub,args,opts){
  const checked=validate(args,opts.now);
  if(!checked.ok)return checked;
  const {text,due}=checked;
+ await opts.mark('VALIDATED');
  const fingerprint=await digest(sub+'\u0000'+opts.utterance.normalize('NFC').trim().toLocaleLowerCase('vi'));
  // Repeated speech/network retry within three minutes must not create duplicate reminders.
  const prev=await db.prepare("SELECT id,text,due_at_ms FROM nmh_reminders WHERE user_id=? AND fingerprint=? AND created_at_ms>=? AND status='pending' ORDER BY created_at_ms DESC LIMIT 1")
   .bind(sub,fingerprint,opts.now-180000).first();
- if(prev)return {ok:true,status:'verified',id:prev.id,duplicate:true,answer:'Lời nhắc này đã có: '+stamp(prev.due_at_ms)+', '+prev.text+'. Chỉ nhắc khi Ngố đang mở.'};
+ if(prev){await opts.mark('EXECUTED',prev.id);await opts.mark('READBACK_VERIFIED',prev.id);return {ok:true,status:'verified',id:prev.id,duplicate:true,answer:'Lời nhắc này đã có: '+stamp(prev.due_at_ms)+', '+prev.text+'. Chỉ nhắc khi Ngố đang mở.'};}
  const supplied=typeof opts.requestId==='string'&&/^[a-zA-Z0-9_-]{8,90}$/.test(opts.requestId)?opts.requestId:'';
  const idem=supplied?await digest(sub+':'+supplied):fingerprint.slice(0,40)+':'+Math.floor(opts.now/120000);
  const id=crypto.randomUUID();
  await db.prepare("INSERT OR IGNORE INTO nmh_reminders(id,user_id,text,due_at_ms,timezone,status,idem_key,fingerprint,created_at_ms,updated_at_ms) VALUES(?,?,?,?,?,'pending',?,?,?,?)")
   .bind(id,sub,text,due,'Asia/Ho_Chi_Minh',idem,fingerprint,opts.now,opts.now).run();
+ await opts.mark('EXECUTED',id);
  const row=await db.prepare('SELECT id,text,due_at_ms,status FROM nmh_reminders WHERE user_id=? AND idem_key=?')
   .bind(sub,idem).first();
  if(!row||row.status!=='pending'||!(row.due_at_ms>opts.now))return fail('READBACK','Chưa xác nhận được lời nhắc trong D1. Hãy kiểm tra danh sách.');
+ await opts.mark('READBACK_VERIFIED',row.id);
  return {ok:true,status:'verified',id:row.id,duplicate:row.id!==id,answer:'Đã đặt nhắc '+stamp(row.due_at_ms)+': '+row.text+'. Chỉ nhắc khi Ngố đang mở.'};
 }
-async function listReminders(db,sub){
+async function listReminders(db,sub,mark){
+ await mark('VALIDATED');
  const rows=(await db.prepare("SELECT id,text,due_at_ms FROM nmh_reminders WHERE user_id=? AND status='pending' ORDER BY due_at_ms ASC LIMIT 21").bind(sub).all()).results||[];
+ await mark('EXECUTED');await mark('READBACK_VERIFIED');
  if(!rows.length)return {ok:true,status:'verified',answer:'Hiện không có lời nhắc đang chờ.'};
  return {ok:true,status:'verified',answer:'Các lời nhắc đang chờ: '+rows.slice(0,10).map((r,i)=>(i+1)+'. '+stamp(r.due_at_ms)+': '+r.text+' (mã '+r.id.slice(0,8)+')').join('; ')+(rows.length>10?'; còn lời nhắc khác.':'')};
 }
-async function cancelReminder(db,sub,args,now){
+async function cancelReminder(db,sub,args,now,mark){
  const q=max(args?.query,200);
  if(q.length<2)return fail('AMBIGUOUS','Chưa hủy: hãy nói nội dung hoặc mã lời nhắc.');
  const rows=(await db.prepare("SELECT id,text FROM nmh_reminders WHERE user_id=? AND status='pending' AND (id=? OR substr(id,1,8)=? OR instr(lower(text),lower(?))>0) ORDER BY due_at_ms ASC LIMIT 3")
   .bind(sub,q,q,q).all()).results||[];
  if(rows.length===0)return fail('NOT_FOUND','Chưa hủy: không tìm thấy lời nhắc phù hợp.');
  if(rows.length>1)return fail('AMBIGUOUS','Chưa hủy: có nhiều lời nhắc phù hợp. Hãy nói rõ lời nhắc cần hủy hoặc mã của nó.');
- const row=rows[0];
+ const row=rows[0];await mark('VALIDATED',row.id);
  const change=await db.prepare("UPDATE nmh_reminders SET status='canceled',updated_at_ms=? WHERE id=? AND user_id=? AND status='pending'")
   .bind(now,row.id,sub).run();
  if(Number(change.meta?.changes||0)!==1)return fail('RACE','Chưa hủy: lời nhắc vừa thay đổi ở một thiết bị khác.');
+ await mark('EXECUTED',row.id);
  const check=await db.prepare('SELECT status FROM nmh_reminders WHERE id=? AND user_id=?').bind(row.id,sub).first();
  if(check?.status!=='canceled')return fail('READBACK','Chưa xác nhận hủy trong D1.');
+ await mark('READBACK_VERIFIED',row.id);
  return {ok:true,status:'verified',id:row.id,answer:'Đã hủy lời nhắc: '+row.text+'.'};
 }
 export async function executeReminderAction(name,args,{db,sub,utterance='',requestId='',now=Date.now()}={}){
- const start=Date.now();
+ const start=Date.now(),traceId=crypto.randomUUID();
  if(!reminderActionNames.has(name))return fail('NOT_ALLOWED','Chưa thực hiện: công cụ không được cấp quyền.');
  if(!sub)return fail('AUTH','Chưa thực hiện. Hãy đăng nhập Google trong SETUP.');
  if(!db)return fail('DB_UNAVAILABLE','Chưa thực hiện: kho D1 chưa sẵn sàng.');
+ const mark=async(phase,rowId=null,code=null,ack='PENDING')=>{
+  const logged=await audit(db,sub,traceId,name,rowId,phase,code,Date.now()-start,ack,now);
+  if(!logged)throw Error('AUDIT_ERROR');
+ };
+ try{
+  // Opportunistic 30-day retention; never alter personal V3 tables.
+  await db.prepare('DELETE FROM nmh_reminder_audit WHERE created_at_ms<?').bind(now-2592000000).run();
+  await mark('REQUESTED');
+ }catch{return fail('AUDIT_ERROR','Chưa thực hiện: không thể ghi nhật ký yêu cầu.');}
  let result;
  try{
-  if(name==='set_reminder')result=await setReminder(db,sub,args,{now,utterance,requestId});
-  else if(name==='list_reminders')result=await listReminders(db,sub);
-  else result=await cancelReminder(db,sub,args,now);
+  if(name==='set_reminder')result=await setReminder(db,sub,args,{now,utterance,requestId,mark});
+  else if(name==='list_reminders')result=await listReminders(db,sub,mark);
+  else result=await cancelReminder(db,sub,args,now,mark);
  }catch{
-  result=fail('DB_ERROR','Chưa xác nhận được thao tác vì D1 bị lỗi. Hãy xem lại danh sách lời nhắc.');
+  result=fail('DB_ERROR','Chưa xác nhận được thao tác vì D1 hoặc nhật ký bị lỗi. Hãy xem lại danh sách lời nhắc.');
  }
- const logged=await audit(db,sub,name,result.id,result.ok?'READBACK_VERIFIED':'FAILED',result.errorCode,Date.now()-start,result.ok?'ACK_SAVED':'ACK_FAILED',now);
- if(!logged)return fail('AUDIT_ERROR','Chưa xác nhận hoàn tất: không lưu được nhật ký thao tác. Hãy kiểm tra danh sách.');
- return {...result,audited:true};
+ try{await mark(result.ok?'ACK_SAVED':'ACK_FAILED',result.id||null,result.errorCode||null,result.ok?'ACK_SAVED':'ACK_FAILED');}
+ catch{return fail('AUDIT_ERROR','Chưa xác nhận hoàn tất: không lưu được nhật ký thao tác. Hãy kiểm tra danh sách.');}
+ return {...result,traceId,audited:true};
 }
 export async function handleReminderApi(req,env,subjectFn){
  if(!remindersEnabled(env))return send({error:'REMINDERS_DISABLED'},404);
@@ -121,7 +137,7 @@ export async function handleReminderApi(req,env,subjectFn){
    if(Number(change.meta?.changes||0)!==1)return send({ok:false,claimed:false,error:'ALREADY_CLAIMED_OR_NOT_DUE'},409);
    const row=await db.prepare('SELECT id,text,due_at_ms,status FROM nmh_reminders WHERE id=? AND user_id=?').bind(data.id,sub).first();
    if(row?.status!=='triggered')return send({error:'CLAIM_READBACK_FAILED'},503);
-   const logged=await audit(db,sub,'claim_reminder',data.id,'READBACK_VERIFIED',null,0,'ACK_SAVED',now);
+   const logged=await audit(db,sub,crypto.randomUUID(),'claim_reminder',data.id,'READBACK_VERIFIED',null,0,'ACK_SAVED',now);
    // Claim remains consumed even if audit fails; do not send a second alert in multi-tab.
    return send({ok:true,claimed:true,reminder:row,audited:logged});
   }
