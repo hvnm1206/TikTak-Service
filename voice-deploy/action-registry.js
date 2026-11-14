@@ -5,7 +5,8 @@ export const memoryToolSchema={type:'function',name:'save_memory',description:'L
 export const noteToolSchema={type:'function',name:'save_note',description:'Lưu nội dung người dùng chủ động yêu cầu ghi vào sổ ghi chú. Không đòi ngày giờ.',parameters:{type:'object',properties:{body:{type:'string',description:'Nội dung cần chép vào ghi chú'},utterance_quote:{type:'string',description:'Trích nguyên văn lời người dùng đang yêu cầu'}},required:['body','utterance_quote'],additionalProperties:false},strict:true};
 export const updateMemoryToolSchema={type:'function',name:'update_memory',description:'Sửa đúng một ghi nhớ đã lưu khi người dùng yêu cầu thay đổi.',parameters:{type:'object',properties:{match:{type:'string',description:'Nội dung ghi nhớ cũ cần xác định duy nhất'},body:{type:'string',description:'Nội dung ghi nhớ mới'},utterance_quote:{type:'string',description:'Trích nguyên văn lời người dùng đang yêu cầu'}},required:['match','body','utterance_quote'],additionalProperties:false},strict:true};
 export const deleteMemoryToolSchema={type:'function',name:'delete_memory',description:'Xóa đúng một ghi nhớ đã lưu khi người dùng yêu cầu xóa hoặc quên.',parameters:{type:'object',properties:{match:{type:'string',description:'Nội dung ghi nhớ cũ cần xác định duy nhất'},utterance_quote:{type:'string',description:'Trích nguyên văn lời người dùng đang yêu cầu'}},required:['match','utterance_quote'],additionalProperties:false},strict:true};
-export const memoryActionNames=new Set(['save_memory','save_note','update_memory','delete_memory']);
+export const readMemoryToolSchema={type:'function',name:'read_memories',description:'Đọc các ghi nhớ đã lưu thuộc tài khoản hiện tại để trả lời, liên kết thông tin hoặc truy xuất khi không đủ ngữ cảnh. Dùng với câu hỏi cần nhớ lại dữ kiện; đây là thao tác chỉ đọc.',parameters:{type:'object',properties:{offset:{type:'integer',description:'Vị trí trang, bắt đầu 0'},utterance_quote:{type:'string',description:'Trích nguyên văn câu người dùng đang hỏi'}},required:['offset','utterance_quote'],additionalProperties:false},strict:true};
+export const memoryActionNames=new Set(['save_memory','save_note','update_memory','delete_memory','read_memories']);
 const denied=(code,answer)=>({ok:false,status:'failed',errorCode:code,answer});
 export function matchesCurrentUtterance(args,utterance){
  const quote=String(args?.utterance_quote||'').normalize('NFC').trim();
@@ -15,7 +16,7 @@ export function matchesCurrentUtterance(args,utterance){
 export function buildActionRuntime({request,env,utterance,requestId,signal}){
  if(!env?.NMH_DB)return null;
  return Object.freeze({
-  tools:[...(remindersEnabled(env)?reminderToolSchemas:[]),memoryToolSchema,noteToolSchema,updateMemoryToolSchema,deleteMemoryToolSchema],
+  tools:[...(remindersEnabled(env)?reminderToolSchemas:[]),memoryToolSchema,noteToolSchema,updateMemoryToolSchema,deleteMemoryToolSchema,readMemoryToolSchema],
   async execute(name,args){
    if(signal?.aborted)return denied('ABORTED','Chưa thực hiện: yêu cầu đã bị hủy.');
    if(!memoryActionNames.has(name)&&!(remindersEnabled(env)&&reminderActionNames.has(name)))return denied('NOT_ALLOWED','Chưa thực hiện: hành động không được cho phép.');
@@ -24,6 +25,14 @@ export function buildActionRuntime({request,env,utterance,requestId,signal}){
    if(signal?.aborted)return denied('ABORTED','Chưa thực hiện: yêu cầu đã bị hủy.');
    if(!sub)return denied('AUTH','Chưa lưu được. Hãy đăng nhập Google trong SETUP.');
    const validText=(value,max)=>typeof value==='string'&&value.trim().length>=2&&value.trim().length<=max&&!/[\u0000-\u001f\u007f]/u.test(value);
+   if(name==='read_memories'){
+    if(!Number.isInteger(args?.offset)||args.offset<0||args.offset>500)return denied('INVALID_PAGE','Trang ghi nhớ không hợp lệ.');
+    try{
+     const rows=await env.NMH_DB.prepare('SELECT id,body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 50 OFFSET ?').bind(sub,args.offset).all();
+     const items=(rows?.results||[]).filter(x=>typeof x.body==='string').map(x=>({id:x.id,body:x.body.slice(0,500)}));
+     return {ok:true,status:'read',continueModel:true,data:{items,nextOffset:items.length===50?args.offset+50:null}};
+    }catch{return denied('MEMORY_READ_FAILED','Chưa truy cập được ghi nhớ.');}
+   }
    if(name==='save_note'){
     if(!validText(args?.body,2200))return denied('INVALID_NOTE','Nội dung ghi chú không hợp lệ.');
     const stored=await storeVoiceNote(request,env,String(args.body).trim());
