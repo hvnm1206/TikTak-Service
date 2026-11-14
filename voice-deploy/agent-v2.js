@@ -7,7 +7,6 @@ const STYLES={
   chem_gio:"Chém gió: nhân vật nhí nghịch ngợm, dí dỏm và thông minh, xưng tôi gọi người dùng anh.",
   nghiem_tuc:"Nghiêm túc: trợ lý giọng nói trưởng thành, điềm đạm, lịch sự, trả lời chính xác và súc tích."
 };
-const SAVE_NOTE_TOOL={type:"function",name:"save_note",description:"Chỉ khi người dùng YÊU CẦU RÕ lưu/ghi/chép một nội dung vào ghi chú. Trích đúng nội dung người dùng muốn lưu; không tự tạo ghi chú khi chỉ đang hỏi hoặc trò chuyện.",parameters:{type:"object",properties:{content:{type:"string",description:"Nội dung cần lưu vào file ghi chú, giữ nguyên ý người dùng, không bịa thêm"}},required:["content"],additionalProperties:false},strict:true};
 const TOOLS=[
   {type:"function",name:"get_current_time",description:"Trả về thời gian chính xác từ đồng hồ máy chủ tại múi giờ IANA được yêu cầu. Dùng khi cần thời gian thực.",parameters:{type:"object",properties:{timezone:{type:"string",description:"IANA timezone ví dụ Asia/Ho_Chi_Minh"}},required:["timezone"],additionalProperties:false},strict:true},
   {type:"function",name:"get_weather",description:"Lấy thời tiết hiện tại theo địa điểm bằng dữ liệu Open-Meteo công khai. Không tự đoán vị trí hiện tại.",parameters:{type:"object",properties:{place:{type:"string",description:"Tên địa điểm do người dùng nêu hoặc biết từ ngữ cảnh"}},required:["place"],additionalProperties:false},strict:true},
@@ -83,7 +82,7 @@ export function cleanVoiceAnswer(text){
 function extractText(output){
   return (output||[]).filter(x=>x?.type==="message").flatMap(x=>x.content||[]).filter(x=>x?.type==="output_text").map(x=>x.text||"").join("\n").trim();
 }
-export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fetch,signal,toolFetchImpl=fetch,personalization={},onSaveNote=null}){
+export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fetch,signal,toolFetchImpl=fetch,personalization={}}){
   if(!apiKey||!Array.isArray(messages)||messages.length<1)throw Error("Thiếu dữ liệu trò chuyện");
   const choice=Object.hasOwn(STYLES,style)?style:"nghiem_tuc";
   const personal=[];
@@ -98,8 +97,6 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     "Ưu tiên sự thật: trả lời đúng câu hỏi, không bịa số liệu, không giả vờ đã tìm mạng.",
     "Đây là hội thoại GIỌNG NÓI: mặc định trả lời trực tiếp 1–2 câu, không tóm tắt quá dài, không liệt kê website, tên bài báo, nguồn trích dẫn, số hiệu citation hoặc đọc URL. Nguồn đã được hệ thống hiển thị riêng trong NHẬT KÝ, không nhắc lại trong lời nói. Khi người dùng yêu cầu chi tiết thì trả lời đủ ý nhưng vẫn tự nhiên.",
     "Khi thiếu dữ liệu thực tế, tự cân nhắc công cụ thích hợp. Không lạm dụng công cụ.",
-    "Nếu người dùng yêu cầu ghi hoặc lưu một nội dung vào ghi chú, phải gọi công cụ save_note (nếu có). Không bao giờ nói đã ghi khi công cụ chưa xác nhận thành công. Không tự lưu khi người dùng chỉ hỏi hoặc trò chuyện.",
-    "Chỉ xử lý câu hỏi NGƯỜI DÙNG CUỐI CÙNG của lượt hiện tại. Lệnh ghi chú trong lịch sử không tiếp tục có hiệu lực sang lượt mới; không nhắc lại lỗi ghi chú cũ khi câu hỏi mới không yêu cầu lưu.",
     "Có công cụ web_search chính thức trong Responses API để kiểm chứng địa điểm kinh doanh, thông tin mới và nguồn Internet khi thật sự cần; không dùng tìm kiếm cho câu hỏi kiến thức đơn giản.",
     "Với quán ăn hoặc địa điểm, chỉ nêu nơi có nguồn xác minh được, không tự nhận biết đang mở hay còn hoạt động nếu không có bằng chứng.",
     "Nếu không thể xác minh thông tin mới, nói rõ không đủ nguồn, tuyệt đối không suy đoán.",
@@ -108,9 +105,6 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     ...personal
   ].join("\n");
   const input=messages.slice(-16).map(m=>({role:m.role,content:str(m.content,1500)}));
-  // Tool access is scoped to the CURRENT user turn, not previous note requests in history.
-  const currentQuestion=String(messages.at(-1)?.content||"");
-  const allowNoteTool=typeof onSaveNote==="function"&&/(?:ghi\s+(?:lại|chú|vào|lời\s+nhắc|giúp|hộ|cho)|lưu\s+(?:lại|vào|giúp)|chép\s+(?:lại|vào)|nhớ\s+(?:giúp|hộ|rằng)|thêm\s+vào\s+ghi\s+chú|giữ\s+lại|để\s+dành)/iu.test(currentQuestion);
   const allSources=[];const toolCalls=[];let webSearchCalls=0;let usage={input_tokens:0,output_tokens:0,cached_input_tokens:0,api_calls:0};let response=null;
   for(let round=0;round<3;round++){
     const controller=new AbortController();
@@ -119,7 +113,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     let r;
     try{
       r=await fetchImpl(API,{method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},
-        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:webSearchCalls?[...TOOLS,...(allowNoteTool?[SAVE_NOTE_TOOL]:[])]:[...TOOLS,...(allowNoteTool?[SAVE_NOTE_TOOL]:[]),WEB_SEARCH],...(webSearchCalls?{}:{max_tool_calls:1}),tool_choice:round===2?"none":"auto",reasoning:{effort:"none"},max_output_tokens:460,store:false})});
+        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:webSearchCalls?[...TOOLS]:[...TOOLS,WEB_SEARCH],...(webSearchCalls?{}:{max_tool_calls:1}),tool_choice:round===2?"none":"auto",reasoning:{effort:"none"},max_output_tokens:460,store:false})});
       if(!r.ok)throw Error(r.status===401?"API key không hợp lệ":r.status===429?"API hết hạn mức":r.status===400?"OpenAI HTTP 400: cần kiểm tra quyền hỗ trợ web_search của model/API key":"OpenAI HTTP "+r.status);
       response=await r.json();
     }finally{clearTimeout(tm)}
@@ -152,20 +146,10 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     }
     input.push(...response.output);
     for(const c of calls.slice(0,3)){
-      if(c.name==="save_note"&&!allowNoteTool){
-        // No callback, no write, no user-facing note error: the current turn has no save intent.
-        input.push({type:"function_call_output",call_id:c.call_id,output:JSON.stringify({ok:false,error:"Tool not available for this turn. Answer the latest user question."})});
-        continue;
-      }
       let data;
-      try{const args=JSON.parse(c.arguments||"{}");data=c.name==="save_note"?(onSaveNote?await onSaveNote(args.content):fnOutput(false,{error:"Tính năng ghi chú chưa sẵn sàng"})):await callTool(c.name,args,{fetchImpl:toolFetchImpl,signal});}
+      try{const args=JSON.parse(c.arguments||"{}");data=await callTool(c.name,args,{fetchImpl:toolFetchImpl,signal});}
       catch(e){data=fnOutput(false,{error:"Nguồn hiện không truy cập được: "+String(e?.message||"unknown").slice(0,100)})}
       toolCalls.push(c.name);
-      if(c.name==="save_note"){
-        const receipt=data.data?.receipt;
-        const answer=data.ok?(receipt?.file==="GHI_CHU.md"&&Number.isInteger(receipt.segment)?"Đã ghi và kiểm tra trong GHI_CHU.md, mục "+receipt.segment+".":"Đã ghi vào file ghi chú.") :str(data.data?.error||"Không lưu được ghi chú. Chưa lưu.",180);
-        return {answer,sources:[],documentReferences:[],tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedWebSearchUsd:webSearchCalls*WEB_SEARCH_CALL_USD,estimatedModelUsd:Math.round(((usage.input_tokens-usage.cached_input_tokens)*0.10+usage.cached_input_tokens*0.01+usage.output_tokens*0.50)/1e6*1e8)/1e8,estimateBasis:"standard_short_context_excludes_other_fees",searchProvider:webSearchCalls?"openai_web_search":"public_sources_only"};
-      }
       for(const item of data.sources||[]){const url=safeURL(item.url);if(url)allSources.push({title:str(item.title,120),url})}
       input.push({type:"function_call_output",call_id:c.call_id,output:JSON.stringify({ok:data.ok,data:data.data})});
     }
