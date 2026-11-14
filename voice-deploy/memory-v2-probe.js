@@ -11,7 +11,7 @@ export default {
   const sub='sandbox-memory-v2-'+crypto.randomUUID();
   const other='sandbox-memory-v2-'+crypto.randomUUID();
   const now=Date.now();
-  const makeFakeResponse=ops=>async()=>Response.json({output:[{type:'message',content:[{type:'output_text',text:JSON.stringify({ops})}]}]});
+  const makeFakeResponse=proposal=>async()=>Response.json({output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(proposal)}]}]});
   let result={ok:false,steps:[]};
   try{
    await db.batch([db.prepare('INSERT INTO v3_users (id,name,created_at) VALUES (?,?,?)').bind(sub,'Sandbox probe A',now),db.prepare('INSERT INTO v3_users (id,name,created_at) VALUES (?,?,?)').bind(other,'Sandbox probe B',now)]);
