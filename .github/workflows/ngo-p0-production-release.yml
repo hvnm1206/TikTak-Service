@@ -10,7 +10,7 @@ concurrency:
 jobs:
   release:
     if: >-
-      startsWith(github.event.head_commit.message, 'release(ngo): guarded P0 production 20261114')
+      startsWith(github.event.head_commit.message, 'release(ngo): guarded personal memory production 20261115')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -20,25 +20,24 @@ jobs:
       GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
       PROD_DB_ID: '3ce295cb-a84d-4a50-abee-d14fdd903514'
       PROD_WORKER: nmh-voice-gpt-test
-      PROD_EXPECTED_VERSION: fb2bacc5-b26e-4abc-9ee1-78cc222ac221
+      PROD_EXPECTED_VERSION: f7e18962-ea91-4899-8cb3-975a304b99bd
       TARGET: https://nmh-voice-gpt-test.magical-budget.workers.dev
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
-      - name: GATE 1 — 71 legacy, 17 P0 tests and real isolated pilot
+      - name: GATE 1 — full regression and verified personal-memory pilot
         shell: bash
         run: |
           set -euo pipefail
-          for f in worker.js agent-v2.js v3-backend.js v3-ui.js memory-v2.js action-registry.js reminders.js reminders-client.js;do node --check "voice-deploy/$f";done
-          node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs voice-deploy/v3-backend.test.mjs voice-deploy/semantic-actions.test.mjs voice-deploy/memory-v2.test.mjs voice-deploy/memory-v2.preference.test.mjs
-          node --experimental-sqlite --test voice-deploy/reminders.test.mjs voice-deploy/reminders-client.test.mjs
+          for f in worker.js agent-v2.js v3-backend.js v3-ui.js memory-v2.js personal-memory.js action-registry.js reminders.js reminders-client.js qr-ui.js;do node --check "voice-deploy/$f";done
+          node --experimental-sqlite --test voice-deploy/*.test.mjs
           python3 - <<'PY'
           import json,urllib.request
-          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43577570928',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-PROD-GATE'})
+          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43627417871',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-PROD-GATE'})
           with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
-          assert j['conclusion']=='success' and j['name']=='NGỐ P0 — persistent isolated iPhone pilot'
-          print('NGO_REAL_WORKER_AND_D1_PILOT_GATE=PASS')
+          assert j['conclusion']=='success' and j['name']=='NGỐ — personal memory sandbox and iPhone pilot'
+          print('NGO_PERSONAL_MEMORY_PILOT_GATE=PASS')
           PY
       - name: GATE 2 — pin production version, D1 schema and Time Travel bookmark
         shell: bash
@@ -106,19 +105,25 @@ jobs:
           assert os.environ['PROD_WORKER']=='nmh-voice-gpt-test' and os.environ['PROD_DB_ID']=='3ce295cb-a84d-4a50-abee-d14fdd903514'
           c={'name':os.environ['PROD_WORKER'],'main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,
              'd1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':os.environ['PROD_DB_ID']}],
-             'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT'],'NMH_MEMORY_V2_MODE':'active','NMH_REMINDERS_MODE':'active'}}
+             'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT'],'NMH_MEMORY_V2_MODE':'active','NMH_REMINDERS_MODE':'active','NMH_PERSONAL_MEMORY':'pilot','NMH_FAST_VOICE':'active','NMH_APP_CHANNEL':'production'}}
           with open('voice-deploy/wrangler-ngo-prod.generated.jsonc','w') as f:json.dump(c,f)
-          print('NGO_MEMORY_V2_ACTIVE_PRESERVED=PASS')
+          print('NGO_PERSONAL_MEMORY_ACTIVE_WITH_OFFICIAL_OAUTH_ORIGIN=PASS')
           PY
           if [ "$NGO_P0_PRETABLES" = 0 ];then
             CLOUDFLARE_API_TOKEN="$CLOUDFLARE_D1_TOKEN" npx --yes wrangler@4.102.0 d1 execute nmh-voice-v3 --remote --config voice-deploy/wrangler-ngo-prod.generated.jsonc --file voice-deploy/migrations/0004_reminders.sql
           fi
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_D1_TOKEN" npx --yes wrangler@4.102.0 d1 execute nmh-voice-v3 --remote --config voice-deploy/wrangler-ngo-prod.generated.jsonc --file voice-deploy/migrations/0006_personal_memory.sql
+          CLOUDFLARE_API_TOKEN="$CLOUDFLARE_D1_TOKEN" npx --yes wrangler@4.102.0 d1 execute nmh-voice-v3 --remote --config voice-deploy/wrangler-ngo-prod.generated.jsonc --file voice-deploy/migrations/0007_personal_memory_status.sql
           python3 - <<'PY'
           import os,json,urllib.request
           url='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/d1/database/'+os.environ['PROD_DB_ID']+'/query'
           req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_D1_TOKEN'],'Content-Type':'application/json'},data=json.dumps({'sql':"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nmh_reminders','nmh_reminder_audit')",'params':[]}).encode(),method='POST')
           with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
           assert j['success'] and j['result'][0]['success'] and len(j['result'][0]['results'])==2
+          q={'sql':"SELECT name,type FROM sqlite_master WHERE name IN ('v3_personal_memory','v3_personal_memory_status','v3_personal_memory_current')",'params':[]}
+          req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_D1_TOKEN'],'Content-Type':'application/json'},data=json.dumps(q).encode(),method='POST')
+          with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
+          assert j['success'] and j['result'][0]['success'] and len(j['result'][0]['results'])==3
           print('NGO_ADDITIVE_PROD_D1_SCHEMA=PASS')
           PY
           deployed=1
@@ -141,13 +146,16 @@ jobs:
           done
           test "$ready" = 1
           curl --fail --silent --max-time 20 "$TARGET/" -o /tmp/ngo-live-ui.html
-          for marker in 'id="start"' 'id="resume"' 'id="avatar"' 'v3MemoryV2Section' 'nmhReminderToast' 'Marin' 'ttsPrefetchCtl';do
+          for marker in 'id="start"' 'id="resume"' 'id="avatar"' 'v3MemoryV2Section' 'id="v3LearnedReload"' 'CẬP NHẬT KẾT QUẢ' 'nmhReminderToast' 'Marin' 'ttsPrefetchCtl' 'https://nmh-voice-gpt-test.magical-budget.workers.dev/';do
             grep -q "$marker" /tmp/ngo-live-ui.html || { echo "::error::missing UI marker $marker";false; }
           done
           code=$(curl --silent --max-time 15 -o /tmp/ngo-anon -w '%{http_code}' "$TARGET/api/reminders/due")
           test "$code" = 401
           code=$(curl --silent --max-time 15 -o /tmp/ngo-anon -w '%{http_code}' "$TARGET/api/v3/memory-v2-preference")
           test "$code" = 401
+          code=$(curl --silent --max-time 15 -o /tmp/ngo-anon-personal -w '%{http_code}' "$TARGET/api/v3/personal-memory")
+          test "$code" = 401
+          ! grep -q 'nmh-ngo-memory-pilot-20261115.magical-budget.workers.dev' /tmp/ngo-live-ui.html
           code=$(curl --silent --max-time 15 -o /tmp/ngo-bad-chat -w '%{http_code}' -X POST -H "Origin: $TARGET" -H 'Content-Type: application/json' --data '{"apiKey":"invalid","messages":[{"role":"user","content":"hi"}]}' "$TARGET/api/chat")
           test "$code" = 400
           code=$(curl --silent --max-time 15 -o /tmp/ngo-bad-tts -w '%{http_code}' -X POST -H "Origin: $TARGET" -H 'Content-Type: application/json' --data '{"apiKey":"invalid","text":"hi"}' "$TARGET/api/tts")
@@ -163,16 +171,16 @@ jobs:
           v=j['result']['deployments'][0]['versions'][0]
           assert v['percentage']==100 and v['version_id']!=os.environ['PROD_EXPECTED_VERSION']
           print('NGO_NEW_PROD_WORKER_VERSION='+v['version_id'])
-          print('NGO_PRODUCTION_OLD_FEATURES_AND_P0_SMOKE=PASS')
+          print('NGO_PRODUCTION_VOICE_OAUTH_AND_PERSONAL_MEMORY_SMOKE=PASS')
           print('NGO_PHYSICAL_IPHONE_UAT=PENDING')
           PY
           deployed=0
           trap - ERR
-          echo 'NGO_P0_PRODUCTION_RELEASE=SUCCESS'
+          echo 'NGO_PERSONAL_MEMORY_PRODUCTION_RELEASE=SUCCESS'
       - name: Write release summary
         if: success()
         run: |
-          echo "## NGỐ P0 production deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "## NGỐ personal memory production deployed" >> "$GITHUB_STEP_SUMMARY"
           echo "Production: $TARGET" >> "$GITHUB_STEP_SUMMARY"
           echo "Rollback version: $PROD_EXPECTED_VERSION" >> "$GITHUB_STEP_SUMMARY"
           echo "D1 Time Travel bookmark stored in 30-day artifact." >> "$GITHUB_STEP_SUMMARY"
