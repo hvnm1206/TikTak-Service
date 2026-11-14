@@ -120,8 +120,8 @@ export function memoryIntent(question){
 // Only an explicit voice instruction may write. Ordinary conversations never auto-save.
 const NOTE_FILE='GHI_CHU.md';
 export function noteIntent(question){
- const q=String(question||'').trim();
- const save=q.match(/^(?:hãy\s+|mày\s+|bạn\s+|ngố\s+)?(?:ghi(?:\s+lại)?(?:\s+giúp\s+(?:tao|tôi|mình))?\s+(?:vào|trong)\s+(?:(?:file|tệp)\s+)?ghi\s+chú|thêm\s+(?:vào|trong)\s+(?:(?:file|tệp)\s+)?ghi\s+chú|ghi\s+chú\s+(?:lại\s+)?(?:rằng|là|:))\s*[:：,]?\s*(.+)$/isu);
+ const q=String(question||'').trim().replace(/^(?:ngố|mày|bạn|hãy)\s*[,，]\s*/iu,'');
+ const save=q.match(/^(?:hãy\s+|mày\s+|bạn\s+|ngố\s+)?(?:(?:ghi|lưu)(?:\s+lại)?(?:\s+giúp\s+(?:tao|tôi|mình))?\s+(?:vào|trong)\s+(?:(?:file|tệp)\s+)?ghi\s+chú|thêm\s+(?:vào|trong)\s+(?:(?:file|tệp)\s+)?ghi\s+chú|ghi\s+chú\s+(?:lại\s+)?(?:rằng|là|:))\s*[:：,]?\s*(.+)$/isu);
  if(save)return {action:'append',body:save[1].trim()};
  if(/^(?:(?:hãy|mày|bạn|ngố)\s+)?(?:đọc|xem|mở)\s+(?:(?:file|tệp)\s+)?ghi\s+chú(?:\s+(?:của\s+(?:tao|tôi|mình)))?[.!?]?$/isu.test(q))return {action:'read'};
  return null;
