@@ -1,0 +1,90 @@
+name: NMH Memory V2 isolated Cloudflare sandbox
+on:
+  push:
+    branches: [nmh-voice-memory-v2-stage-20261114]
+permissions:
+  contents: read
+jobs:
+  sandbox-test:
+    if: startsWith(github.event.head_commit.message, 'sandbox(memory-v2): run isolated Cloudflare D1 checks')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+      GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Provision isolated sandbox D1, never production database
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          python3 - <<'PY'
+          import os,json,urllib.request,re
+          account=os.environ['CLOUDFLARE_ACCOUNT_ID']
+          token=os.environ['CLOUDFLARE_API_TOKEN']
+          root=f'https://api.cloudflare.com/client/v4/accounts/{account}/d1/database'
+          def req(method,url,payload=None):
+           data=None if payload is None else json.dumps(payload).encode()
+           q=urllib.request.Request(url,data=data,headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'},method=method)
+           with urllib.request.urlopen(q,timeout=30) as r: v=json.load(r)
+           assert v.get('success'), 'Cloudflare D1 API did not succeed'
+           return v.get('result')
+          result=req('GET',root+'?per_page=100')
+          items=result if isinstance(result,list) else result.get('databases',[])
+          name='nmh-memory-v2-sandbox-20261114'
+          match=[x for x in items if x.get('name')==name]
+          db=match[0] if match else req('POST',root,{'name':name})
+          db_id=db.get('uuid') or db.get('id')
+          assert re.fullmatch(r'[0-9a-f-]{36}',str(db_id)), 'Sandbox D1 id invalid'
+          assert db_id!='3ce295cb-a84d-4a50-abee-d14fdd903514', 'Refusing production database'
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('NMH_SANDBOX_DB='+db_id+'\n')
+          print('MEMORY_V2_D1_SANDBOX=READY')
+          PY
+      - name: Generate explicit sandbox-only Wrangler configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,re
+          assert re.fullmatch(r'[0-9]+-[a-z0-9-]+[.]apps[.]googleusercontent[.]com',os.environ['GOOGLE_CLIENT'])
+          cfg={'name':'nmh-memory-v2-sandbox-20261114','main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'d1_databases':[{'binding':'NMH_DB','database_name':'nmh-memory-v2-sandbox-20261114','database_id':os.environ['NMH_SANDBOX_DB']}],'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT'],'NMH_MEMORY_V2_MODE':'shadow'}}
+          assert cfg['name']!='nmh-voice-gpt-test'
+          with open('voice-deploy/wrangler-memory-v2-sandbox.generated.jsonc','w') as f:json.dump(cfg,f)
+          PY
+      - name: Migrate sandbox D1 only
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in 0001_v3.sql 0002_v3_d1_only.sql 0003_memory_v2.sql; do
+            npx --yes wrangler@4.102.0 d1 execute nmh-memory-v2-sandbox-20261114 --remote --config voice-deploy/wrangler-memory-v2-sandbox.generated.jsonc --file "voice-deploy/migrations/$file"
+          done
+          echo 'MEMORY_V2_SANDBOX_MIGRATION=PASS'
+      - name: Deploy sandbox Worker only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd voice-deploy
+          npx --yes wrangler@4.102.0 deploy --config wrangler-memory-v2-sandbox.generated.jsonc
+          base='https://nmh-memory-v2-sandbox-20261114.magical-budget.workers.dev'
+          ready=0
+          for i in 1 2 3 4 5 6 7 8; do
+            sleep 3
+            if curl --fail --silent --show-error --max-time 15 "$base/health" -o /tmp/mem-health.json && curl --fail --silent --show-error --max-time 15 "$base/api/v3/config" -o /tmp/mem-config.json; then ready=1;break;fi
+          done
+          test "$ready" = 1
+          python3 - <<'PY'
+          import json
+          h=json.load(open('/tmp/mem-health.json'));c=json.load(open('/tmp/mem-config.json'))
+          assert h.get('ok') and h.get('voice')=='browser-stt+marin-tts' and h.get('v3Version')=='d1-only-google-v3'
+          assert c.get('ready') and c.get('storage')=='Cloudflare D1'
+          print('MEMORY_V2_SANDBOX_HEALTH=PASS')
+          PY
+          status=$(curl -sS --max-time 15 -o /tmp/mem-unauth -w '%{http_code}' "$base/api/v3/memory-v2-preference")
+          test "$status" = 401
+          echo 'MEMORY_V2_SANDBOX_UNAUTH_BLOCKED=PASS'
+          echo 'PRODUCTION_WORKER_UNCHANGED=1'
