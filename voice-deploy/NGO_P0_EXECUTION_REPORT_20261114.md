@@ -43,3 +43,6 @@ Base source: nmh-voice-memory-v2-stage-20261114, commit 1ecd0fea29f6faa5a4b2891b
 ## Further release safety checks
 - Worker audit/action flow bypasses Memory V2 observer on tool-action turns; no medication content is analyzed for long-term memory.
 - Sandbox rollback trial uses a second version and returns to the exact previous sandbox Worker version; it must PASS before production promotion.
+
+## Sandbox rollback verification retry
+- Attempt https://github.com/hvnm1206/TikTak-Service/actions/runs/43576520560: sandbox deploy encountered Cloudflare eventual-consistency HTTP 10007 when registering workers.dev subdomain. D1 created/migrated successfully; automatic cleanup of Worker and D1 and production version check PASSED. No production mutation. The sandbox workflow now retries the isolated deploy; this commit reruns exact rollback verification.
