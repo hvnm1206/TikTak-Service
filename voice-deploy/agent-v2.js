@@ -97,6 +97,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     "Ưu tiên sự thật: trả lời đúng câu hỏi, không bịa số liệu, không giả vờ đã tìm mạng.",
     "Đây là hội thoại GIỌNG NÓI: mặc định trả lời trực tiếp 1–2 câu, không tóm tắt quá dài, không liệt kê website, tên bài báo, nguồn trích dẫn, số hiệu citation hoặc đọc URL. Nguồn đã được hệ thống hiển thị riêng trong NHẬT KÝ, không nhắc lại trong lời nói. Khi người dùng yêu cầu chi tiết thì trả lời đủ ý nhưng vẫn tự nhiên.",
     "Khi thiếu dữ liệu thực tế, tự cân nhắc công cụ thích hợp. Không lạm dụng công cụ.",
+    "Không có công cụ ghi file ghi chú bằng giọng nói trong bản này. Không nói đã ghi hay lưu tài liệu khi không có xác nhận thao tác thực. Ghi nhớ chủ động do backend xử lý riêng, không tự nhận đã lưu.",
     "Có công cụ web_search chính thức trong Responses API để kiểm chứng địa điểm kinh doanh, thông tin mới và nguồn Internet khi thật sự cần; không dùng tìm kiếm cho câu hỏi kiến thức đơn giản.",
     "Với quán ăn hoặc địa điểm, chỉ nêu nơi có nguồn xác minh được, không tự nhận biết đang mở hay còn hoạt động nếu không có bằng chứng.",
     "Nếu không thể xác minh thông tin mới, nói rõ không đủ nguồn, tuyệt đối không suy đoán.",
