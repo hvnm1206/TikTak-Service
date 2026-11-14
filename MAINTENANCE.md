@@ -1,5 +1,17 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## 14/11/2026 — WEB SEARCH ĐÃ DEPLOY LÊN PRODUCTION (TRẠNG THÁI MỚI NHẤT)
+
+**ĐÃ PHÁT HÀNH SOURCE, CHƯA NGHIỆM THU API KEY/IPHONE:** Worker chính thức `nmh-voice-gpt-test`, URL `https://nmh-voice-gpt-test.magical-budget.workers.dev/`, Cloudflare version **`2773a953-6c7c-4ad6-9711-5c98bc8a1418`** theo log Wrangler của [GitHub Actions 43536444631](https://github.com/hvnm1206/TikTak-Service/actions/runs/43536444631). Source release commit `0ab0be0fa7237ef1a4d80864c84ad86f7a991c59`. Verify=SUCCESS, deploy-web-search-once=SUCCESS, previous generic deploy=SKIPPED; predeploy Cloudflare API xác nhận baseline `8cc6032c-0035-414c-8217-7ea5e91825e5`. Smoke PASS: `POST_DEPLOY_RUNTIME=PASS_ATTEMPT_1`, `WEB_SEARCH_RELEASE_SMOKE=VOICE_UI_V3_DOCS_SECURITY_PASS`, `WEB_SEARCH_RELEASE=DEPLOYED`. One-shot release gate đã được gỡ ngay sau release (commit `d1298bbbb8cd6d20d6d6daf39bc72a1a85a152eb`).
+
+**Phạm vi code:** Thêm hosted `web_search` trực tiếp vào Responses API trong `agent-v2.js`; phát hiện `web_search_call`, thu `url_citation`; giới hạn tối đa 1 built-in search / Responses request; giữ nguyên Open-Meteo/Wikipedia/Google News RSS; `worker.js` bổ sung ước phí tìm kiếm vào sổ trên thiết bị. Giữ nguyên Web SpeechRecognition, Marin TTS, Presence, V3 D1/Google OAuth và URL. Không tạo Worker hay database khác. Giá Web Search cơ bản 0,01 USD/lượt chưa gồm token nội dung. Sổ ước phí không phải hóa đơn.
+
+**Giới hạn kiểm chứng bắt buộc:** 31/31 Voice và 7/7 V3 mock tests PASS, production HTTP/V3/UI/Unauthorized/Docs smoke PASS. **Chưa kiểm thử GPT Web Search với OpenAI API key thật** vì key ở SETUP của iPhone; **chưa nghiệm thu lượt mic → Web Search → Marin → nghe tiếp trên iPhone**. Đây là release được đưa vào production theo yêu cầu người dùng, nhưng không được tuyên bố end-to-end hoàn thành khi chưa có bằng chứng thực. Nếu xảy ra lỗi hồi quy, baseline rollback: `8cc6032c-0035-414c-8217-7ea5e91825e5` (dùng đúng config V3 khi rollback/verify).
+
+**Những ghi chú "CHỈ STAGE/PREVIEW, CHƯA DEPLOY" phía dưới đã lỗi thời và bị thay thế bởi cập nhật này.** Không tự dựng lại phiên bản thử, Google OAuth origin preview hoặc pipeline release tạm.
+
+---
+
 ## 14/11/2026 — WEB SEARCH HOSTED: CHỈ STAGE/PREVIEW, CHƯA DEPLOY PRODUCTION (MỚI NHẤT)
 
 **Production tuyệt đối chưa thay đổi:** Worker `nmh-voice-gpt-test`, active version `8cc6032c-0035-414c-8217-7ea5e91825e5` được GitHub Actions kiểm tra bằng Cloudflare API trước và sau upload. URL production giữ nguyên `https://nmh-voice-gpt-test.magical-budget.workers.dev/`. **Production hiện CHƯA có Web Search tổng quát.**
