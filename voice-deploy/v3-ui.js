@@ -18,6 +18,11 @@ const panel=String.raw`
    <p class="hint">Khi bật, GPT có thể đề xuất ghi nhớ điều bền vững sau lượt hội thoại. Không ghi mọi lời nói. Được xem/sửa/xóa tại GHI NHỚ CHỦ ĐỘNG. Có thể tắt bất cứ lúc nào.</p>
    <p id="v3MemoryV2Status" class="hint">Chưa kích hoạt.</p>
    <button type="button" id="v3MemoryV2Toggle">BẬT GHI NHỚ THÔNG MINH</button>
+   <div id="v3LearnedPanel" hidden>
+    <p class="hint">Những gì Ngố đã học và tín hiệu đang chờ thêm căn cứ.</p>
+    <div id="v3LearnedItems"></div>
+    <button type="button" id="v3LearnedMore" hidden>XEM TIẾP</button>
+   </div>
   </details>
   <details><summary><strong>GHI NHỚ CHỦ ĐỘNG</strong></summary>
    <p class="hint">Chỉ ghi khi bạn nhập ở đây hoặc ra lệnh bằng giọng “Nhớ rằng...”. Không tự ghi lại mọi hội thoại.</p>
@@ -100,12 +105,37 @@ const script=String.raw`
   const dl=$('v3Documents');dl.replaceChildren();
   for(const item of d.documents||[])line(dl,item.name+' ('+item.segment_count+' đoạn)',async()=>{if(!confirm('Xóa tài liệu này?'))return;try{await req('/api/v3/documents/'+encodeURIComponent(item.id),'DELETE',{});await populate();msg('Đã xóa')}catch(e){msg(e.message)}},async()=>{try{const d=await req('/api/v3/documents/'+encodeURIComponent(item.id));alert(d.name+'\n\n'+d.text)}catch(e){msg(e.message)}});
  }
+ let learnedOffset=0;
+ const learnedLabels={identity:'Con người và quan hệ',context:'Mục tiêu và hoàn cảnh',ask:'ASK',disc:'DISC',collaboration:'Cách hỗ trợ'};
+ const aspectLabels={attitude:'thái độ',skill:'kỹ năng',knowledge:'kiến thức',D:'D',I:'I',S:'S',C:'C'};
+ async function showLearned(reset){
+  const host=$('v3LearnedItems'),more=$('v3LearnedMore');
+  more.disabled=true;
+  try{
+   const data=await req('/api/v3/personal-memory?offset='+(reset?0:learnedOffset));
+   if(reset)host.replaceChildren();
+   for(const item of data.entries||[]){
+    const title=[learnedLabels[item.category],aspectLabels[item.aspect],item.domain,
+     item.state==='candidate'?'Chờ căn cứ':item.kind==='inferred'?'Nhận định':'',item.body,'Nguồn: '+item.evidence].filter(Boolean).join(' · ');
+    line(host,title,async()=>{
+     if(!confirm('Xóa mục này cùng lịch sử ghi nhớ?'))return;
+     try{await req('/api/v3/personal-memory','DELETE',{id:item.id});await showLearned(true)}catch(e){msg(e.message)}
+    });
+   }
+   if(reset&&!data.entries?.length)host.textContent='Chưa có mục nào.';
+   learnedOffset=data.nextOffset;
+   more.hidden=learnedOffset===null;
+  }finally{more.disabled=false}
+ }
+ $('v3LearnedMore').onclick=()=>showLearned(false).catch(e=>msg(e.message));
  async function refreshMemoryV2(){
   try{
    const p=await req('/api/v3/memory-v2-preference');
    memoryV2=p;
    $('v3MemoryV2Section').style.display=p.available?'block':'none';
+   $('v3LearnedPanel').hidden=!p.personalMemory;
    if(!p.available)return;
+   if(p.personalMemory)await showLearned(true).catch(e=>msg(e.message));
    $('v3MemoryV2Status').textContent=p.mode==='shadow'
     ? 'ĐANG THỬ NGHIỆM KHÔNG GHI DỮ LIỆU — '+(p.enabled?'Đã đồng ý phân tích':'Chưa đồng ý phân tích')
     : (p.enabled?'ĐANG BẬT — bộ nhớ có thể cập nhật sau mỗi lượt':'ĐANG TẮT — không tự ghi nhớ');

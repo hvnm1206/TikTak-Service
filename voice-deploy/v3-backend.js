@@ -1,3 +1,4 @@
+import {getPersonalContext,listPersonalMemory,removePersonalMemory,personalMemoryEnabled} from './personal-memory.js';
 // NMH Voice V3: authenticated, explicitly controlled per-user sync.
 const JSON_HEADERS={'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'};
 const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{...JSON_HEADERS,...headers}});
@@ -99,7 +100,8 @@ export async function loadV3Context(req,env,question){
   const terms=extractTerms(question).slice(0,5);
   const rows=terms.length?await env.NMH_DB.prepare('SELECT c.body, c.segment, d.name FROM v3_chunks c JOIN v3_documents d ON d.id=c.doc_id AND d.user_id=c.user_id WHERE c.user_id=? AND ('+terms.map(()=>'c.body LIKE ?').join(' OR ')+') LIMIT 80').bind(sub,...terms.map(x=>'%'+x+'%')).all():{results:[]};
   const docs=(rows.results||[]).map(x=>({...x,score:scoreSegment(question,x.body)})).filter(x=>x.score>=3).sort((a,b)=>b.score-a.score).slice(0,4).map(x=>({name:x.name,segment:x.segment,text:x.body.slice(0,900)}));
-  return {personalPrompt:maxText(profile?.prompt,2500),memories:memories.map(x=>x.body),documents:docs};
+  const learned=personalMemoryEnabled(env)?await getPersonalContext(env.NMH_DB,sub,question).catch(()=>[]):[];
+  return {personalPrompt:maxText(profile?.prompt,2500),memories:memories.map(x=>x.body),documents:docs,...(learned.length?{learned}: {})};
  }catch{return {personalPrompt:'',memories:[],documents:[],contextError:'Không truy cập được kho cá nhân, không thể xác minh tài liệu.'}}
 }
 export async function storeVoiceNote(req,env,note){
@@ -175,13 +177,27 @@ export async function handleV3(req,env){
   const person=await env.NMH_DB.prepare('SELECT name FROM v3_users WHERE id=?').bind(sub).first();
   return json({signedIn:true,name:person?.name||'',userId:sub});
  }
+ if(path==='/api/v3/personal-memory'&&personalMemoryEnabled(env)){
+  try{
+   if(method==='GET'){
+    const offset=Number(u.searchParams.get('offset')||0);
+    if(!Number.isSafeInteger(offset)||offset<0)return fail('Trang ghi nhớ không hợp lệ.');
+    return json(await listPersonalMemory(env.NMH_DB,sub,offset));
+   }
+   if(method==='DELETE'){
+    const data=await readJson(req,150);
+    if(typeof data?.id!=='string'||!/^[a-f0-9-]{36}$/i.test(data.id))return fail('Mã ghi nhớ không hợp lệ.');
+    return await removePersonalMemory(env.NMH_DB,sub,data.id)?json({ok:true}):fail('Không tìm thấy ghi nhớ.',404);
+   }
+  }catch{return fail('Chưa truy cập được hồ sơ ghi nhớ.',503)}
+ }
  if(path==='/api/v3/memory-v2-preference'){
   const mode=['shadow','active'].includes(env?.NMH_MEMORY_V2_MODE)?env.NMH_MEMORY_V2_MODE:'off';
   if(method==='GET'){
    if(mode==='off')return json({available:false,mode:'off',enabled:false,revision:0});
    try{
     const p=await env.NMH_DB.prepare('SELECT enabled,revision FROM v3_memory_v2_preferences WHERE user_id=?').bind(sub).first();
-    return json({available:true,mode,enabled:p?.enabled===1,revision:p?.revision||0});
+    return json({available:true,mode,enabled:p?.enabled===1,revision:p?.revision||0,...(personalMemoryEnabled(env)?{personalMemory:true}:{})});
    }catch{return fail('Memory V2 chưa sẵn sàng. Chưa thay đổi ghi nhớ.',503)}
   }
   if(method==='PUT'){

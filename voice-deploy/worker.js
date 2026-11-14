@@ -1,3 +1,4 @@
+import {learnPersonalMemory,personalMemoryEnabled} from './personal-memory.js';
 import {previewRealtimeSpeech} from './realtime-speech.js';
 import {enhanceFastVoice} from './fast-voice-ui.js';
 import { runAgent } from './agent-v2.js';
@@ -129,7 +130,7 @@ async function chatTurn(request,env,ctx,body,key,signal,onEvent){
  const question=String(body.messages.at(-1).content);
  // All natural-language operations are selected by the same GPT conversation.
  // No phrase-matching router, duplicate model classifier, or special memory path.
- const perfStart=performance.now();
+ const perfStart=performance.now(),learnedAt=Date.now();
  const personalization=await loadV3Context(request,env,question);
  const perfMemory=performance.now();
  if(personalization.contextError)return {error:personalization.contextError};
@@ -149,7 +150,9 @@ async function chatTurn(request,env,ctx,body,key,signal,onEvent){
     if(!sub)return;
     const flag=await env.NMH_DB.prepare('SELECT enabled FROM v3_memory_v2_preferences WHERE user_id=?').bind(sub).first();
     if(flag?.enabled!==1)return; // opt-in only
-    await runMemoryV2({mode,sub,db:env.NMH_DB,apiKey:key,userText:question,assistantText:result.answer});
+    if(personalMemoryEnabled(env)){
+     await learnPersonalMemory({db:env.NMH_DB,sub,apiKey:key,messages:body.messages,turnId:crypto.randomUUID(),learnedAt});
+    }else await runMemoryV2({mode,sub,db:env.NMH_DB,apiKey:key,userText:question,assistantText:result.answer});
    }catch{} // never interrupt or modify existing voice/chat/search response
   })();
   ctx.waitUntil(observe);
