@@ -1,5 +1,17 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## CẬP NHẬT MỚI NHẤT 14/11/2026 — NGỐ ĐÃ NÂNG ÂM LƯỢNG + GIAO DIỆN TRÊN PRODUCTION
+- URL chính thức giữ nguyên: https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Worker version: `cd66b9f6-b7a7-4970-abf8-ce1ef19e1446`.
+- Nguồn: nhánh `nmh-voice-actions-reminders-p0-20261114`; kế hoạch bám sát: https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-actions-reminders-p0-20261114/voice-deploy/NGO_AUDIO_THEME_PLAN_20261114.md .
+- Giọng Marin: thanh tăng âm trong SETUP, gain 1.00–2.50, mặc định 1.55; WebAudio `Analyser (avatar cũ) → Gain → Compressor → loa`; giữ nguyên mic và NMH Presence meter.
+- Giao diện SETUP: Mặc định/Vịt Ngố/Corgi Ngố. SVG mascot tự vẽ + trạng thái nghe/nghĩ/nói, chỉ lớp giao diện, không sửa GPT/Marin/mic/V3/Memory/Reminders.
+- CI 71 cũ + 20 mới PASS; Cloudflare sandbox D1 + rollback PASS: https://github.com/hvnm1206/TikTak-Service/actions/runs/43579648460 . Release theo version gate, D1 bookmark và rollback PASS: https://github.com/hvnm1206/TikTak-Service/actions/runs/43579758792 .
+- Version rollback đúng về trước nâng cấp audio/theme: `08e0bbf2-a2e5-4b98-94dc-0cfee882e5b6`. D1 bookmark được lưu artifact 30 ngày, không migration mới lần này.
+- Sau deploy Guarded Operator GET /health, /api/v3/config, /api/reminders/capabilities đều 200 READY. Không đụng Ngáo.
+- Chưa nghiệm thu tai nghe/loa iPhone thực; có thể chỉnh gain cao nhưng Safari/hardware vẫn giới hạn và có thể bị méo, cần phản hồi người dùng. Người dùng mở bản chính, vào SETUP chọn theme và tăng âm lượng, thử THỬ GIỌNG AI MARIN và NÓI. Không công bố iPhone PASS trước phản hồi.
+- Các nhật ký phiên bản cũ bên dưới là lịch sử, bản cập nhật này là hiện trạng hiện hành.
+
+
 ## CẬP NHẬT MỚI NHẤT 14/11/2026 — NGỐ P0 ĐÃ DEPLOY BẢN CHÍNH
 - Theo yêu cầu, đã phát hành Ngố P0 vào Worker CHÍNH `nmh-voice-gpt-test`, URL **https://nmh-voice-gpt-test.magical-budget.workers.dev/**; version mới `08e0bbf2-a2e5-4b98-94dc-0cfee882e5b6`.
 - Workflow https://github.com/hvnm1206/TikTak-Service/actions/runs/43578218605 **SUCCESS**: 71 kiểm thử cũ + 17 mới PASS; D1 migration 0004 chỉ bổ sung hai bảng; source deploy trên đúng nhánh `nmh-voice-actions-reminders-p0-20261114`; smoke voice, Marin marker, V3, Google config, status/unauth PASS.
