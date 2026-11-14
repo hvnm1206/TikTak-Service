@@ -12,6 +12,11 @@ const panel=String.raw`
    <div class="controls"><button type="button" id="v3SampleDanh">MẪU ĐANH ĐÁ</button><button type="button" id="v3SampleChem">MẪU CHÉM GIÓ</button><button type="button" id="v3SampleNghiem">MẪU NGHIÊM TÚC</button></div>
    <button type="button" class="primary" id="v3SavePrompt">LƯU PROMPT</button>
   </details>
+  <details id="v3MemoryV2Section" style="display:none"><summary><strong>GHI NHỚ THÔNG MINH (TỰ CHỌN)</strong></summary>
+   <p class="hint">Khi bật, GPT có thể đề xuất ghi nhớ điều bền vững sau lượt hội thoại. Không ghi mọi lời nói. Được xem/sửa/xóa tại GHI NHỚ CHỦ ĐỘNG. Có thể tắt bất cứ lúc nào.</p>
+   <p id="v3MemoryV2Status" class="hint">Chưa kích hoạt.</p>
+   <button type="button" id="v3MemoryV2Toggle">BẬT GHI NHỚ THÔNG MINH</button>
+  </details>
   <details><summary><strong>GHI NHỚ CHỦ ĐỘNG</strong></summary>
    <p class="hint">Chỉ ghi khi bạn nhập ở đây hoặc ra lệnh bằng giọng “Nhớ rằng...”. Không tự ghi lại mọi hội thoại.</p>
    <textarea id="v3MemoryText" rows="3" maxlength="500" style="width:100%;background:#111827;color:white;border:1px solid #64748b;border-radius:12px;padding:12px;font:inherit"></textarea>
@@ -33,6 +38,7 @@ const script=String.raw`
  const $=id=>document.getElementById(id);
  const msg=s=>{$('v3Msg').textContent=String(s)};
  let rev=0,loginClient='';
+ let memoryV2={available:false,enabled:false,revision:0,mode:'off'};
  const req=async(path,method='GET',payload)=>{
   const opts={method,credentials:'same-origin',headers:{'content-type':'application/json'}};
   if(payload!==undefined)opts.body=JSON.stringify(payload);
@@ -57,6 +63,28 @@ const script=String.raw`
   const dl=$('v3Documents');dl.replaceChildren();
   for(const item of d.documents||[])line(dl,item.name+' ('+item.segment_count+' đoạn)',async()=>{if(!confirm('Xóa tài liệu này?'))return;try{await req('/api/v3/documents/'+encodeURIComponent(item.id),'DELETE',{});await populate();msg('Đã xóa')}catch(e){msg(e.message)}},async()=>{try{const d=await req('/api/v3/documents/'+encodeURIComponent(item.id));alert(d.name+'\n\n'+d.text)}catch(e){msg(e.message)}});
  }
+ async function refreshMemoryV2(){
+  try{
+   const p=await req('/api/v3/memory-v2-preference');
+   memoryV2=p;
+   $('v3MemoryV2Section').style.display=p.available?'block':'none';
+   if(!p.available)return;
+   $('v3MemoryV2Status').textContent=p.mode==='shadow'
+    ? 'ĐANG THỬ NGHIỆM KHÔNG GHI DỮ LIỆU — '+(p.enabled?'Đã đồng ý phân tích':'Chưa đồng ý phân tích')
+    : (p.enabled?'ĐANG BẬT — bộ nhớ có thể cập nhật sau mỗi lượt':'ĐANG TẮT — không tự ghi nhớ');
+   $('v3MemoryV2Toggle').textContent=p.enabled?'TẮT GHI NHỚ THÔNG MINH':'BẬT GHI NHỚ THÔNG MINH';
+  }catch(e){$('v3MemoryV2Section').style.display='none';msg('Memory V2 chưa sẵn sàng: '+e.message)}
+ }
+ $('v3MemoryV2Toggle').onclick=async()=>{
+  const want=!memoryV2.enabled;
+  if(want&&!confirm('Cho phép GPT phân tích các lượt hội thoại của tài khoản này để đề xuất ghi nhớ lâu dài? Có thể tắt bất cứ lúc nào.'))return;
+  try{
+   const r=await req('/api/v3/memory-v2-preference','PUT',{enabled:want,revision:memoryV2.revision});
+   memoryV2={...memoryV2,enabled:r.enabled,revision:r.revision};
+   await refreshMemoryV2();
+   msg(r.enabled?'Đã bật tùy chọn ghi nhớ thông minh.':'Đã tắt ghi nhớ thông minh.');
+  }catch(e){msg('Không thay đổi được: '+e.message)}
+ };
  async function refresh(){
   try{
    const conf=await req('/api/v3/config');
@@ -64,7 +92,7 @@ const script=String.raw`
    loginClient=conf.googleClientId;
    const me=await req('/api/v3/me').catch(()=>null);
    if(me?.signedIn){
-    $('v3Login').style.display='none';$('v3App').style.display='grid';$('v3State').textContent='Đã đồng bộ — chỉ bạn truy cập dữ liệu tài khoản này.';$('v3User').textContent=me.name||'Tài khoản Google';await populate();
+    $('v3Login').style.display='none';$('v3App').style.display='grid';$('v3State').textContent='Đã đồng bộ — chỉ bạn truy cập dữ liệu tài khoản này.';$('v3User').textContent=me.name||'Tài khoản Google';await populate();await refreshMemoryV2();
    }else{
     $('v3Login').style.display='block';$('v3App').style.display='none';$('v3State').textContent='Chưa đăng nhập Google — ghi nhớ và tài liệu chưa đồng bộ.';
     if(window.google?.accounts?.id&&loginClient){
