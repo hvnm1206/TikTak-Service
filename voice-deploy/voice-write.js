@@ -7,7 +7,8 @@ const negative=(reason)=>({answer:'Chưa lưu: '+reason,saved:false,saveStatus:'
 const ask='Hãy nói rõ nội dung muốn ghi vào bộ nhớ hoặc file ghi chú.';
 // Unambiguous command/opening only, never match ordinary queries *about* writing.
 export function isWriteCommand(text){
- const t=clean(text).replace(/^(?:ê|này|ngáo|alo|ơi)[,!.:\s]+/iu,'');
+ let t=clean(text);
+ for(let n=0;n<3;n++)t=t.replace(/^(?:(?:ê|này|ngáo|alo|ơi|nghe này|này ngáo)(?:\s+ngáo)?)\s*[,!.:\s]+/iu,'');
  if(t.length<4)return false;
  if(/^(?:tại sao|vì sao|làm sao|làm thế nào|cách nào|cách |giải thích|cho biết|hỏi |có phải|có thể|tại vì|khi nào|bao giờ)\s/iu.test(t))return false;
  if(/^(?:(?:mày|em|bạn|anh|cậu)\s+)?(?:(?:hãy|làm ơn|nhờ|giúp|phiền|vui lòng)\s+){0,2}(?:ghi|chép|lưu|nhớ|viết|note|để dành)(?:\s|[,.!:：]|$)/iu.test(t))return true;
@@ -53,7 +54,12 @@ export async function routeVoiceWrite(request,env,text,apiKey,{fetchImpl=fetch,s
   const reason=String(e?.message||'');
   return negative(reason==='RATE_LIMIT'?'API AI đang hết hạn mức, không ghi dữ liệu.':reason==='API_KEY_INVALID'?'API key không hợp lệ, không ghi dữ liệu.':'không nhận dạng được lệnh ghi bằng AI. Không có dữ liệu nào được xác nhận.');
  }
- if(p.intent==='none')return null; // Not actually a write instruction, handle as normal chat.
+ if(p.intent==='none'){
+  // Only actual INFORMATIONAL QUESTIONS should reach the chat agent.
+  // Other write-shaped utterances must receive an explicit NOT-SAVED acknowledgement.
+  if(/(?:là gì|nghĩa là gì|cách nào|như thế nào|tại sao|vì sao|làm sao|có công cụ gì)/iu.test(text))return null;
+  return negative('tôi chưa xác định được yêu cầu ghi từ lời nói. '+ask);
+ }
  if(p.intent==='missing')return negative(ask);
  const command=p.intent==='note'?'Ghi vào file ghi chú '+p.content:'Ghi nhớ rằng '+p.content;
  try{
