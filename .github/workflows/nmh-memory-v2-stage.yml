@@ -26,7 +26,7 @@ jobs:
       - name: Full existing Voice and V3 regression tests
         run: |
           set -euo pipefail
-          node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs voice-deploy/v3-backend.test.mjs
+          node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs voice-deploy/v3-backend.test.mjs voice-deploy/voice-write.test.mjs
       - name: New Memory V2 security and behavior tests
         run: |
           set -euo pipefail
