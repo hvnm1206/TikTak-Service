@@ -80,3 +80,5 @@ jobs:
           print('MEMORY_V2_NATIVE_D1_SHADOW_NO_WRITE=PASS')
           print('MEMORY_V2_NATIVE_D1_TEST_DATA_CLEANUP=PASS')
           PY
+
+# Ephemeral sandbox Worker is deleted after native D1 integration assertions.
