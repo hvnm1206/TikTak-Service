@@ -38,3 +38,5 @@ test('stale previous origin cannot be used as current location to claim remainin
  assert.match(d.answer,/GPS mới|vị trí hiện tại/i);
  assert.equal(calls.filter(x=>x.url.includes('routes.googleapis.com')).length,0);
 });
+
+test('missing staticDuration does not fabricate traffic delay',()=>{const [r]=routeSummary({routes:[{distanceMeters:5600,duration:'900s'}]});assert.equal(r.durationMin,15);assert.equal(r.staticMin,null);assert.equal(r.extraDelayMin,null)});
