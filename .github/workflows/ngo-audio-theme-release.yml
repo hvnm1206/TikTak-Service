@@ -126,6 +126,27 @@ jobs:
           assert j['success'] and j['result'][0]['success'] and len(j['result'][0]['results'])==2
           print('NGO_ADDITIVE_PROD_D1_SCHEMA=PASS')
           PY
+          # Add only missing columns. Existing personal Prompt rows are preserved; migration is additive.
+          python3 - <<'PY'
+          import os,json,urllib.request
+          url='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/d1/database/'+os.environ['PROD_DB_ID']+'/query'
+          def q(sql):
+           req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_D1_TOKEN'],'Content-Type':'application/json'},data=json.dumps({'sql':sql,'params':[]}).encode(),method='POST')
+           with urllib.request.urlopen(req,timeout=30) as resp:data=json.load(resp)
+           assert data['success'] and data['result'][0]['success'],data.get('errors')
+           return data['result'][0]['results']
+          before=q('PRAGMA table_info(v3_profiles)')
+          existing={row['name'] for row in before}
+          assert 'prompt' in existing and 'revision' in existing,'Profile schema missing'
+          alterations={'presets_json':"ALTER TABLE v3_profiles ADD COLUMN presets_json TEXT NOT NULL DEFAULT '{}'",'active_preset':"ALTER TABLE v3_profiles ADD COLUMN active_preset TEXT NOT NULL DEFAULT ''"}
+          for key,sql in alterations.items():
+           if key not in existing:
+            q(sql)
+            print('NGO_PROMPT_ADD_COLUMN='+key)
+          after={row['name'] for row in q('PRAGMA table_info(v3_profiles)')}
+          assert set(alterations).issubset(after),'Prompt schema migration incomplete'
+          print('NGO_PRODUCTION_EDITABLE_PROMPT_PRESETS_SCHEMA=PASS')
+          PY
           deployed=1
           (cd voice-deploy && npx --yes wrangler@4.102.0 deploy --config wrangler-ngo-prod.generated.jsonc)
           ready=0
@@ -157,7 +178,7 @@ jobs:
             return 1
           }
           http200_with_retry / /tmp/ngo-live-ui.html
-          for marker in 'id="start"' 'id="resume"' 'id="avatar"' 'v3MemoryV2Section' 'nmhReminderToast' 'Marin' 'ttsPrefetchCtl' 'ngoThemeCSS' 'ngoThemeSelect' 'nmh_voice_gain_v1' 'calculateStableAudioGain' 'ngoMascotStage' 'field.append(stage)' 'visual-field' 'width:min(94%,355px)' 'Mắt Ngố' 'Mắt Vịt' 'Mắt Corgi' 'ngo-eye' 'ngo-iris' 'scheduleBlink' 'nmhVoiceLatencyReport' 'nmhVoiceLatencyMark' 'firstAudio' 'ttsReady' 'ngoQrShare' 'ngoAppQrCode' 'ngoAppQrLink' 'nmh-voice-gpt-test.magical-budget.workers.dev' 'v3PromptSaveStatus' 'CHƯA LƯU ĐƯỢC' 'ĐÃ LƯU VÀ ĐỌC LẠI THÀNH CÔNG';do
+          for marker in 'id="start"' 'id="resume"' 'id="avatar"' 'v3MemoryV2Section' 'nmhReminderToast' 'Marin' 'ttsPrefetchCtl' 'ngoThemeCSS' 'ngoThemeSelect' 'nmh_voice_gain_v1' 'calculateStableAudioGain' 'ngoMascotStage' 'field.append(stage)' 'visual-field' 'width:min(94%,355px)' 'Mắt Ngố' 'Mắt Vịt' 'Mắt Corgi' 'ngo-eye' 'ngo-iris' 'scheduleBlink' 'nmhVoiceLatencyReport' 'nmhVoiceLatencyMark' 'firstAudio' 'ttsReady' 'ngoQrShare' 'ngoAppQrCode' 'ngoAppQrLink' 'nmh-voice-gpt-test.magical-budget.workers.dev' 'v3PromptSaveStatus' 'CHƯA LƯU ĐƯỢC' 'ĐÃ LƯU VÀ ĐỌC LẠI THÀNH CÔNG' 'savedPresets' 'activePreset' 'selectPreset';do
             grep -q "$marker" /tmp/ngo-live-ui.html || { echo "::error::missing UI marker $marker";false; }
           done
           code=$(curl --silent --max-time 15 -o /tmp/ngo-anon -w '%{http_code}' "$TARGET/api/reminders/due")
