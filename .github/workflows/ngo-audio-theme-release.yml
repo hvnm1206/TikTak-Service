@@ -1,0 +1,183 @@
+name: NGỐ Audio + Theme V1 — guarded production release
+on:
+  push:
+    branches: [nmh-voice-actions-reminders-p0-20261114]
+permissions:
+  contents: read
+concurrency:
+  group: nmh-voice-gpt-production-deploy
+  cancel-in-progress: false
+jobs:
+  release:
+    if: >-
+      startsWith(github.event.head_commit.message, 'release(ngo): guarded audio theme production 20261114')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CLOUDFLARE_D1_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+      GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
+      PROD_DB_ID: '3ce295cb-a84d-4a50-abee-d14fdd903514'
+      PROD_WORKER: nmh-voice-gpt-test
+      PROD_EXPECTED_VERSION: 08e0bbf2-a2e5-4b98-94dc-0cfee882e5b6
+      TARGET: https://nmh-voice-gpt-test.magical-budget.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: GATE 1 — Voice/Reminder/Theme regression and isolated Cloudflare sandbox
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in worker.js agent-v2.js v3-backend.js v3-ui.js memory-v2.js voice-write.js action-registry.js reminders.js reminders-client.js theme-ui.js volume-ui.js;do node --check "voice-deploy/$f";done
+          node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs voice-deploy/v3-backend.test.mjs voice-deploy/voice-write.test.mjs voice-deploy/memory-v2.test.mjs voice-deploy/memory-v2.preference.test.mjs
+          node --experimental-sqlite --test voice-deploy/reminders.test.mjs voice-deploy/reminders-client.test.mjs voice-deploy/theme-ui.test.mjs
+          python3 - <<'PY'
+          import json,urllib.request
+          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43577570928',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-PROD-GATE'})
+          with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
+          assert j['conclusion']=='success' and j['name']=='NGỐ P0 — persistent isolated iPhone pilot'
+          print('NGO_REAL_WORKER_AND_D1_PILOT_GATE=PASS')
+          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43579648460',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-AUDIO-THEME-GATE'})
+          with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
+          assert j['conclusion']=='success' and j['name']=='NGỐ P0 — isolated real Cloudflare Worker and D1 sandbox'
+          print('NGO_AUDIO_THEME_REAL_D1_SANDBOX_AND_ROLLBACK_GATE=PASS')
+          PY
+      - name: GATE 2 — pin production version, D1 schema and Time Travel bookmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,re,urllib.request
+          assert os.environ['CLOUDFLARE_API_TOKEN'] and os.environ['CLOUDFLARE_D1_TOKEN']
+          assert re.fullmatch(r'[0-9]+-[a-z0-9-]+[.]apps[.]googleusercontent[.]com',os.environ['GOOGLE_CLIENT'])
+          a='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']
+          def cf(p,token,body=None):
+           req=urllib.request.Request(a+p,headers={'Authorization':'Bearer '+token,'Content-Type':'application/json','User-Agent':'NMH-NGO-PROD-GATE'},data=json.dumps(body).encode() if body is not None else None,method='POST' if body is not None else 'GET')
+           with urllib.request.urlopen(req,timeout=35) as r:j=json.load(r)
+           assert j.get('success'),j.get('errors')
+           return j['result']
+          v=cf('/workers/scripts/'+os.environ['PROD_WORKER']+'/deployments',os.environ['CLOUDFLARE_API_TOKEN'])['deployments'][0]['versions']
+          assert len(v)==1 and v[0]['percentage']==100 and v[0]['version_id']==os.environ['PROD_EXPECTED_VERSION'],'PRODUCTION_VERSION_DRIFT'
+          db=cf('/d1/database/'+os.environ['PROD_DB_ID'],os.environ['CLOUDFLARE_D1_TOKEN'])
+          assert db['name']=='nmh-voice-v3'
+          bookmark=cf('/d1/database/'+os.environ['PROD_DB_ID']+'/time_travel/bookmark',os.environ['CLOUDFLARE_D1_TOKEN'])['bookmark']
+          assert isinstance(bookmark,str) and len(bookmark)>20,'NO_D1_BACKUP'
+          def sql(q):
+           v=cf('/d1/database/'+os.environ['PROD_DB_ID']+'/query',os.environ['CLOUDFLARE_D1_TOKEN'],{'sql':q,'params':[]})
+           assert len(v)==1 and v[0]['success']
+           return v[0]['results']
+          names={x['name'] for x in sql("SELECT name FROM sqlite_master WHERE type='table'")}
+          assert {'v3_users','v3_sessions','v3_profiles','v3_memories','v3_documents','v3_chunks','v3_memory_v2_preferences','v3_memory_v2_turns'}<=names
+          new={'nmh_reminders','nmh_reminder_audit'} & names
+          assert len(new) in (0,2),'PARTIAL_P0_SCHEMA'
+          with open('/tmp/ngo-prod-backup.json','w') as f:json.dump({'worker':os.environ['PROD_WORKER'],'version':v[0]['version_id'],'d1_id':os.environ['PROD_DB_ID'],'bookmark':bookmark,'preexisting_p0_tables':sorted(new)},f)
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('NGO_P0_PRETABLES='+str(len(new))+'\n')
+          print('NGO_PINNED_PRODUCTION_VERSION_D1_BACKUP=PASS')
+          PY
+          curl --fail --silent --max-time 20 "$TARGET/health" -o /tmp/ngo-before-health.json
+          curl --fail --silent --max-time 20 "$TARGET/api/v3/config" -o /tmp/ngo-before-config.json
+          python3 - <<'PY'
+          import json
+          h=json.load(open('/tmp/ngo-before-health.json'));c=json.load(open('/tmp/ngo-before-config.json'))
+          assert h.get('ok') and h.get('voice')=='browser-stt+marin-tts' and h.get('writeVersion')=='voice-write-synchronous-ack-v1'
+          assert c.get('ready') and c.get('storage')=='Cloudflare D1'
+          print('NGO_OLD_VOICE_HEALTH_AND_V3=PASS')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ngo-p0-prod-version-and-d1-bookmark
+          path: /tmp/ngo-prod-backup.json
+          retention-days: 30
+      - name: GATE 3 — additive D1 migration, same Worker deploy and automatic rollback
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          deployed=0
+          rollback() {
+            status=$?
+            trap - ERR
+            if [ "$deployed" = 1 ];then
+              echo "::error::P0 post-deploy failed; restoring exact Worker version $PROD_EXPECTED_VERSION"
+              (cd voice-deploy && npx --yes wrangler@4.102.0 rollback "$PROD_EXPECTED_VERSION" --name "$PROD_WORKER" --message "NGO P0 automatic rollback" --config wrangler-ngo-prod.generated.jsonc) || echo "::error::ROLLBACK_FAILED_MANUAL_REQUIRED"
+            fi
+            exit "$status"
+          }
+          trap rollback ERR
+          python3 - <<'PY'
+          import os,json
+          assert os.environ['PROD_WORKER']=='nmh-voice-gpt-test' and os.environ['PROD_DB_ID']=='3ce295cb-a84d-4a50-abee-d14fdd903514'
+          c={'name':os.environ['PROD_WORKER'],'main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,
+             'd1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':os.environ['PROD_DB_ID']}],
+             'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT'],'NMH_MEMORY_V2_MODE':'active','NMH_REMINDERS_MODE':'active'}}
+          with open('voice-deploy/wrangler-ngo-prod.generated.jsonc','w') as f:json.dump(c,f)
+          print('NGO_MEMORY_V2_ACTIVE_PRESERVED=PASS')
+          PY
+          if [ "$NGO_P0_PRETABLES" = 0 ];then
+            CLOUDFLARE_API_TOKEN="$CLOUDFLARE_D1_TOKEN" npx --yes wrangler@4.102.0 d1 execute nmh-voice-v3 --remote --config voice-deploy/wrangler-ngo-prod.generated.jsonc --file voice-deploy/migrations/0004_reminders.sql
+          fi
+          python3 - <<'PY'
+          import os,json,urllib.request
+          url='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/d1/database/'+os.environ['PROD_DB_ID']+'/query'
+          req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_D1_TOKEN'],'Content-Type':'application/json'},data=json.dumps({'sql':"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nmh_reminders','nmh_reminder_audit')",'params':[]}).encode(),method='POST')
+          with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
+          assert j['success'] and j['result'][0]['success'] and len(j['result'][0]['results'])==2
+          print('NGO_ADDITIVE_PROD_D1_SCHEMA=PASS')
+          PY
+          deployed=1
+          (cd voice-deploy && npx --yes wrangler@4.102.0 deploy --config wrangler-ngo-prod.generated.jsonc)
+          ready=0
+          for i in 1 2 3 4 5 6 7 8 9 10 11 12;do
+            sleep 4
+            curl --fail --silent --max-time 15 "$TARGET/health" -o /tmp/ngo-health.json || continue
+            curl --fail --silent --max-time 15 "$TARGET/api/v3/config" -o /tmp/ngo-v3.json || continue
+            curl --fail --silent --max-time 15 "$TARGET/api/reminders/capabilities" -o /tmp/ngo-cap.json || continue
+            if python3 - <<'PY'
+          import json
+          h=json.load(open('/tmp/ngo-health.json'));v=json.load(open('/tmp/ngo-v3.json'));r=json.load(open('/tmp/ngo-cap.json'))
+          assert h.get('ok') and h.get('voice')=='browser-stt+marin-tts' and h.get('writeVersion')=='voice-write-synchronous-ack-v1'
+          assert h.get('uiVersion')=='presence-canvas-v1' and h.get('v3Version')=='d1-only-google-v3'
+          assert v.get('ready') and v.get('storage')=='Cloudflare D1'
+          assert r.get('enabled') is True and r.get('foregroundOnly') is True
+          PY
+            then ready=1;break;fi
+          done
+          test "$ready" = 1
+          curl --fail --silent --max-time 20 "$TARGET/" -o /tmp/ngo-live-ui.html
+          for marker in 'id="start"' 'id="resume"' 'id="avatar"' 'v3MemoryV2Section' 'nmhReminderToast' 'Marin' 'ttsPrefetchCtl' 'ngoThemeCSS' 'ngoThemeSelect' 'nmh_voice_gain_v1' 'createDynamicsCompressor' 'ngoMascotStage';do
+            grep -q "$marker" /tmp/ngo-live-ui.html || { echo "::error::missing UI marker $marker";false; }
+          done
+          code=$(curl --silent --max-time 15 -o /tmp/ngo-anon -w '%{http_code}' "$TARGET/api/reminders/due")
+          test "$code" = 401
+          code=$(curl --silent --max-time 15 -o /tmp/ngo-anon -w '%{http_code}' "$TARGET/api/v3/memory-v2-preference")
+          test "$code" = 401
+          code=$(curl --silent --max-time 15 -o /tmp/ngo-bad-chat -w '%{http_code}' -X POST -H "Origin: $TARGET" -H 'Content-Type: application/json' --data '{"apiKey":"invalid","messages":[{"role":"user","content":"hi"}]}' "$TARGET/api/chat")
+          test "$code" = 400
+          code=$(curl --silent --max-time 15 -o /tmp/ngo-bad-tts -w '%{http_code}' -X POST -H "Origin: $TARGET" -H 'Content-Type: application/json' --data '{"apiKey":"invalid","text":"hi"}' "$TARGET/api/tts")
+          test "$code" = 400
+          curl --fail --silent --max-time 20 "$TARGET/api/docs/maintenance" -o /tmp/ngo-maintenance.md
+          grep -q 'NGỐ P0 PILOT' /tmp/ngo-maintenance.md
+          python3 - <<'PY'
+          import os,json,urllib.request
+          url='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/workers/scripts/'+os.environ['PROD_WORKER']+'/deployments'
+          req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN']})
+          with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
+          assert j['success'] and len(j['result']['deployments'][0]['versions'])==1
+          v=j['result']['deployments'][0]['versions'][0]
+          assert v['percentage']==100 and v['version_id']!=os.environ['PROD_EXPECTED_VERSION']
+          print('NGO_NEW_PROD_WORKER_VERSION='+v['version_id'])
+          print('NGO_PRODUCTION_OLD_FEATURES_AND_P0_SMOKE=PASS')
+          print('NGO_PHYSICAL_IPHONE_UAT=PENDING')
+          PY
+          deployed=0
+          trap - ERR
+          echo 'NGO_AUDIO_THEME_PRODUCTION_RELEASE=SUCCESS'
+      - name: Write release summary
+        if: success()
+        run: |
+          echo "## NGỐ Audio + Theme production deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "Production: $TARGET" >> "$GITHUB_STEP_SUMMARY"
+          echo "Rollback version: $PROD_EXPECTED_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "D1 Time Travel bookmark stored in 30-day artifact." >> "$GITHUB_STEP_SUMMARY"
+          echo "Real OpenAI + Google user and iPhone Marin foreground UAT still require live device." >> "$GITHUB_STEP_SUMMARY"
