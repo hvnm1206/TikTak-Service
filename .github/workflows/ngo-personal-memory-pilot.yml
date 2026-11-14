@@ -315,7 +315,7 @@ jobs:
           if existing:
            target='/workers/scripts/'+os.environ['PILOT_WORKER']
            current=call(a+target+'/deployments',os.environ['CLOUDFLARE_API_TOKEN'])['deployments'][0]['versions']
-           assert len(current)==1 and current[0]['percentage']==100 and current[0]['version_id']=='11a345e8-a410-43db-bf5f-a90d0543e9ae'
+           assert len(current)==1 and current[0]['percentage']==100 and current[0]['version_id']=='065778e3-2718-48c6-ac40-01efb218a8fa'
            settings=call(a+target+'/settings',os.environ['CLOUDFLARE_API_TOKEN'])
            assert any(b.get('name')=='NMH_DB' and b.get('id')==uuid for b in settings['bindings']),'Existing pilot binding mismatch'
           with open(os.environ['GITHUB_ENV'],'a') as f:
