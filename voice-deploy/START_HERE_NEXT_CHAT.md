@@ -1,5 +1,32 @@
 # BÀN GIAO NGỐ — TRẠNG THÁI CHÍNH THỨC 14/11/2026
 
+## TRẠNG THÁI CHÍNH THỨC — QR MỞ APP TRONG SETUP (14/11/2026)
+
+- **App Ngố chính:** https://nmh-voice-gpt-test.magical-budget.workers.dev/
+- **Cloudflare Worker:** `nmh-voice-gpt-test` — production version **`c1755bd1-5e2a-4af8-b542-d4557446cef4`**. Rollback code version **`4f2c3cd2-e814-41f1-87da-85dc6e371079`**.
+- **Mới cập nhật:** SETUP (Cài đặt) có mục mở sẵn **MÃ QR MỞ NGỐ TRÊN ĐIỆN THOẠI**: mã QR trắng/đen, link bấm trực tiếp và nút **SAO CHÉP LINK**. Mã QR chỉ chứa URL công khai ở trên, không kèm API key, danh tính hay dữ liệu riêng. Không gọi dịch vụ QR ngoài, hoạt động khi ứng dụng tải xong.
+- **Kiểm định QR:** ma trận QR phiên bản 4, mức sửa lỗi M, viền trắng 4 module, đã giải mã bằng OpenCV ra đúng URL. SHA256 ma trận `9aa11ca4324cf0479d963dd15c73793348d28088ebe499bb901883b9743ff026`.
+- **Chứng cứ kỹ thuật:** 114/114 bài kiểm thử PASS [CI #43610054668](https://github.com/hvnm1206/TikTak-Service/actions/runs/43610054668); [sandbox Cloudflare Worker+D1 rollback #43610054623](https://github.com/hvnm1206/TikTak-Service/actions/runs/43610054623) PASS; [production Guard release #43610159478](https://github.com/hvnm1206/TikTak-Service/actions/runs/43610159478) PASS. Guarded Operator GET chính URL production trả HTTP 200, xác nhận mã QR/link/copy cùng phần nhận giọng nói và AudioContext vẫn phục vụ trong HTML.
+- **Không thay đổi trong lần này:** micro, GPT-6 Luna, Marin TTS, mức âm lượng, tìm kiếm, Memory/D1, OAuth, nhắc việc 10 phút và các skin đôi mắt. Ngáo là sản phẩm riêng, không sửa.
+- **Còn cần nghiệm thu trên thiết bị:** quét QR bằng camera iPhone thực, mở Safari/app đúng URL; xác minh camera không báo lỗi, bố cục SETUP và âm thanh/mic thông thường. Không khẳng định đã PASS iPhone nếu chưa thấy kết quả thực.
+- **Đặc tả + nhật ký QR:** https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-actions-reminders-p0-20261114/voice-deploy/NGO_SETUP_QR_RELEASE_20261114.md
+
+### Tổng kết tình trạng Ngố sau các đợt nâng cấp 14/11/2026
+
+1. **Voice:** Safari SpeechRecognition → GPT-6 Luna/Responses → Marin; đã có chỉ số thời gian GPT/API, D1, TTS và tiếng đầu trong SETUP. Kiến trúc vẫn chờ GPT hoàn thành văn bản trước khi TTS phát tiếng đầu; chưa streaming hoàn toàn.
+2. **Giao diện:** Mặc định + Mắt Ngố/Mắt Vịt/Mắt Corgi dùng chung động cơ mắt chớp và nhìn theo trạng thái; vừa bổ sung QR chia sẻ ngay trong SETUP.
+3. **Dữ liệu cá nhân:** Google OAuth và Cloudflare D1; công cụ ghi chú/ghi nhớ/đọc/sửa/xóa có xác thực và kiểm chứng D1. Chất lượng truy xuất ghi nhớ cũ trên dữ liệu lớn chưa đạt chứng minh tìm kiếm ngữ nghĩa toàn diện.
+4. **Tìm kiếm:** OpenAI Web Search, Wikipedia/RSS và Open-Meteo dự báo 7 ngày; đã kiểm tra nguồn thời tiết công khai có ngày mai. Chưa có nghiệm thu GPT chọn công cụ đúng cho mọi câu hỏi thoại thực.
+5. **Âm thanh:** Marin đã bỏ compressor cũ và có cân biên độ từng đoạn; nghe qua loa iPhone nhiều lượt chưa được nghiệm thu; phát nhắc việc vẫn qua đường audio riêng.
+6. **Nhắc việc:** đã tăng polling từ 10 giây lên 10 phút, giảm 60 lần các yêu cầu định kỳ; foreground-only, có thể trễ và không nhắc được nếu ứng dụng đóng.
+7. **Chi phí:** OpenAI API theo key do người dùng nhập; Cloudflare do chủ Worker thanh toán. Bảng ước tính nội bộ theo thiết bị không thay thế hóa đơn. [Audit tổng thể & ước phí](https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-actions-reminders-p0-20261114/voice-deploy/NGO_FULL_AUDIT_AND_COST_20261114.md).
+8. **Guard:** production version pin, sandbox Worker+D1, CI regression và rollback có bằng chứng; riêng nghiệm thu iPhone (giọng nói, độ trễ, âm lượng, quét QR) chưa được chứng minh tự động.
+
+**Nguồn chuẩn triển khai:** branch `nmh-voice-actions-reminders-p0-20261114`. Branch `nmh-voice-gpt-v1` chỉ dành cho tài liệu BẢO TRÌ/bàn giao; không lấy làm source phát hành. Các phiên bản cũ ghi phía dưới là **lịch sử**, không phải production hiện hành.
+
+---
+
+
 ## MỚI NHẤT — NHẮC VIỆC 10 PHÚT (14/11/2026)
 - Ngố chính: https://nmh-voice-gpt-test.magical-budget.workers.dev/ ; Worker production version **`4f2c3cd2-e814-41f1-87da-85dc6e371079`** ; rollback code **`c53ec4d6-ed9f-4dd2-9f79-76cdfdd8505d`**.
 - Người dùng chọn giữ nhắc việc và nới chu kỳ **10 giây → 10 phút**; giữ kiểm tra lúc mở app, lúc quay lại app nếu đã qua >=60 giây, ngăn các lệnh kiểm tra chồng lặp. Không xóa lời nhắc/D1; không thay micro, Marin, GPT, Memory.
