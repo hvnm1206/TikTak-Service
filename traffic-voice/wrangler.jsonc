@@ -1,0 +1,8 @@
+{
+  "name": "nmh-traffic-voice-v1",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-11-14",
+  "workers_dev": true,
+  "observability": {"enabled": true},
+  "ratelimits": [{"name": "TRAFFIC_LIMITER", "namespace_id": "2026111401", "simple": {"limit": 30, "period": 60}}]
+}

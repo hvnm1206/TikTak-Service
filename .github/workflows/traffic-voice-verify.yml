@@ -1,0 +1,28 @@
+name: NMH Traffic Voice V1 - isolated verification
+on:
+  push:
+    branches: [nmh-traffic-voice-v1-20261114]
+    paths:
+      - 'traffic-voice/**'
+      - '.github/workflows/traffic-voice-verify.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-and-dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: cd traffic-voice && npm run check
+      - name: Unit tests with mocked providers (not live Maps verification)
+        run: cd traffic-voice && npm test
+      - name: Independent Cloudflare Worker package dry run (never deploy)
+        run: npx --yes wrangler@4.102.0 deploy --dry-run --config traffic-voice/wrangler.jsonc --outdir /tmp/traffic-v1-dist
+      - name: Confirm isolated Worker name in configuration
+        run: |
+          node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('traffic-voice/wrangler.jsonc'));if(j.name!=='nmh-traffic-voice-v1')process.exit(1);console.log('Traffic Worker isolated: '+j.name)"
