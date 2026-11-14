@@ -283,3 +283,5 @@ jobs:
 
 
 
+
+# Memory context production fix release authorized 2026-11-14; preserve D1, OAuth and rollback.
