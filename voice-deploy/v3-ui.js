@@ -97,6 +97,7 @@ const script=String.raw`
    $('v3File').value='';await populate();msg('Đã đồng bộ tài liệu: '+d.segments+' đoạn')
   }catch(e){msg('Chưa tải được tài liệu: '+e.message)}
  };
+ window.nmhV3Refresh=()=>refresh();
  window.nmhV3GoogleReady=()=>{if(loginClient)refresh()};
  refresh();
 })();
