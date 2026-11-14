@@ -111,6 +111,8 @@ try{
  if(personalization.contextError)return respond({error:personalization.contextError},503);
  const actionRuntime=buildActionRuntime({request,env,utterance:question,requestId:body.requestId,signal:ctl.signal});
  const result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal:ctl.signal,actionRuntime});
+ // Reminder actions are utility operations, not long-term personal memories. Do not feed their content to Memory V2.
+ if(result.actionStatus)return respond(result);
  // The new analyzer is an isolated observer. Off by default, never changes the spoken reply.
  // No extra network call, SQL or mic/TTS handling when disabled.
  const mode=memoryMode(env);
