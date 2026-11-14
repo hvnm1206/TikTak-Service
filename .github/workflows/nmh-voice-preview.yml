@@ -189,9 +189,9 @@ jobs:
            def chat(s):
             return http('/api/chat','POST',{'apiKey':api,'messages':[{'role':'user','content':s}],'style':'nghiem_tuc'})[1]
            a=chat('Ghi vào file ghi chú '+note)
-           assert a.get('answer')=='Đã ghi vào file ghi chú.' and 'save_note' in a.get('tools',[]), 'create note failed'
+           assert a.get('saved') is True and a.get('noteSegment')==1 and 'save_note' in a.get('tools',[]) and 'GHI_CHU.md' in a.get('answer',''), 'create note readback failed'
            b=chat('Thêm vào ghi chú KIEM TRA LAN HAI')
-           assert b.get('answer')=='Đã ghi vào file ghi chú.' and 'save_note' in b.get('tools',[]), 'append note failed'
+           assert b.get('saved') is True and b.get('noteSegment')==2 and 'save_note' in b.get('tools',[]) and 'GHI_CHU.md' in b.get('answer',''), 'append note readback failed'
            docs=http('/api/v3/documents')[1].get('documents',[])
            matched=[d for d in docs if d.get('name')=='GHI_CHU.md']
            assert len(matched)==1, 'note file absent or duplicate'
