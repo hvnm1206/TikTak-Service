@@ -1,50 +1,24 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
-## 14/11/2026 — WEB SEARCH V2 CÁCH LY HOÀN TOÀN, CHƯA THAY PRODUCTION
+## 14/11/2026 — CHỐT DỌN DẸP SAU SỰ CỐ TÌM KIẾM (TRẠNG THÁI HIỆN HÀNH)
 
-**Nguyên tắc người dùng chốt:** bản Voice iPhone đang hoạt động không được thay đổi micro/STT/Marin chỉ để bổ sung tìm kiếm. **Production tiếp tục** version `8cc6032c-0035-414c-8217-7ea5e91825e5` tại https://nmh-voice-gpt-test.magical-budget.workers.dev/; đợt này **KHÔNG triển khai bất kỳ thay đổi nào lên Worker đó**.
+**PRODUCTION GIỮ NGUYÊN.** Cloudflare Worker `nmh-voice-gpt-test`, URL https://nmh-voice-gpt-test.magical-budget.workers.dev/, active version **`8cc6032c-0035-414c-8217-7ea5e91825e5`** đã kiểm chứng bằng Cloudflare API và HTTP sau dọn dẹp. Không deploy hay rollback Worker production trong đợt dọn dẹp này.
 
-**Đã thực thi:** tạo branch `nmh-voice-search-isolated-v2` và Worker riêng `nmh-voice-search-lab-v2`, URL https://nmh-voice-search-lab-v2.magical-budget.workers.dev/; trang thử tìm kiếm dạng chữ không cần mic: https://nmh-voice-search-lab-v2.magical-budget.workers.dev/search-lab. Staging version `0b8fdbda-b626-4a09-ba35-720483ee9886`, [staging GitHub Actions 43530262638](https://github.com/hvnm1206/TikTak-Service/actions/runs/43530262638) SUCCESS, smoke trên Cloudflare thực PASS và kiểm tra production không đổi PASS.
+**DỌN XONG VÀ CÓ BẰNG CHỨNG:** [GitHub Actions 43531780452](https://github.com/hvnm1206/TikTak-Service/actions/runs/43531780452) **SUCCESS**:
+- Xóa **chỉ** Cloudflare staging Worker `nmh-voice-search-lab-v2`; Cloudflare API đọc lại trả HTTP 404.
+- Xóa **chỉ** hai nhánh thí nghiệm `nmh-voice-search-lab`, `nmh-voice-search-isolated-v2`; GitHub đọc lại trả HTTP 404.
+- Xóa `.github/workflows/nmh-voice-rollback-search.yml`, mã test Safari tạm `voice-deploy/browser-voice-contract.test.mjs`, tài liệu lab `SEARCH_WEB_V2_LAB_2026-11-14.md`. Workflow dọn dẹp dùng một lần đã tự được gỡ khỏi source sau khi chạy; không còn workflow nào có thể tự dựng lại staging.
+- Khôi phục `voice-deploy/presence-ui.js` **đúng blob SHA `4f9e5ad1e8826aed7b2ba1a714e197a9d39ba8d1`** của commit production baseline `3a40173817ab9f8bc4e93ce2c73bfd9d75ac1a03`; `worker.js`, `agent-v2.js`, `v3-ui.js` trước đó đã trùng byte-for-byte baseline. Loại bỏ CI test liên quan watchdog chưa phát hành.
+- Giữ nguyên tài nguyên đã được người dùng dùng từ trước: Google Web Client, D1 `nmh-voice-v3`, tính cách Prompt, ghi nhớ, tài liệu TXT/Markdown, bộ nút NÓI/TIẾP TỤC, Marin TTS và bản Presence. **Không xóa D1, không thu hồi token, không xóa GitHub branch `nmh-voice-gpt-v1`, không đụng `main`**.
+- Sau cleanup: GET `/health` PASS, GET `/api/v3/config` PASS (`ready=true, Cloudflare D1`), GET `/` có `avatar/start/resume`, không có `v3WebSearch`; HTTPS production `/search-lab` HTTP 404.
 
-**Kiến trúc:** Browser Voice dùng **nguyên trạng source production baseline** commit `3a40173817ab9f8bc4e93ce2c73bfd9d75ac1a03` (đã đối chiếu byte-for-byte `presence-ui.js` và toàn bộ PAGE embedded). Tính năng mới nằm trong module backend `voice-deploy/isolated-web-search.js`; server chỉ chuyển câu hỏi có nhu cầu thông tin mới khi env `NMH_WEB_SEARCH_ENABLED=true` (chỉ staging), còn tất cả hội thoại thường dùng `runAgent` cũ. OpenAI Responses `gpt-6-luna` + tool `web_search` `tool_choice=required`, `search_context_size=low`; trả `url_citation`, nguồn, chi phí ước tính khoảng $0,01/lượt cộng token. Khi nguồn không xác nhận được, trả lỗi có thể đọc bằng giọng, không dựng kết quả giả. Kế toán chi phí cũ được bao gồm phí search bằng điều chỉnh response backend, không đổi browser JS.
+**TRẠNG THÁI TÌM KIẾM:** Không tồn tại Web Search nâng cao trong production. Các bộ thử bị bỏ và không được coi là phần đã triển khai. Chỉ còn công cụ công khai cũ (Open-Meteo, Wikipedia, Google News RSS). Nhu cầu tìm kiếm web thực sự **chưa được hoàn thành**.
 
-**Bằng chứng kiểm thử:** [lab CI 43530262836](https://github.com/hvnm1206/TikTak-Service/actions/runs/43530262836) và [staging 43530262638](https://github.com/hvnm1206/TikTak-Service/actions/runs/43530262638): **52 trường hợp: 48 PASS, 4 SKIPPED có chủ đích** (đây là các kiểm thử cho lỗi Safari STT/TTS tiềm ẩn của baseline production, chưa triển khai hotfix; không được ghi PASS). Test backend: định tuyến đúng câu hỏi, mặc định không tìm web trên production, nguồn HTTPS, chống nguồn giả, lỗi nhà cung cấp, không để lộ khóa, chặn Origin giả, không sửa micro. GitHub CI xác nhận `VOICE_BROWSER_IDENTICAL_TO_DEPLOYED_BASELINE=PASS`. Guarded Operator GET độc lập: staging `/search-lab` HTTP 200; staging `/` có `start` HTTP 200; production `/health` HTTP 200; production `/search-lab` HTTP 404.
+**GIỚI HẠN NGHIỆM THU:** HTTP/API/CI và xác minh source **không** thay thế việc nghe–nói thực trên iPhone. Người dùng trước đó xác nhận bản rollback giao tiếp bình thường; sau cleanup không thay đổi production, nhưng chưa có lượt thử trực tiếp mới trong cùng thời điểm. Không tuyên bố E2E đã kiểm nghiệm trong lượt dọn dẹp.
 
-**CHƯA ĐẠT:** chưa chạy được OpenAI Web Search bằng API key thật (key đang lưu trong trình duyệt iPhone, không có quyền lấy từ đó và không được giả mạo); chưa có một phiên thật trên iPhone với Web Search và Marin TTS sau tích hợp; chưa thể nghiệm thu chất lượng nguồn, độ trễ, hóa đơn, chi phí vượt hạn mức. Không được tuyên bố dự án tìm kiếm đã hoàn thành hoặc triển khai production. Chỉ sau test trên staging với API key của người dùng (tại trang `/search-lab`: nhập key, hỏi “Tìm giá vàng SJC mới nhất hôm nay”), test hội thoại thông thường rồi hỏi mới bằng Voice và đối chiếu nguồn mới được xem xét release production. Do localStorage theo origin, **staging không thể tự lấy API key đã lưu ở domain production**. Trang test không lưu key, OAuth/Google D1 sync không kích hoạt trên staging.
-
-**Quy tắc phát hành:** Giữ Worker production cũ cho tới khi người dùng xác nhận E2E trên iPhone; khi đủ bằng chứng phải dùng guarded release có snapshot+rollback, không thay đường Voice. Đường search cũ `nmh-voice-search-lab` chỉ bảo lưu lịch sử, không được trộn lại. Source bản sửa watchdog Safari tồn tại nhánh chính nhưng **chưa deploy** và **không nằm trong staging Web Search V2**, tránh nhập nhằng nguyên nhân.
-
----
-
-## 14/11/2026 — AUDIT MIC / WEB SEARCH, PRODUCTION ĐÃ ROLLBACK, KHÔNG TỰ DEPLOY
-
-**ƯU TIÊN ĐỌC TRƯỚC CÁC MỤC RELEASE TÌM KIẾM CŨ.** Người dùng báo NÓI trên iPhone không phản ứng sau nâng cấp search. Đã rollback thành công Worker version `6fde090a-6b0e-46e5-b922-4e20f2c8b2f6` → bản được dùng trước tìm kiếm **`8cc6032c-0035-414c-8217-7ea5e91825e5`**, [run 43483716480](https://github.com/hvnm1206/TikTak-Service/actions/runs/43483716480). GET /health, trang Presence, D1 config đều hoạt động, web-search toggle vắng mặt. **Chưa kiểm tra mic trên thiết bị thật sau rollback.**
-
-Audit source phát hiện hai nguy cơ treo Voice trên Safari: STT nhận `isFinal` nhưng chờ `onend`; TTS AudioContext không nhận `onended` và watchdog `speechWatch` bỏ trống. Tạo RED tests rồi sửa `presence-ui.js` để phát câu hỏi khi `isFinal` kể cả thiếu `onend`, chống gọi trùng, thêm watchdog mic 18s và watchdog phát audio. Source hotfix **CHƯA DEPLOY**, CI [43485493753](https://github.com/hvnm1206/TikTak-Service/actions/runs/43485493753) 26 Voice + 8 browser mock + 7 V3 test PASS, migration/workflows PASS; CI deployment SKIPPED.
-
-**Tìm kiếm web có phí đã tách hẳn sang `nmh-voice-search-lab`**, branch `nmh-voice-gpt-v1` phục hồi source core đã ổn định cùng hotfix riêng. Cấm đưa source mới lên production nếu chưa có người dùng xác nhận iPhone thật và gate rollback. Xem [AUDIT_VOICE_2026-11-14.md](voice-deploy/AUDIT_VOICE_2026-11-14.md) để xem đầy đủ bằng chứng, phạm vi, trạng thái và việc chưa đạt.
+**Những mục “ĐÃ DEPLOY TÌM KIẾM”, “STAGING ĐANG CÓ”, “HOTFIX WATCHDOG CHỜ DEPLOY” trong nhật ký trước đây đều là lịch sử và đã bị thay thế bởi kết luận trên.** Không lấy lại nhánh, Worker hay file thử nghiệm từ commit cũ nếu chưa có yêu cầu mới.
 
 ---
-
-## 14/11/2026 — NÂNG CẤP TÌM KIẾM WEB TÙY CHỌN (ĐÃ DEPLOY, CHƯA ĐO API CÓ PHÍ)
-
-**Vấn đề người dùng báo:** "Ok rồi, nhưng tìm kiếm có vẻ kém". Audit source `agent-v2.js` xác định NMH Voice trước đó **không có tìm kiếm web tổng quát**; chỉ có Wikipedia, Google News RSS, Open-Meteo và thời gian máy chủ. Không suy diễn lỗi GPT hay micro.
-
-**Đã sửa trên nhánh `nmh-voice-gpt-v1`:**
-- `agent-v2.js`: khi người dùng chủ động bật, thêm công cụ OpenAI Responses `{type:"web_search",search_context_size:"low"}`, AI quyết định gọi khi cần tra cứu hiện thời; dùng chú giải `url_citation` trả `sources` có URL HTTPS; thống kê `webSearchCalls`, `estimatedSearchUsd`, `searchProvider`. Khi tắt không gửi `web_search` lên API.
-- `v3-ui.js`: trong SETUP có checkbox **TRA WEB NÂNG CAO (CÓ PHÍ)**, mặc định **TẮT**, trạng thái lưu `localStorage` trên thiết bị, ghi rõ chi phí ước tính 0,01 USD/call + tokens. Không tự động bật và không có phí web nếu chưa gọi công cụ.
-- `worker.js`: chỉ chuyển `webSearch:true` khi checkbox bật; cộng phí tìm kiếm ước tính vào bộ đếm chi phí hiện có. Giữ nguyên STT, TTS Marin, Persona, Google Auth và D1.
-- `agent-v2.test.mjs`: thêm test opt-in/opt-out và chú giải URL; giữ đủ cấu trúc chi phí cũ để không phá báo cáo.
-
-**Bằng chứng triển khai:** [GitHub Actions 43481442885](https://github.com/hvnm1206/TikTak-Service/actions/runs/43481442885) verify 35/35 PASS, deploy SUCCESS, snapshot rollback `8cc6032c-0035-414c-8217-7ea5e91825e5`, bản production mới `6fde090a-6b0e-46e5-b922-4e20f2c8b2f6`; `V3_SMOKE=HEALTH_UI_D1_CONFIG_UNAUTH_LOGIN_INVALID_TOKEN_DOCS_OK`, `V3_DEPLOY_FINAL=SUCCESS`. Guarded Operator kiểm tra độc lập GET trang gốc HTTP 200 có `v3WebSearch`, `nmh_voice_web_search_v1`, `TRA WEB NÂNG CAO` và canvas `avatar`; /health HTTP 200 với `v3Version=d1-only-google-v3`. Sau release đã **khóa workflow quay về chỉ chạy bằng workflow_dispatch**, không tự deploy ở push thông thường.
-
-**Giới hạn cần ghi đúng:** đây là phần **tích hợp đã deploy và mock-test**, chưa có chứng cứ người dùng thực tế bật và OpenAI xử lý `web_search` bằng GPT-6 Luna (vì không dùng API key cá nhân). Không được tuyên bố chất lượng tìm kiếm Internet đã nghiệm thu hay chi phí hóa đơn đã khớp. Khi bật checkbox, có khả năng phát sinh phí theo OpenAI hiện tại khoảng **$10/1.000 web search calls = $0,01/call** cộng chi phí token, mức thực phải kiểm tra Usage. Không được mặc định tự trừ từ người dùng. Cần 1–2 truy vấn thật do chủ sở hữu key tự chạy và xem `sources`/chi phí trước khi kết luận đạt.
-
----
-
-### 14/11/2026 — Canary tài liệu D1 thật sau V3 release: PASS
-[Actions 43471462899](https://github.com/hvnm1206/TikTak-Service/actions/runs/43471462899) chạy trực tiếp Cloudflare D1 bằng token đã cấp, tạo **user/ID tài liệu thử ngẫu nhiên**, chèn tài liệu tiếng Việt ("Lỗi E12"), lưu raw_text, tìm đoạn theo từ khóa, kiểm tra truy vấn account khác không có dữ liệu, và xóa toàn bộ dòng thử bằng `finally`. Kết quả log: `V3_D1_DOC_INSERT=PASS`, `V3_D1_DOC_TEXT_UTF8=PASS`, `V3_D1_KNOWLEDGE_LOOKUP=PASS`, `V3_D1_ACCOUNT_ISOLATION=PASS`, `V3_D1_CANARY_CLEANUP=PASS`. **Đây là kiểm thử DB thật, chưa phải upload qua tài khoản Google thật hoặc E2E iPhone.**
-
 
 ## 14/11/2026 — NMH VOICE V3 D1-ONLY: ĐÃ DEPLOY (ĐỌC TRƯỚC MỌI NHẬT KÝ CŨ)
 
