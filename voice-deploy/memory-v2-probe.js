@@ -2,6 +2,7 @@
 // Must be deployed under a separate name with a fresh secret and removed after test.
 import {runMemoryV2} from './memory-v2.js';
 import {handleVoiceNote,handleVoiceMemory} from './v3-backend.js';
+import {routeVoiceWrite} from './voice-write.js';
 const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','cache-control':'no-store'}});
 export default {
  async fetch(req,env){
@@ -63,6 +64,20 @@ export default {
    const remembered=await db.prepare('SELECT body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 1').bind(sub).first();
    if(remembered?.body!=='con mèo của tao tên Tép')throw Error('voice memory readback mismatch');
    result.steps.push('voice-memory-explicit-save-readback');
+   const targetEnv={...env,NMH_V3_GOOGLE_CLIENT_ID:'1234567890-probe.apps.googleusercontent.com'};
+   const fakeIntent=(intent,content)=>async()=>Response.json({output:[{type:'message',content:[{type:'output_text',text:JSON.stringify({intent,content})}]}]});
+   const natural='Ê Ngáo, mày chép giúp tao: ngày kia kiểm tra bảo trì';
+   const spokenNote=await routeVoiceWrite(authRequest,targetEnv,natural,'sk-'+'a'.repeat(43),{fetchImpl:fakeIntent('note','ngày kia kiểm tra bảo trì')});
+   if(!spokenNote?.saved||spokenNote.saveStatus!=='saved'||!spokenNote.answer.startsWith('Đã ghi'))throw Error('natural spoken note not acknowledged as saved');
+   const afterNote=await db.prepare("SELECT id,raw_text,segment_count FROM v3_documents WHERE user_id=? AND name='GHI_CHU.md'").bind(sub).all();
+   if(afterNote.results.length!==1||afterNote.results[0].segment_count!==3||!afterNote.results[0].raw_text.includes('ngày kia kiểm tra bảo trì'))throw Error('natural voice note not persisted');
+   result.steps.push('voice-natural-note-readback-and-ack');
+   const naturalMemory='Tôi cần em lưu nhớ con thỏ tên Xám';
+   const spokenMemory=await routeVoiceWrite(authRequest,targetEnv,naturalMemory,'sk-'+'a'.repeat(43),{fetchImpl:fakeIntent('memory','con thỏ tên Xám')});
+   if(!spokenMemory?.saved||spokenMemory.saveStatus!=='saved'||!spokenMemory.answer.startsWith('Đã lưu'))throw Error('natural spoken memory not acknowledged');
+   const stored=await db.prepare('SELECT body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 1').bind(sub).first();
+   if(stored?.body!=='con thỏ tên Xám')throw Error('natural spoken memory not persisted');
+   result.steps.push('voice-natural-memory-readback-and-ack');
    result.ok=true;
   }catch(e){result.error=String(e?.message||e).slice(0,200)}
   finally{
