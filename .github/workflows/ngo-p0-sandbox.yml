@@ -121,7 +121,13 @@ jobs:
            except Exception:pass
            time.sleep(3)
           else:raise AssertionError('Sandbox reminders feature not ready; never treat a stale route as success')
-          status,config=http('/api/v3/config');assert status==200 and config['ready'] and config['storage']=='Cloudflare D1'
+          for attempt in range(15):
+           try:
+            status,config=http('/api/v3/config')
+            if status==200 and config.get('ready') is True and config.get('storage')=='Cloudflare D1':break
+           except Exception:pass
+           time.sleep(3)
+          else:raise AssertionError('Sandbox Google D1 config not ready after retry; no false PASS')
           status,anon=http('/api/reminders/due',login=False);assert status==401
           status,pending=http('/api/reminders/due');assert status==200 and [x['id'] for x in pending['reminders']]==[a_id]
           status,claim=http('/api/reminders/claim','POST',{'id':a_id});assert status==200 and claim['claimed']
