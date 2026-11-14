@@ -23,3 +23,18 @@ test('look-ahead does not claim accidents',()=>{const a=aheadAnalysis(routeSumma
 test('no GPS and no origin => ask question, no Routes call',async()=>{calls.length=0;const d=await(await h(request('/api/ask',{message:'Đi Hà Đông'}),env)).json();assert.match(d.answer,/điểm xuất phát/);assert.equal(calls.filter(x=>x.url.includes('computeRoutes')).length,0)});
 test('end trip erases trip context and never queries Maps',async()=>{calls.length=0;const d=await(await h(request('/api/ask',{message:'Kết thúc hành trình',trip:{destination:{name:'Hà Đông'}}}),env)).json();assert.equal(d.trip,null);assert.equal(d.action,'end_trip');assert.equal(calls.filter(x=>x.url.includes('computeRoutes')).length,0)});
 test('TTS only serves audio with authentication',async()=>{const r=await h(request('/api/tts',{text:'Xin chào'}),env);assert.equal(r.status,200);assert.equal(r.headers.get('content-type'),'audio/mpeg')});
+
+
+test('malformed Google route without ETA is rejected instead of returning invented zero minutes',()=>{
+ assert.deepEqual(routeSummary({routes:[{distanceMeters:1000}]}),[]);
+});
+
+test('stale previous origin cannot be used as current location to claim remaining ETA',async()=>{
+ calls.length=0;
+ const trip={destination:{id:'ChIJX',query:'Hà Đông, Hà Nội',name:'Hà Đông'},origin:{id:'ChIJY',query:'Cầu Giấy, Hà Nội',name:'Cầu Giấy'}};
+ const r=await h(request('/api/ask',{message:'Kiểm tra lại đi',trip,location:null}),env);
+ const d=await r.json();
+ assert.equal(r.status,200);assert.equal(d.action,'clarify');
+ assert.match(d.answer,/GPS mới|vị trí hiện tại/i);
+ assert.equal(calls.filter(x=>x.url.includes('routes.googleapis.com')).length,0);
+});
