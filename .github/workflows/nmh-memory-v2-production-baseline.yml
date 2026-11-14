@@ -68,3 +68,5 @@ jobs:
 # No D1 writes, no Worker deployment, no Ngáo access.
 
 # Live counts audit, no personal data read or modified.
+
+# Repeat read-only document segment audit; no personal contents retrieved.
