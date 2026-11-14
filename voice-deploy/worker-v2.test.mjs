@@ -263,3 +263,57 @@ test('Marin prefetched audio cannot play after interruption',async()=>{
   assert.equal(listens.length,0,'interruption does not force microphone restart');
   assert.deepEqual(errors,[]);
 });
+
+test('Memory V2 OFF schedules no background analysis and leaves ordinary chat unchanged',async()=>withMock(async()=>{
+ let scheduled=0,prepared=0;
+ const env={NMH_DB:{prepare(){prepared++;throw Error('D1 should not be accessed')}},NMH_MEMORY_V2_MODE:'off'};
+ const ctx={waitUntil(){scheduled++}};
+ const r=await worker.fetch(request('/api/chat',{apiKey:key,messages:msg}),env,ctx);
+ assert.equal(r.status,200);assert.equal((await r.json()).answer,'Xin chào.');
+ assert.equal(scheduled,0);assert.equal(prepared,0);
+}));
+test('Memory V2 SHADOW with authenticated consent runs after chat but cannot write D1',async()=>{
+ const {createHash,randomBytes}=await import('node:crypto');
+ const session=randomBytes(32).toString('base64url');
+ const sessionHash=createHash('sha256').update(session).digest('hex');
+ const user='user_sandbox_123456';
+ let writes=0,analysisCalls=0;const queued=[];
+ const db={
+  prepare(sql){return {bind(...args){return {
+   async first(){
+    if(sql.startsWith('SELECT user_id,expires_at'))return args[0]===sessionHash?{user_id:user,expires_at:Date.now()+60000}:null;
+    if(sql.startsWith('SELECT enabled'))return {enabled:1};
+    if(sql.startsWith('SELECT prompt'))return {prompt:''};
+    throw Error('Unexpected first '+sql);
+   },
+   async all(){
+    if(sql.startsWith('SELECT body FROM v3_memories'))return {results:[]};
+    if(sql.startsWith('SELECT id,body FROM v3_memories'))return {results:[]};
+    if(sql.startsWith('SELECT c.body'))return {results:[]};
+    throw Error('Unexpected all '+sql);
+   },
+   async run(){writes++;throw Error('SHADOW attempted to write')}
+  }}}
+  }
+ };
+ const env={NMH_DB:db,NMH_V3_GOOGLE_CLIENT_ID:'792345678901-sandbox-oauth.apps.googleusercontent.com',NMH_MEMORY_V2_MODE:'shadow'};
+ const input=new Request(host+'/api/chat',{method:'POST',headers:{origin:host,'content-type':'application/json',cookie:'__Host-nmhv3='+session},body:JSON.stringify({apiKey:key,messages:[{role:'user',content:'Con chó của tao tên Mít'}]})});
+ const ctx={waitUntil(p){queued.push(p)}};
+ const old=globalThis.fetch;
+ globalThis.fetch=async(_,options)=>{
+  const req=JSON.parse(options.body);
+  if(req.text?.format?.type==='json_schema'){
+   analysisCalls++;
+   return Response.json({output:[{type:'message',content:[{type:'output_text',text:JSON.stringify({ops:[{type:'add',id:null,body:'Người dùng có chó tên Mít',evidence:'Con chó của tao tên Mít',confidence:.99}]})}]}]});
+  }
+  return Response.json({output:[{type:'message',content:[{type:'output_text',text:'Đã hiểu.'}]}],usage:{input_tokens:140,output_tokens:20}});
+ };
+ try{
+  const r=await worker.fetch(input,env,ctx);
+  assert.equal((await r.json()).answer,'Đã hiểu.');
+  assert.equal(queued.length,1,'observer must run on waitUntil only');
+  await Promise.all(queued);
+  assert.equal(analysisCalls,1);
+  assert.equal(writes,0,'no D1 mutation allowed in shadow');
+ }finally{globalThis.fetch=old}
+});
