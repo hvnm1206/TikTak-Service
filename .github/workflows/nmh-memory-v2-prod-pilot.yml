@@ -149,3 +149,5 @@ jobs:
           trap - ERR
 
 # Explicit user authorization: deploy Memory V2 to existing NMH Voice for real-world testing, no changes to Ngáo.
+
+# Voice write hotfix: verified D1 note and memory, pinned production rollback.
