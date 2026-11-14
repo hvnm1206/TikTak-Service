@@ -218,4 +218,9 @@ jobs:
           echo "Production: $TARGET" >> "$GITHUB_STEP_SUMMARY"
           echo "Rollback version: $PROD_EXPECTED_VERSION" >> "$GITHUB_STEP_SUMMARY"
           echo "D1 Time Travel bookmark stored in 30-day artifact." >> "$GITHUB_STEP_SUMMARY"
-          echo "Real OpenAI + Google user and iPhone Marin foreground UAT still require live device." >> "$GITHUB_STEP_SUMMARY"
+          echo "Real OpenAI + Google user and iPhone Marin foreground UAT still require live device." >> "$GITHUB_STEP_SUMMARY"           url='https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs?head_sha='+os.environ['GITHUB_SHA']+'&status=success&per_page=50'
+           req=urllib.request.Request(url,headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-AUDIO-THEME-GATE','Authorization':'Bearer '+os.environ['GH_ACTIONS_TOKEN']})
+           with urllib.request.urlopen(req,timeout=30) as r:runs=json.load(r)['workflow_runs']
+           assert any(run['head_sha']==os.environ['GITHUB_SHA'] and run['conclusion']=='success' and run['path'].split('@')[0]=='.github/workflows/ngo-fast-voice-pilot.yml' for run in runs),'NO_SANDBOX_PASS_FOR_EXACT_RELEASE_COMMIT'
+           print('NGO_EXACT_COMMIT_SANDBOX_GATE=PASS')
+

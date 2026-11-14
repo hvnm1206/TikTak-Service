@@ -205,7 +205,7 @@ test('V3 Setup panel is attached without removing NMH Presence or exposing secre
  assert.match(html,/CHƯA LƯU ĐƯỢC/);
  assert.match(html,/if\(!promptDirty&&!promptSaving&&!presetSelectionPending\)/);
  assert.match(html,/confirmed.prompt!==draft/);
- assert.match(html,/Prompt đã được sửa trên thiết bị khác/);
+ assert.match(html,/Bản nháp vẫn được giữ/);
 
  const htmlWithGoogle=await (await voice.fetch(new Request(host+'/'),{NMH_V3_GOOGLE_CLIENT_ID:config})).text();
  assert.match(htmlWithGoogle,/accounts\.google\.com\/gsi\/client/);

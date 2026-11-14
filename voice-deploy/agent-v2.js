@@ -1,5 +1,6 @@
 // NMH Voice V2 agent — ported architecture from Ngáo, NOT deployed until Cloudflare is authorized.
 // All remote data are untrusted. Public data integrations require no new API key.
+import { responseLines } from './response-events.js';
 import { isActionName } from './action-registry.js';
 const API="https://api.openai.com/v1/responses";
 export const MODEL="gpt-6-luna";
@@ -96,7 +97,41 @@ export function cleanVoiceAnswer(text){
 function extractText(output){
   return (output||[]).filter(x=>x?.type==="message").flatMap(x=>x.content||[]).filter(x=>x?.type==="output_text").map(x=>x.text||"").join("\n").trim();
 }
-export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fetch,signal,toolFetchImpl=fetch,personalization={},actionRuntime=null}){
+async function readResponseStream(body,{onEvent,permitSpeech}){
+ let finalText='',finalItem=null,data=[],completed=null,previewSent=false,blocked=false;
+ async function handle(event){
+  if(event.type==='error'||event.type==='response.failed')throw Error('GPT không hoàn tất phản hồi.');
+  if(event.type==='response.completed'||event.type==='response.incomplete'){completed=event.response;return}
+  if(event.type==='response.output_item.added'){
+   const item=event.item;
+   if(item?.type==='function_call'||item?.type==='web_search_call'){
+    blocked=true;
+    if(item.type==='web_search_call')await onEvent({type:'tool',name:'web_search'});
+   }
+   if(!finalItem&&item?.type==='message'&&item.phase==='final_answer')finalItem=item.id;
+  }
+  if(event.type!=='response.output_text.delta')return;
+  await onEvent({type:'firstText'});
+  if(event.item_id!==finalItem||blocked||!permitSpeech||previewSent)return;
+  finalText+=event.delta;
+  // A bounded, plain sentence avoids speaking URL/citation fragments or partial numbers.
+  const first=finalText.match(/^([^.!?\n]{12,175}[.!?])(?=\s)/u)?.[1]?.trim();
+  if(first&&!/[<>{}\[\]:/]/u.test(first)){
+   previewSent=true;
+   await onEvent({type:'preview',text:first});
+  }
+ }
+ for await(const line of responseLines(body)){
+  if(line.startsWith('data:')){data.push(line.slice(5).trimStart());continue}
+  if(line!==''||!data.length)continue;
+  const raw=data.join('\n');data=[];
+  if(raw!=='[DONE]')await handle(JSON.parse(raw));
+ }
+ if(data.length&&data.join('\n')!=='[DONE]')await handle(JSON.parse(data.join('\n')));
+ if(!completed)throw Error('Luồng GPT bị ngắt trước khi hoàn tất.');
+ return completed;
+}
+export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fetch,signal,toolFetchImpl=fetch,personalization={},actionRuntime=null,onEvent=null}){
   if(!apiKey||!Array.isArray(messages)||messages.length<1)throw Error("Thiếu dữ liệu trò chuyện");
   const choice=Object.hasOwn(STYLES,style)?style:"nghiem_tuc";
   const personal=[];
@@ -131,9 +166,9 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     let r;
     try{
       r=await fetchImpl(API,{method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},
-        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:webSearchCalls?[...TOOLS,...enabledActions]:[...TOOLS,...enabledActions,WEB_SEARCH],...(webSearchCalls?{}:{max_tool_calls:1}),tool_choice:round===2?"none":"auto",reasoning:{effort:"none"},max_output_tokens:460,store:false})});
+        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:webSearchCalls?[...TOOLS,...enabledActions]:[...TOOLS,...enabledActions,WEB_SEARCH],...(webSearchCalls?{}:{max_tool_calls:1}),tool_choice:round===2?"none":"auto",reasoning:{effort:"none"},max_output_tokens:460,store:false,...(onEvent?{stream:true}:{})})});
       if(!r.ok)throw Error(r.status===401?"API key không hợp lệ":r.status===429?"API hết hạn mức":r.status===400?"OpenAI HTTP 400: cần kiểm tra quyền hỗ trợ web_search của model/API key":"OpenAI HTTP "+r.status);
-      response=await r.json();
+      response=onEvent?await readResponseStream(r.body,{onEvent,permitSpeech:!lastActionFailure}):await r.json();
     }finally{clearTimeout(tm)}
     if(!Array.isArray(response.output))throw Error("Responses API trả dữ liệu không hợp lệ");
     const thisInput=Math.max(0,Number(response.usage?.input_tokens||0));
@@ -167,6 +202,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     }
     input.push(...response.output);
     for(const c of calls.slice(0,3)){
+      if(onEvent)await onEvent({type:'tool',name:c.name});
       if(actionRuntime&&isActionName(c.name)){
         let receipt;
         try{receipt=await actionRuntime.execute(c.name,JSON.parse(c.arguments||"{}"))}

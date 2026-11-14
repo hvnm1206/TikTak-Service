@@ -152,3 +152,37 @@ test('legacy default Chém Gió profile is recognized as editing this template, 
  again.el('v3SampleChem').onclick();
  assert.equal(again.el('v3Prompt').value,server.profile.presets.chem);
 });
+
+test('late profile restores existing custom preset instead of saving factory text over it',async()=>{
+ const server=createServer();
+ Object.assign(server.profile,{prompt:'Prompt khác',revision:2,presets:{chem:'Chém Gió đã lưu'},activePreset:'danh'});
+ let release;
+ const delayed=new Promise(resolve=>{release=resolve});
+ const original=server.fetch;
+ let first=true;
+ server.fetch=async(path,opts={})=>{
+  if(path==='/api/v3/profile'&&opts.method==='GET'&&first){first=false;await delayed}
+  return original(path,opts);
+ };
+ const ui=await launch(server,false);
+ ui.el('v3SampleChem').onclick();
+ release();
+ for(let i=0;i<4;i++)await sleep();
+ assert.equal(ui.el('v3Prompt').value,'Chém Gió đã lưu');
+ await ui.el('v3SavePrompt').onclick();
+ assert.equal(server.profile.presets.chem,'Chém Gió đã lưu');
+});
+
+test('revision change protects the selected preset even if the active prompt is unchanged',async()=>{
+ const server=createServer();
+ Object.assign(server.profile,{prompt:'Prompt hiện tại',revision:1,presets:{chem:'Chém Gió cũ'},activePreset:'danh'});
+ const ui=await launch(server);
+ ui.el('v3SampleChem').onclick();
+ server.profile.presets.chem='Chém Gió từ máy khác';
+ server.profile.revision+=2;
+ await save(ui,'Bản nháp máy thứ nhất');
+ assert.equal(server.profile.presets.chem,'Chém Gió từ máy khác');
+ assert.equal(ui.el('v3Prompt').value,'Bản nháp máy thứ nhất');
+ assert.match(ui.el('v3PromptSaveStatus').textContent,/Bản nháp vẫn được giữ/);
+ assert.ok(!server.calls.some(call=>call.path==='/api/v3/profile'&&call.method==='PUT'));
+});

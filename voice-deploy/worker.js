@@ -1,3 +1,5 @@
+import {previewRealtimeSpeech} from './realtime-speech.js';
+import {enhanceFastVoice} from './fast-voice-ui.js';
 import { runAgent } from './agent-v2.js';
 import { enhanceVoicePage } from './presence-ui.js';
 import { enhanceV3Page } from './v3-ui.js';
@@ -18,7 +20,8 @@ const validMsgs=x=>Array.isArray(x)&&x.length>=1&&x.length<=12&&x.every(m=>m&&(m
 const MODEL_V2="gpt-6-luna";
 export default {async fetch(request,env={},ctx={}){
 const u=new URL(request.url);
-if(request.method==="GET"&&u.pathname==="/")return new Response(enhanceQrPage(enhanceLatencyPage(enhanceThemePage(enhanceReminderPage(enhanceV3Page(PAGE,env),env)))),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'none'; script-src 'unsafe-inline' https://accounts.google.com/gsi/client; style-src 'unsafe-inline' https://accounts.google.com/gsi/style; connect-src 'self' https://accounts.google.com; frame-src https://accounts.google.com; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'","x-frame-options":"DENY","referrer-policy":"no-referrer"}});
+if(request.method==="GET"&&u.pathname==="/"){const page=enhanceQrPage(enhanceLatencyPage(enhanceThemePage(enhanceReminderPage(enhanceV3Page(PAGE,env),env))));return new Response((env.NMH_FAST_VOICE==="active"?enhanceFastVoice(page):page),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'none'; script-src 'unsafe-inline' https://accounts.google.com/gsi/client; style-src 'unsafe-inline' https://accounts.google.com/gsi/style; connect-src 'self' https://accounts.google.com; frame-src https://accounts.google.com; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'","x-frame-options":"DENY","referrer-policy":"no-referrer"}});
+}
 if(request.method==="GET"&&u.pathname==="/health")return respond({ok:true,app:"NMH Voice GPT V2",voice:"browser-stt+marin-tts",agent:"gpt-6-luna",version:"v2-tts-audioctx",uiVersion:"presence-canvas-v1",v3Version:"d1-only-google-v3",writeVersion:"semantic-actions-d1-readback-v1"});
 if(request.method==='GET'&&u.pathname==='/api/reminders/capabilities')return respond({enabled:remindersEnabled(env),version:'ngo-reminders-p0-v1',foregroundOnly:true});
 if(u.pathname==='/api/reminders'||u.pathname.startsWith('/api/reminders/'))return routeReminderApi(request,env);
@@ -68,14 +71,23 @@ try{
  return new Response(data,{headers:{...headers,"x-nmh-doc-source":source}});
 }catch{return respond({error:"Không kết nối được GitHub"},502)}
 }
-if(!["/api/test","/api/chat","/api/tts"].includes(u.pathname))return respond({error:"Not found"},404);
+if(!["/api/test","/api/chat","/api/tts","/api/chat-stream","/api/realtime-speech-preview"].includes(u.pathname))return respond({error:"Not found"},404);
 if(request.method!=="POST")return respond({error:"POST only"},405);
+if((u.pathname==="/api/chat-stream"||u.pathname==="/api/realtime-speech-preview")&&env.NMH_FAST_VOICE!=="active")return respond({error:"Not found"},404);
 const origin=request.headers.get("origin");
 if(!origin||origin!==u.origin)return respond({error:"Invalid origin"},403);
 if(!/application\/json/i.test(request.headers.get("content-type")||""))return respond({error:"JSON required"},415);
 let body;try{const s=await request.text();if(s.length>18000)return respond({error:"Request too large"},413);body=JSON.parse(s)}catch{return respond({error:"Invalid JSON"},400)}
 const key=body?.apiKey;if(!valid(key))return respond({error:"API key không đúng định dạng"},400);
-if(u.pathname==="/api/chat"&&!validMsgs(body.messages))return respond({error:"Lịch sử hội thoại không hợp lệ"},400);
+if((u.pathname==="/api/chat"||u.pathname==="/api/chat-stream")&&!validMsgs(body.messages))return respond({error:"Lịch sử hội thoại không hợp lệ"},400);
+if(u.pathname==="/api/realtime-speech-preview"){
+ const text=typeof body.text==="string"?body.text.trim():"";
+ if(!text||text.length>300)return respond({error:"Văn bản thử phải từ 1 đến 300 ký tự."},400);
+ try{
+  const result=await previewRealtimeSpeech({key,text,signal:request.signal});
+  return new Response(result.wave,{headers:{...h,'content-type':'audio/wav','x-nmh-first-byte-ms':String(result.firstByteMs),'x-nmh-voice-usage':JSON.stringify(result.usage)}});
+ }catch(e){return respond({error:String(e?.message||'Lỗi Realtime').slice(0,150)},502)}
+}
 if(u.pathname==="/api/tts"){
  const text=String(body?.text||"").trim(),style=body?.style;
  if(!text||text.length>500)return respond({error:"Văn bản đọc không hợp lệ"},400);
@@ -101,19 +113,32 @@ try{
    const r=await fetch("https://api.openai.com/v1/models/"+MODEL_V2,{headers:{"Authorization":"Bearer "+key},signal:ctl.signal});
    return r.ok?respond({ok:true,model:MODEL_V2}):respond({error:r.status===401?"API key không hợp lệ":"OpenAI HTTP "+r.status},r.status===401?401:502);
  }
+ if(u.pathname==="/api/chat-stream"){
+   clearTimeout(timer);
+   return streamChat(request,onEvent=>chatTurn(request,env,ctx,body,key,onEvent.signal,onEvent.send));
+ }
+ const result=await chatTurn(request,env,ctx,body,key,AbortSignal.any([request.signal,ctl.signal]));
+ return respond(result,result.error?503:200);
+}catch(e){
+ const msg=e?.name==="AbortError"?"Quá thời gian xử lý":String(e?.message||"Không kết nối được OpenAI").slice(0,160);
+ return respond({error:msg},/hạn mức/.test(msg)?429:/không hợp lệ/.test(msg)?401:502);
+}finally{clearTimeout(timer)}
+}};
+
+async function chatTurn(request,env,ctx,body,key,signal,onEvent){
  const question=String(body.messages.at(-1).content);
  // All natural-language operations are selected by the same GPT conversation.
  // No phrase-matching router, duplicate model classifier, or special memory path.
  const perfStart=performance.now();
  const personalization=await loadV3Context(request,env,question);
  const perfMemory=performance.now();
- if(personalization.contextError)return respond({error:personalization.contextError},503);
- const actionRuntime=buildActionRuntime({request,env,utterance:question,requestId:body.requestId,signal:ctl.signal});
+ if(personalization.contextError)return {error:personalization.contextError};
+ const actionRuntime=buildActionRuntime({request,env,utterance:question,requestId:body.requestId,signal});
  const perfAgentStart=performance.now();
- const result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal:ctl.signal,actionRuntime});
+ const result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal,actionRuntime,onEvent});
  const latency={memoryMs:Math.round(perfMemory-perfStart),agentMs:Math.round(performance.now()-perfAgentStart),serverMs:Math.round(performance.now()-perfStart)};
  // Verified tool actions are completed synchronously and are not reinterpreted by the background memory observer.
- if(result.actionStatus)return respond({...result,latency});
+ if(result.actionStatus)return {...result,latency};
  // The new analyzer is an isolated observer. Off by default, never changes the spoken reply.
  // No extra network call, SQL or mic/TTS handling when disabled.
  const mode=memoryMode(env);
@@ -129,9 +154,31 @@ try{
   })();
   ctx.waitUntil(observe);
  }
- return respond({...result,latency});
-}catch(e){
- const msg=e?.name==="AbortError"?"Quá thời gian xử lý":String(e?.message||"Không kết nối được OpenAI").slice(0,160);
- return respond({error:msg},/hạn mức/.test(msg)?429:/không hợp lệ/.test(msg)?401:502);
-}finally{clearTimeout(timer)}
-}};
+ return {...result,latency};
+}
+
+function streamChat(request,execute){
+ const upstream=new AbortController();
+ const signal=AbortSignal.any([request.signal,upstream.signal,AbortSignal.timeout(55000)]);
+ const {readable,writable}=new TransformStream();
+ const writer=writable.getWriter(),encoder=new TextEncoder();
+ const send=event=>writer.write(encoder.encode(JSON.stringify(event)+'\n'));
+ void writer.closed.catch(()=>{upstream.abort()});
+ void (async()=>{
+  let markedText=false;
+  try{
+   const result=await execute({signal,send:async event=>{
+    if(event.type==='firstText'){
+     if(markedText)return;
+     markedText=true;
+    }
+    await send(event);
+   }});
+   if(signal.aborted)throw signal.reason;
+   await send(result.error?{type:'error',error:result.error}:{type:'done',result});
+  }catch(e){
+   await send({type:'error',error:e?.name==='TimeoutError'||e?.name==='AbortError'?'Quá thời gian xử lý':String(e?.message||'Lỗi Voice').slice(0,160)}).catch(()=>{});
+  }finally{await writer.close().catch(()=>{})}
+ })();
+ return new Response(readable,{headers:{...h,'content-type':'application/x-ndjson; charset=utf-8'}});
+}

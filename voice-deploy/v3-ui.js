@@ -40,7 +40,20 @@ const script=String.raw`
  const $=id=>document.getElementById(id);
  const msg=s=>{$('v3Msg').textContent=String(s)};
  let rev=0,loginClient='',promptDirty=false,promptSaving=false,profileLoaded=false,loadedPrompt='',activePreset='',presetSelectionPending=false;
- let savedPresets={};
+ let savedPresets={},presetBaseline,earlyPresetConflict=false;
+ const updatePresetPreview=key=>{
+  $('v3Prompt').value=savedPresets[key]??presets[key];
+  promptStatus((Object.prototype.hasOwnProperty.call(savedPresets,key)?'ĐÃ CÓ MẪU TÙY CHỈNH: ':'CHƯA CÓ BẢN TÙY CHỈNH — ĐANG HIỆN MẪU GỐC: ')+presetLabel[key]+'. Sửa rồi bấm LƯU PROMPT để cập nhật đúng mẫu này.');
+ };
+ const loadInitialProfile=p=>{
+  rev=p.revision;loadedPrompt=p.prompt||'';savedPresets=p.presets||{};profileLoaded=true;
+  if(presetSelectionPending){
+   presetBaseline=savedPresets[activePreset];
+   if(!promptDirty&&!promptSaving)updatePresetPreview(activePreset);
+   else earlyPresetConflict=presetBaseline!==undefined;
+  }else activePreset=inferLegacyPreset(p);
+  showPreset();
+ };
  const presetLabel={danh:'ĐANH ĐÁ',chem:'CHÉM GIÓ',nghiem:'NGHIÊM TÚC'};
  const showPreset=()=>{
   $('v3ActivePreset').textContent=activePreset?'ĐANG CHỈNH MẪU: '+presetLabel[activePreset]:'ĐANG CHỈNH: PROMPT RIÊNG (không thuộc mẫu nào)';
@@ -80,7 +93,7 @@ const script=String.raw`
    rev=p.revision;loadedPrompt=p.prompt||'';savedPresets=p.presets||{};activePreset=inferLegacyPreset(p);$('v3Prompt').value=loadedPrompt;profileLoaded=true;showPreset();
    promptStatus('Prompt đang được đồng bộ. Sửa rồi bấm LƯU PROMPT.');
   }else if(!profileLoaded){
-   rev=p.revision;loadedPrompt=p.prompt||'';savedPresets=p.presets||{};if(!presetSelectionPending)activePreset=inferLegacyPreset(p);profileLoaded=true;showPreset();
+   loadInitialProfile(p);
   }
   const ml=$('v3Memories');ml.replaceChildren();
   for(const item of m.memories||[])line(ml,item.body,async()=>{if(!confirm('Xóa ghi nhớ này?'))return;try{await req('/api/v3/memories/'+encodeURIComponent(item.id),'DELETE',{});await populate();msg('Đã xóa')}catch(e){msg(e.message)}},async()=>{const text=prompt('Sửa nội dung ghi nhớ:',item.body);if(text===null)return;try{await req('/api/v3/memories/'+encodeURIComponent(item.id),'PUT',{body:text.trim()});await populate();msg('Đã sửa')}catch(e){msg(e.message)}});
@@ -141,10 +154,10 @@ const script=String.raw`
   activePreset=key;showPreset();
   // Selecting a template is navigation, not a manual unsaved edit.
   // The selected text is a preview until Save; do not trigger a spurious confirm on next selection.
-  $('v3Prompt').value=savedPresets[key]??presets[key];
   promptDirty=false;
   presetSelectionPending=true;
-  promptStatus((Object.prototype.hasOwnProperty.call(savedPresets,key)?'ĐÃ CÓ MẪU TÙY CHỈNH: ':'CHƯA CÓ BẢN TÙY CHỈNH — ĐANG HIỆN MẪU GỐC: ')+presetLabel[key]+'. Sửa rồi bấm LƯU PROMPT để cập nhật đúng mẫu này.');
+  presetBaseline=savedPresets[key];earlyPresetConflict=false;
+  updatePresetPreview(key);
  };
  $('v3SampleDanh').onclick=()=>selectPreset('danh');
  $('v3SampleChem').onclick=()=>selectPreset('chem');
@@ -156,20 +169,23 @@ const script=String.raw`
   try{
    // Load the latest revision and compare saved baseline before overwriting another device.
    const current=await req('/api/v3/profile');
-   if(!profileLoaded){rev=current.revision;loadedPrompt=current.prompt||'';savedPresets=current.presets||{};if(!presetSelectionPending)activePreset=inferLegacyPreset(current);profileLoaded=true;showPreset()}
-   if(current.revision!==rev&&current.prompt!==loadedPrompt){
+   if(!profileLoaded)loadInitialProfile(current);
+   const selectedKey=activePreset;
+   const baseline=presetSelectionPending?presetBaseline:savedPresets[selectedKey];
+   const slot=current.presets?.[selectedKey];
+   if(earlyPresetConflict||(current.revision!==rev&&(current.prompt!==loadedPrompt||(selectedKey&&slot!==baseline)))){
+    earlyPresetConflict=false;presetBaseline=slot;
     rev=current.revision;loadedPrompt=current.prompt||'';savedPresets=current.presets||{};
-    promptDirty=true;promptStatus('Prompt đã được sửa trên thiết bị khác. Nội dung đang nhập vẫn được giữ. Kiểm tra trước khi bấm LƯU PROMPT lần nữa.');
+    promptDirty=true;promptStatus('Đã có Prompt hoặc mẫu lưu khác với bản đang sửa. Bản nháp vẫn được giữ. Kiểm tra bản đã lưu hoặc bấm LƯU PROMPT lần nữa để thay thế.');
     return;
    }
    rev=current.revision;
-   const selectedKey=activePreset;
    const result=await req('/api/v3/profile','PUT',{prompt:draft,revision:rev,presetKey:selectedKey});
    if(result?.ok!==true||result?.verified!==true||result?.prompt!==draft||result?.revision!==rev+1||result?.activePreset!==selectedKey||(selectedKey&&result?.presets?.[selectedKey]!==draft))throw Error('Máy chủ chưa xác nhận chính xác nội dung Prompt.');
    // Re-read independently to prove the newest revision belongs to this account.
    const confirmed=await req('/api/v3/profile');
    if(confirmed.prompt!==draft||confirmed.revision!==result.revision||confirmed.activePreset!==selectedKey||(selectedKey&&confirmed?.presets?.[selectedKey]!==draft))throw Error('Chưa đọc lại được đúng Prompt vừa lưu.');
-   rev=confirmed.revision;loadedPrompt=draft;savedPresets=confirmed.presets||{};activePreset=confirmed.activePreset||'';presetSelectionPending=false;showPreset();
+   rev=confirmed.revision;loadedPrompt=draft;savedPresets=confirmed.presets||{};activePreset=confirmed.activePreset||'';presetSelectionPending=false;earlyPresetConflict=false;showPreset();
    if($('v3Prompt').value===draft){promptDirty=false;promptStatus('ĐÃ LƯU VÀ ĐỌC LẠI THÀNH CÔNG'+(selectedKey?' — mẫu này đã được cập nhật vĩnh viễn theo tài khoản.':'')+' — có hiệu lực từ lượt hỏi tiếp theo.');}
    else{promptDirty=true;promptStatus('Đã lưu bản vừa gửi. Có thay đổi mới chưa lưu trong ô Prompt.');}
   }catch(e){
