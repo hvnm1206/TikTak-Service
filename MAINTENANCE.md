@@ -1,5 +1,16 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## Production hiện hành — phát câu đầu sớm (15/11/2026, giờ Việt Nam)
+
+- Ngố chạy tại https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Worker version `f7e18962-ea91-4899-8cb3-975a304b99bd`, commit ứng dụng `b3fbd9d19423adb0029b17f3c907240472344461`, rollback về `2e5e6e61-4dce-4b0b-9683-d8c9710e978c`.
+- SETUP → **Phát câu đầu sớm** bật mặc định và có thể tắt để so sánh. Hội thoại vẫn dùng Marin qua `gpt-4o-mini-tts`. **Thử Realtime Marin** là chức năng nghe mẫu riêng. Bộ đo bổ sung Safari chốt câu, chữ GPT đầu, byte âm thanh đầu và giải mã/phát.
+- Sửa ghi đè mẫu riêng khi hồ sơ tải muộn hoặc hai thiết bị chỉnh cùng mẫu. Release kiểm schema D1 hiện có, ghi nhận bookmark Time Travel và phát hành trên cùng Worker. 125/125 bài kiểm thử, sandbox đúng commit, rollback sandbox và smoke production đã PASS. [Release](https://github.com/hvnm1206/TikTak-Service/actions/runs/43619853718) · [Sandbox và pilot](https://github.com/hvnm1206/TikTak-Service/actions/runs/43619115931).
+- Nghiệm thu thoại, so sánh độ trễ và nghe mẫu Realtime trên iPhone thực vẫn đang chờ; chưa có số đo chứng minh mức giảm 30%.
+
+Các mốc phía dưới là lịch sử.
+
+---
+
 ## HIỆN HÀNH — SỬA LỖI CẢ BA MẪU TÍNH CÁCH ĐÁNH DẤU CHƯA LƯU GIẢ (14/11/2026)
 - **Ngố production:** https://nmh-voice-gpt-test.magical-budget.workers.dev/ — Worker version `2e5e6e61-4dce-4b0b-9683-d8c9710e978c`, rollback code `fcd54e1a-6611-4b13-8748-d73e71f5fdc1`.
 - **Lỗi từ ảnh người dùng:** vừa chọn một mẫu Đanh Đá/Chém Gió/Nghiêm Túc thì ứng dụng tự gắn cờ `promptDirty`, dù chưa sửa chữ nào. Khi chuyển mẫu, hiện cảnh báo giả “Prompt đang sửa chưa lưu”; thực tế workflow trước kiểm thử D1 nhưng chưa kiểm thử UI thật, nên bỏ sót lỗi này.
