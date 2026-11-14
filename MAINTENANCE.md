@@ -1,5 +1,14 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## MỚI NHẤT — NHẮC VIỆC 10 PHÚT (14/11/2026)
+- Ngố chính: https://nmh-voice-gpt-test.magical-budget.workers.dev/ ; Worker production version **`4f2c3cd2-e814-41f1-87da-85dc6e371079`** ; rollback code **`c53ec4d6-ed9f-4dd2-9f79-76cdfdd8505d`**.
+- Người dùng chọn giữ nhắc việc và nới chu kỳ **10 giây → 10 phút**; giữ kiểm tra lúc mở app, lúc quay lại app nếu đã qua >=60 giây, ngăn các lệnh kiểm tra chồng lặp. Không xóa lời nhắc/D1; không thay micro, Marin, GPT, Memory.
+- Giảm polling định kỳ từ 8.640 xuống 144 lần/ngày trên một máy mở liên tục (60 lần); nhắc việc **có thể trễ tối đa gần 10 phút** nếu app mở liên tục và chưa có tương tác quay lại. Vẫn là foreground-only.
+- CI **111/111 PASS**, sandbox/rollback PASS, deploy và kiểm tra production PASS: https://github.com/hvnm1206/TikTak-Service/actions/runs/43604249247 .
+- Chi phí TTS Marin cần hiểu chính xác: OpenAI tính theo token văn bản ($0,60/1M) và token âm thanh đầu ra ($12/1M); khoảng $0,015/phút chỉ là đơn giá ước tính, không phải phí cố định hoặc làm tròn lên một phút. Nguồn: https://developers.openai.com/api/docs/models/gpt-4o-mini-tts.
+- Tài liệu chi tiết: https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-actions-reminders-p0-20261114/voice-deploy/NGO_REMINDER_POLL_10MIN_20261114.md
+
+
 ## MỚI NHẤT 14/11/2026 — SỬA DỰ BÁO NGÀY MAI VÀ ÂM LƯỢNG MARIN
 - Worker chính: https://nmh-voice-gpt-test.magical-budget.workers.dev/ — production version **`c53ec4d6-ed9f-4dd2-9f79-76cdfdd8505d`**. Rollback code **`c547c24a-ff0a-4b6d-afe4-1bbdd80d23d9`**.
 - Lỗi thời tiết: công cụ `get_weather` trước chỉ lấy `current`. Đã yêu cầu thêm 7 ngày `daily`: ngày địa phương, nhiệt độ max/min, xác suất và lượng mưa, gió, WMO code, đơn vị. Ngày mai phải lấy dự báo của đúng ngày, không lấy current thay thế. Không có daily thì công cụ báo lỗi, không bịa dữ liệu.
