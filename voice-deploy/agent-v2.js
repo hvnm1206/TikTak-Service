@@ -155,6 +155,11 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
         try{receipt=await actionRuntime.execute(c.name,JSON.parse(c.arguments||"{}"))}
         catch{receipt={ok:false,status:'failed',errorCode:'ACTION_EXCEPTION',answer:'Chưa thực hiện: công cụ bị lỗi. Hãy kiểm tra danh sách lời nhắc.'}}
         toolCalls.push(c.name);
+        if(receipt.errorCode==='TURN_MISMATCH'){
+          // A tool inferred from past conversation is never allowed to hijack an ordinary question.
+          input.push({type:'function_call_output',call_id:c.call_id,output:JSON.stringify({ok:false,error:'TURN_MISMATCH',message:'No action was executed. Respond to the current user question normally, without claiming an action.'})});
+          continue;
+        }
         // Deterministic backend ACK: never ask the model to fabricate success after a write.
         return {answer:receipt.answer,actionStatus:receipt.status,actionOk:receipt.ok===true,actionId:receipt.id||null,actionErrorCode:receipt.errorCode||null,
           sources:[],documentReferences:[],tools:toolCalls,model:MODEL,usage,webSearchCalls,
