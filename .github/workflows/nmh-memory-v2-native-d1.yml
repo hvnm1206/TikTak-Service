@@ -94,3 +94,5 @@ jobs:
 # Ephemeral sandbox Worker is deleted after native D1 integration assertions.
 
 # Rerun after fixing test-user FK and exact Cloudflare API teardown.
+
+# Rerun with correct structured-output mock; probe Worker auto-deletes.
