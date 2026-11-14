@@ -89,3 +89,5 @@ jobs:
           test "$status" = 401
           echo 'MEMORY_V2_SANDBOX_UNAUTH_BLOCKED=PASS'
           echo 'PRODUCTION_WORKER_UNCHANGED=1'
+
+# Run isolated D1 and Worker sandbox, never target nmh-voice-gpt-test.
