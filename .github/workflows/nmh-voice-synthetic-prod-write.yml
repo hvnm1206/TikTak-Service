@@ -82,3 +82,5 @@ jobs:
           PY
 
 # One-time synthetic production check. No user data accessed. Synthetic data deleted in finally.
+
+# Retry bounded HTTP diagnostics with browser-like audit headers.
