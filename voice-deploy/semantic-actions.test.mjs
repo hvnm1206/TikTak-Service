@@ -125,3 +125,41 @@ test('GPT tool-choice is general; application adds no relationship grammar or ph
  assert.ok(options.tools.some(t=>t.name==='save_note'));
  assert.doesNotMatch(options.instructions,/cùng là cha mẹ|quan hệ vợ chồng|Minh mèo|Thanh Vịt/);
 });
+
+test('read_memories retrieves older owner-scoped facts through pages, GPT continues rather than speaking receipt',async()=>{
+ const {sqlite,env,request}=fixture();
+ const other='another-owner';
+ sqlite.prepare('INSERT INTO v3_users(id,name,created_at) VALUES (?,?,?)').run(other,'Other',Date.now());
+ sqlite.prepare('INSERT INTO v3_memories(id,user_id,body,created_at) VALUES(?,?,?,?)').run('foreign',other,'Unrelated owner secret',Date.now());
+ for(let i=0;i<65;i++)sqlite.prepare('INSERT INTO v3_memories(id,user_id,body,created_at) VALUES(?,?,?,?)').run('m'+i,sub,'Fact number '+i,Date.now()+i);
+ const utterance='Bạn còn nhớ những thông tin tôi đã kể không?';
+ const action=buildActionRuntime({request:request(utterance),env,utterance});
+ const first=await action.execute('read_memories',{offset:0,utterance_quote:'những thông tin tôi đã kể'});
+ assert.equal(first.ok,true,JSON.stringify(first));
+ assert.equal(first.continueModel,true);
+ assert.equal(first.data.items.length,50);
+ assert.equal(first.data.nextOffset,50);
+ const second=await action.execute('read_memories',{offset:50,utterance_quote:'những thông tin tôi đã kể'});
+ assert.equal(second.ok,true);
+ assert.equal(second.data.items.length,15);
+ assert.equal(second.data.nextOffset,null);
+ assert.ok(!JSON.stringify(first.data).includes('Unrelated owner secret'));
+ assert.ok(!JSON.stringify(second.data).includes('Unrelated owner secret'));
+});
+test('read-only GPT memory retrieval makes a second model call and answers naturally',async()=>{
+ const {env,request}=fixture();
+ const utterance='Tôi đã kể thông tin gì về dự án?';
+ const action=buildActionRuntime({request:request(utterance),env,utterance});
+ let count=0;
+ const out=await runAgent({apiKey:key,messages:[{role:'user',content:utterance}],actionRuntime:action,
+ fetchImpl:async(_url,opts)=>{
+  count++;
+  const data=JSON.parse(opts.body);
+  if(count===1)return toolResponse('read_memories',{offset:0,utterance_quote:'thông tin gì về dự án'});
+  assert.ok(data.input.some(x=>x.type==='function_call_output'&&JSON.parse(x.output).ok===true));
+  return Response.json({output:[{type:'message',content:[{type:'output_text',text:'Chưa có thông tin dự án đã lưu.'}]}],usage:{input_tokens:80,output_tokens:20}});
+ }});
+ assert.equal(count,2);
+ assert.equal(out.answer,'Chưa có thông tin dự án đã lưu.');
+ assert.equal(out.actionStatus,undefined);
+});
