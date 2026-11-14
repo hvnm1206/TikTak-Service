@@ -69,9 +69,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cd voice-deploy
-          npx --yes wrangler@4.102.0 deploy --config wrangler-ngo-lab.generated.jsonc
-          cd ..
+          deployed=0
+          for attempt in 1 2 3;do
+            if (cd voice-deploy && npx --yes wrangler@4.102.0 deploy --config wrangler-ngo-lab.generated.jsonc);then deployed=1;break;fi
+            echo "Sandbox subdomain registration may be eventually consistent; retry $attempt"
+            sleep 7
+          done
+          test "$deployed" = 1
           python3 - <<'PY'
           import os,json,time,hashlib,secrets,base64,uuid,urllib.request,urllib.error
           a='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']
@@ -149,7 +153,12 @@ jobs:
           with open(cfg,'w') as f:json.dump(info,f)
           print('NGO_SANDBOX_ROLLBACK_TARGET_CAPTURED=PASS')
           PY
-          (cd voice-deploy && npx --yes wrangler@4.102.0 deploy --config wrangler-ngo-lab.generated.jsonc)
+          deployed=0
+          for attempt in 1 2 3;do
+            if (cd voice-deploy && npx --yes wrangler@4.102.0 deploy --config wrangler-ngo-lab.generated.jsonc);then deployed=1;break;fi
+            sleep 7
+          done
+          test "$deployed" = 1
           prior=$(cat /tmp/ngo-lab-before-rollback)
           (cd voice-deploy && npx --yes wrangler@4.102.0 rollback "$prior" --name "$LAB_WORKER" --message "NGO P0 sandbox rollback verification" --config wrangler-ngo-lab.generated.jsonc)
           python3 - <<'PY'
