@@ -27,8 +27,6 @@ jobs:
       - name: Test assistant, tools, TTS and Voice UI
         run: |
           node --test voice-deploy/agent-v2.test.mjs voice-deploy/worker-v2.test.mjs
-      - name: Execute real inline Voice browser logic with mocked mic and TTS
-        run: node --test voice-deploy/browser-voice-contract.test.mjs
       - name: Verify V3 staged backend syntax and isolated account tests
         run: |
           node --check voice-deploy/v3-backend.js

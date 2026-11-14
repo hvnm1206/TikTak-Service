@@ -192,19 +192,14 @@ export function enhanceVoicePage(original){
  if(a<0||z<0)throw Error('NMH Presence missing talk section');
  p=p.slice(0,a)+TALK+p.slice(z+'</section>'.length);
  p=patchOnce(p,'<section id="setup" class="hidden"><h2>SETUP</h2>','<section id="setup" class="hidden"><h2>SETUP</h2><div id="usageSummary" class="hint" role="status">Chi phí: chưa có lượt sử dụng trên thiết bị này</div>');
- p=patchOnce(p,' const labels={idle:',FACE_SCRIPT+' let micWatch=null; const labels={idle:');
+ p=patchOnce(p,' const labels={idle:',FACE_SCRIPT+' const labels={idle:');
  p=patchOnce(p,'function setState(s,detail=""){step=s;','function setState(s,detail=""){step=s;avatarFace?.setState(s);$("stateHint").textContent=({idle:"SẴN SÀNG",listening:"MIC · ĐANG NGHE",processing:"AI · ĐANG SUY NGHĨ",speaking:"MARIN · ĐANG NÓI",paused:"TẠM DỪNG",error:"CẦN KIỂM TRA"}[s]||"NMH PRESENCE");');
- p=patchOnce(p,'function closeRec(){if(rec){','function closeRec(){if(micWatch){clearTimeout(micWatch);micWatch=null}if(rec){');
- p=patchOnce(p,'r.onend=()=>{if(rec!==r)return;rec=null;','r.onend=()=>{if(rec!==r)return;if(micWatch){clearTimeout(micWatch);micWatch=null}rec=null;');
- p=patchOnce(p,'r.start();setState("listening");','r.start();setState("listening");micWatch=setTimeout(()=>{if(rec!==r||!active||g!==gen)return;const done=r.onend;if(heard.trim()&&done){r.onend=null;done();try{r.abort()}catch{}}else{closeRec();showError("Micro không có phản hồi sau 18 giây. Nhấn TIẾP TỤC để thử lại.")}},18000);');
  p=patchOnce(p,'e.scrollTop=e.scrollHeight}','e.scrollTop=e.scrollHeight;captionRefresh()}');
- p=patchOnce(p,'heard=(final||interim).trim()};','heard=(final||interim).trim();if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110);if(final.trim()&&rec===r&&active&&g===gen){const done=r.onend;if(done){r.onend=null;done();try{r.abort()}catch{}}}};');
+ p=patchOnce(p,'heard=(final||interim).trim()};','heard=(final||interim).trim();if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110)};');
  p=patchOnce(p,'const text=heard.trim();if(!text)','const text=heard.trim();$("liveUtterance").textContent="";if(!text)');
  p=patchOnce(p,'if(audioSource){audioSource.onended=null;','avatarFace?.setAudio(null);if(audioSource){audioSource.onended=null;');
- p=patchOnce(p,'s.start(0);return {duration:decoded.duration,seconds:decoded.duration/playbackSpeed}}',
-  's.start(0);speechWatch=setTimeout(()=>{if(audioSource===s){try{s.stop()}catch{};s.onended?.()}},Math.min(65000,Math.max(3500,Math.ceil(decoded.duration/playbackSpeed*1000)+3500)));return {duration:decoded.duration,seconds:decoded.duration/playbackSpeed}}');
  p=patchOnce(p,'s.connect(audioCtx.destination);audioSource=s;s.onended=','let meter=null;try{meter=audioCtx.createAnalyser();meter.fftSize=256;s.connect(meter);meter.connect(audioCtx.destination)}catch{s.connect(audioCtx.destination)}avatarFace?.setAudio(meter);audioSource=s;s.onended=');
- p=patchOnce(p,'if(audioSource===s){audioSource=null;onDone?.()}','if(audioSource===s){if(speechWatch){clearTimeout(speechWatch);speechWatch=null}audioSource=null;avatarFace?.setAudio(null);onDone?.()}');
+ p=patchOnce(p,'if(audioSource===s){audioSource=null;onDone?.()}','if(audioSource===s){audioSource=null;avatarFace?.setAudio(null);onDone?.()}');
  p=patchOnce(p,'function styleUI(){const a=','function styleUI(){avatarFace?.setPersona(style);const a=');
  p=patchOnce(p,' updateVoiceUI();renderCost();',' avatarFace=new PresenceFace($("avatar"));avatarFace.setPersona(style);updateVoiceUI();renderCost();captionRefresh();');
  return p;
