@@ -30,6 +30,7 @@ function db(){
    if(sql.startsWith('SELECT COUNT(*) AS n FROM v3_sessions'))return {n:sessions.size};
    if(sql.startsWith('SELECT user_id,expires_at FROM v3_sessions'))return sessions.get(args[0])||null;
    if(sql.startsWith('SELECT name FROM v3_users'))return users.get(args[0])||null;
+   if(sql.startsWith('SELECT body FROM v3_memories WHERE user_id=? AND id=?')){const m=memories.get(args[1]);return m?.user_id===args[0]?{body:m.body}:null}
    if(sql.startsWith('SELECT prompt, revision FROM v3_profiles'))return profiles.get(args[0])||null;
    if(sql.startsWith('SELECT prompt FROM v3_profiles'))return profiles.get(args[0])||null;
    if(sql.startsWith('SELECT revision FROM v3_profiles'))return profiles.get(args[0])||null;
