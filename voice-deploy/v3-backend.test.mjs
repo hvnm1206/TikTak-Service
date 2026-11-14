@@ -128,7 +128,7 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   assert.equal(restored.status,200);
   assert.equal(restored.body.text,'Lỗi E12: kiểm tra cảm biến áp suất trước khi khởi động lại.');
   const context=await loadV3Context(req('/api/chat','POST',{},cookie),e,'Lỗi E12 cần làm gì?');
-  assert.equal(context.personalPrompt,'Nói ngắn gọn, có căn cứ');
+  assert.equal(context.personalPrompt,changed);
   assert.ok(context.documents.some(x=>x.name==='quytrinh.txt'));
   // The real UI stores explicit identity statements; indirect phrasing must still surface them.
   const identity=await asBody(await handleV3(req('/api/v3/memories','POST',{body:'Chủ nhân tên là Hải béo'},cookie),e));
