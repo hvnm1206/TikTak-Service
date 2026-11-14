@@ -147,3 +147,23 @@ test('speech text omits URLs and citation lists while keeping source links separ
  const y=cleanVoiceAnswer('Chi tiết xem [trang quán](https://example.com/test), không đọc đường dẫn.');
  assert.equal(y,'Chi tiết xem trang quán, không đọc đường dẫn.');
 });
+
+test('GPT can call authenticated save_note for a naturally phrased request without a regex match',async()=>{
+ let seen=false,body;
+ const fetchImpl=async(_,opts)=>{body=JSON.parse(opts.body);return tool('save_note',{content:'Ngày mai họp 8 giờ'})};
+ const r=await runAgent({apiKey:key,messages:[{role:'user',content:'Ngố, hãy giữ lại giúp tao là ngày mai họp 8 giờ nhé'}],fetchImpl,onSaveNote:async content=>{assert.equal(content,'Ngày mai họp 8 giờ');seen=true;return {ok:true,data:{}}}});
+ assert.ok(body.tools.some(x=>x.name==='save_note'));
+ assert.equal(seen,true);
+ assert.equal(r.answer,'Đã ghi vào file ghi chú.');
+ assert.deepEqual(r.tools,['save_note']);
+});
+test('save_note never claims success when backend reports no Google session',async()=>{
+ const r=await runAgent({apiKey:key,messages:[{role:'user',content:'Ghi lời nhắc này giúp tao'}],fetchImpl:async()=>tool('save_note',{content:'Việc thử'}),onSaveNote:async()=>({ok:false,data:{error:'Cần đăng nhập Google để lưu. Chưa lưu.'}})});
+ assert.equal(r.answer,'Cần đăng nhập Google để lưu. Chưa lưu.');
+});
+test('save_note disabled without authenticated backend callback',async()=>{
+ let tools;
+ const r=await runAgent({apiKey:key,messages:msg,fetchImpl:async(_,o)=>{tools=JSON.parse(o.body).tools;return say('Xin chào')}});
+ assert.ok(!tools.some(x=>x.name==='save_note'));
+ assert.equal(r.answer,'Xin chào');
+});
