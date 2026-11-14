@@ -49,8 +49,11 @@ test('readback-verified relative reminder; 2 minute delay; repeated command dedu
  const b=await doAction(db,'set_reminder',set,{now:now+30000});
  assert.equal(b.id,a.id);assert.equal(b.duplicate,true);
  assert.equal(sqlite.prepare('SELECT count(*) AS n FROM nmh_reminders').get().n,1);
- const log=sqlite.prepare('SELECT action_name,phase,ack_status,owner_ref FROM nmh_reminder_audit').all();
- assert.equal(log.length,2);assert.ok(log.every(x=>x.phase==='READBACK_VERIFIED'&&x.ack_status==='ACK_SAVED'));
+ const log=sqlite.prepare('SELECT action_name,trace_id,phase,ack_status,owner_ref FROM nmh_reminder_audit ORDER BY created_at_ms').all();
+ assert.equal(log.length,10);assert.equal(log.filter(x=>x.phase==='ACK_SAVED').length,2);
+ assert.equal(log.filter(x=>x.phase==='READBACK_VERIFIED').length,2);
+ assert.equal(new Set(log.map(x=>x.trace_id)).size,2);
+ assert.ok(log.every(x=>x.action_name==='set_reminder'&&x.owner_ref.length===20));
  assert.ok(log.every(x=>!JSON.stringify(x).includes('thuốc')));
 });
 
@@ -138,4 +141,12 @@ test('action tools require evidence from the current user turn, never previous c
  assert.equal(matchesCurrentUtterance({utterance_quote:'nhắc tao uống thuốc'},'Ngày mai trời mưa không?'),false);
  assert.equal(matchesCurrentUtterance({utterance_quote:'nhắc'},'nhắc tao uống thuốc'),false);
  assert.ok(reminderToolSchemas.every(x=>x.parameters.required.includes('utterance_quote')));
+});
+
+test('audit retention purges events older than 30 days on next action',async()=>{
+ const {db,sqlite}=dbFixture();
+ await doAction(db,'set_reminder',set);
+ sqlite.prepare('UPDATE nmh_reminder_audit SET created_at_ms=?').run(now-2592000001);
+ await doAction(db,'list_reminders',{status:'pending'}, {now:now+1});
+ assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM nmh_reminder_audit WHERE created_at_ms<?').get(now-2592000000).n,0);
 });
