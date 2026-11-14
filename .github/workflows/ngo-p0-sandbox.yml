@@ -113,7 +113,14 @@ jobs:
            try:
             with urllib.request.urlopen(req,timeout=25) as r:return r.status,json.load(r)
            except urllib.error.HTTPError as e:return e.code,json.loads(e.read().decode())
-          assert http('/api/reminders/capabilities')[1]['enabled'] is True
+          # Newly deployed workers.dev routes may briefly serve a not-ready JSON response.
+          for attempt in range(15):
+           try:
+            cap_status,cap=http('/api/reminders/capabilities')
+            if cap_status==200 and cap.get('enabled') is True:break
+           except Exception:pass
+           time.sleep(3)
+          else:raise AssertionError('Sandbox reminders feature not ready; never treat a stale route as success')
           status,config=http('/api/v3/config');assert status==200 and config['ready'] and config['storage']=='Cloudflare D1'
           status,anon=http('/api/reminders/due',login=False);assert status==401
           status,pending=http('/api/reminders/due');assert status==200 and [x['id'] for x in pending['reminders']]==[a_id]
