@@ -55,3 +55,56 @@ test('mascot skins are ONLY pairs of expressive eyes, no spinning face or head',
  assert.ok(!html.includes('ngoMascotStage svg{animation'));
  assert.ok(html.includes('translate(\'+x+\',124)'));
 });
+
+test('eye-only selector and state animations work with DOM behavior stub, without invoking Voice APIs',()=>{
+ const html=enhanceThemePage('<html><head></head><body></body></html>');
+ const source=html.match(/<script id="ngoThemeScript">([\s\S]*?)<\/script>/)?.[1];
+ assert.ok(source);
+ const handlers={}, observers=[],intervals=[],store=new Map([['nmh_voice_theme_v1','eyes']]);
+ const fake=(name)=>({name,dataset:{},style:{setProperty(k,v){this[k]=v}},textContent:'',
+  addEventListener(type,fn){handlers[name+':'+type]=fn},
+  insertAdjacentElement(){},insertAdjacentHTML(_pos,markup){this.markup=markup},
+  replaceChildren(){this.markup=''},querySelectorAll(sel){
+   if(!this.markup)return [];
+   return sel==='.ngo-eye'?[leftEye,rightEye]:sel==='.ngo-iris'?[leftIris,rightIris]:[];
+  },getBoundingClientRect(){return {left:0,top:0,width:360,height:250}}});
+ const leftEye=fake('left-eye'),rightEye=fake('right-eye');
+ const leftIris=fake('left-iris'),rightIris=fake('right-iris');
+ const status=fake('status'),hint=fake('hint'),field=fake('field'),setup=fake('setup'),heading=fake('heading'),select=fake('select');
+ const stage=fake('stage'),picker=fake('picker');
+ field.append=(v)=>{assert.equal(v,stage)};
+ setup.querySelector=()=>heading;
+ picker.querySelector=()=>select;
+ const doc={
+  documentElement:{dataset:{}},hidden:false,
+  getElementById(id){return id==='status'?status:id==='setup'?setup:id==='stateHint'?hint:null},
+  querySelector(sel){return sel==='.visual-field'?field:null},
+  createElement(type){assert.ok(type==='div'||type==='section');return type==='div'?stage:picker}
+ };
+ const ctx={document:doc,localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},
+  window:{matchMedia:()=>({matches:false}),setTimeout:()=>1,clearTimeout:()=>{},setInterval:fn=>{intervals.push(fn)}},
+  MutationObserver:class{constructor(fn){observers.push(fn)}observe(){}},
+  Math,console};
+ vm.runInNewContext(source,ctx);
+ assert.equal(doc.documentElement.dataset.ngoTheme,'eyes');
+ assert.equal(stage.dataset.theme,'eyes');
+ assert.match(stage.markup,/class="ngo-eye"/);
+ assert.match(stage.markup,/class="ngo-iris"/);
+ assert.doesNotMatch(stage.markup,/ngoMascotTalk|ngoMascotFloat/);
+ hint.textContent='MIC · ĐANG NGHE';observers.forEach(fn=>fn());
+ assert.equal(stage.dataset.state,'listening');
+ hint.textContent='MARIN · ĐANG NÓI';observers.forEach(fn=>fn());
+ assert.equal(stage.dataset.state,'speaking');
+ assert.equal(intervals.length,2);
+ intervals.forEach(fn=>fn());
+ assert.match(leftIris.style.transform,/translate\(/);
+ select.value='duck';handlers['select:change']();
+ assert.equal(doc.documentElement.dataset.ngoTheme,'duck');
+ assert.equal(store.get('nmh_voice_theme_v1'),'duck');
+ assert.match(stage.markup,/class="ngo-eye"/);
+ select.value='corgi';handlers['select:change']();
+ assert.equal(stage.dataset.theme,'corgi');
+ select.value='default';handlers['select:change']();
+ assert.equal(stage.dataset.theme,'default');
+ assert.equal(stage.markup,'');
+});
