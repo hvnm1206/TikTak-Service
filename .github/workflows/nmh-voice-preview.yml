@@ -325,3 +325,5 @@ jobs:
 # Read-only D1 investigation of note-save failures on 2026-11-14. No personal contents.
 
 # Temporary synthetic D1 live note test; no real user data copied or logged.
+
+# Retry synthetic note E2E with sanitized 403 diagnostics, user data untouched.
