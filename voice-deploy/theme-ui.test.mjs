@@ -11,6 +11,10 @@ test('theme is an additive visual layer with default old appearance',()=>{
  assert.equal((output.match(/<script/g)||[]).length,1);
  assert.equal((output.match(/<\/script>/g)||[]).length,1);
  assert.ok(output.includes('theme=\'default\''));
+ assert.ok(output.includes("querySelector('.visual-field')")&&output.includes('field.append(stage)'));
+ assert.ok(output.includes(':root[data-ngo-theme="duck"] #avatar,:root[data-ngo-theme="corgi"] #avatar{display:none}'));
+ assert.ok(output.includes('width:245px;height:245px'));
+
  const script=output.match(/<script id="ngoThemeScript">([\s\S]*?)<\/script>/)?.[1]; assert.ok(script);
  new vm.Script(script);
 });
