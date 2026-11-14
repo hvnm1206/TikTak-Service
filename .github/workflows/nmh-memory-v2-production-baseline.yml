@@ -63,3 +63,5 @@ jobs:
           PY
 
 # No D1 writes, no Worker deployment, no Ngáo access.
+
+# Live counts audit, no personal data read or modified.
