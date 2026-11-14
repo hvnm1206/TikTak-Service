@@ -13,6 +13,8 @@ export function isWriteCommand(text){
  if(/^(?:tại sao|vì sao|làm sao|làm thế nào|cách nào|cách |giải thích|cho biết|hỏi |có phải|có thể|tại vì|khi nào|bao giờ)\s/iu.test(t))return false;
  if(/^(?:(?:mày|em|bạn|anh|cậu)\s+)?(?:(?:hãy|làm ơn|nhờ|giúp|phiền|vui lòng)\s+){0,2}(?:ghi|chép|lưu|nhớ|viết|note|để dành)(?:\s|[,.!:：]|$)/iu.test(t))return true;
  if(/(?:ghi|chép|lưu|nhớ)\s+(?:hộ|giúp|cho)\s+(?:tao|tôi|anh|mình|em)\s/iu.test(t))return true;
+ if(/^(?:tao|tôi|anh|mình|em)\s+(?:muốn|cần|bảo|yêu\s+cầu|nhờ)\s+(?:mày|em|bạn|anh|ngáo)\s+(?:hãy\s+)?(?:ghi|chép|lưu|nhớ|viết)(?:\s|[,.!:：]|$)/iu.test(t))return true;
+ if(/^(?:mày|bạn|em|anh|ngáo)\s+(?:có\s+thể|giúp|phải)\s+(?:ghi|chép|lưu|nhớ|viết)(?:\s|[,.!:：]|$)/iu.test(t))return true;
  if(/(?:vào|trong)\s+(?:file|tệp|sổ)\s+(?:ghi\s+chú|note)(?:\s|$)/iu.test(t))return true;
  if(/(?:để\s+dành|nhớ\s+giùm|đừng\s+quên)\s+(?:cho|rằng|giúp|việc|chuyện|cái)?\s/iu.test(t))return true;
  return false;
