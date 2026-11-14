@@ -18,6 +18,7 @@ CREATE INDEX IF NOT EXISTS nmh_reminders_dedupe ON nmh_reminders(user_id,fingerp
 
 CREATE TABLE IF NOT EXISTS nmh_reminder_audit (
  id TEXT PRIMARY KEY NOT NULL,
+ trace_id TEXT NOT NULL,
  owner_ref TEXT NOT NULL,
  action_name TEXT NOT NULL,
  reminder_id TEXT,
@@ -27,6 +28,8 @@ CREATE TABLE IF NOT EXISTS nmh_reminder_audit (
  ack_status TEXT NOT NULL,
  created_at_ms INTEGER NOT NULL
 );
+CREATE INDEX IF NOT EXISTS nmh_reminder_audit_trace ON nmh_reminder_audit(trace_id,created_at_ms);
 CREATE INDEX IF NOT EXISTS nmh_reminder_audit_ttl ON nmh_reminder_audit(created_at_ms);
--- Retention policy: delete audit entries older than 30 days in a controlled scheduled maintenance job.
+-- Activity-driven retention: backend prunes audit entries older than 30 days on each action.
+-- Long inactivity does not itself invoke cleanup; a scheduled job can be added if needed.
 -- Never put speech content, medication names, API keys, Google cookies or JWT in audit.
