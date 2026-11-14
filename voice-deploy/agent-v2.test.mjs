@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runAgent, MODEL } from './agent-v2.js';
+import { runAgent, MODEL, cleanVoiceAnswer } from './agent-v2.js';
 
 const key='sk-'+ 'a'.repeat(40);
 const msg=[{role:'user',content:'Tra thông tin cho tôi'}];
@@ -139,4 +139,11 @@ test('multiple hosted searches fail closed before claiming cost control',async()
     {type:'web_search_call',id:'2',status:'completed'},
     {type:'message',content:[{type:'output_text',text:'Found'}]}
   ])}),/vượt giới hạn/);
+});
+
+test('speech text omits URLs and citation lists while keeping source links separate',()=>{
+ const x=cleanVoiceAnswer('Có hai quán gần Mỹ Đình. citeturn0search0\nNguồn: https://example.com/very-long-url\nTham khảo: https://example.org/more');
+ assert.equal(x,'Có hai quán gần Mỹ Đình.');
+ const y=cleanVoiceAnswer('Chi tiết xem [trang quán](https://example.com/test), không đọc đường dẫn.');
+ assert.equal(y,'Chi tiết xem trang quán, không đọc đường dẫn.');
 });
