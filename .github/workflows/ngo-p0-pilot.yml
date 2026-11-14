@@ -21,7 +21,7 @@ jobs:
       PILOT_WORKER: nmh-ngo-p0-pilot-20261114
       PILOT_DB: nmh-ngo-p0-pilot-d1-20261114
       PROD_DB: 3ce295cb-a84d-4a50-abee-d14fdd903514
-      PROD_VERSION: 253c198a-5af6-4a98-9776-ebe9b06aa424
+      PROD_VERSION: b4b18bd1-3562-4bab-9d59-2cee3c3a399c
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
