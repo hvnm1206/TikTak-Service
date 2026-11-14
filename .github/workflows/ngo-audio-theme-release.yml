@@ -21,7 +21,7 @@ jobs:
       GH_ACTIONS_TOKEN: ${{ github.token }}
       PROD_DB_ID: '3ce295cb-a84d-4a50-abee-d14fdd903514'
       PROD_WORKER: nmh-voice-gpt-test
-      PROD_EXPECTED_VERSION: f24ae459-324a-4aef-96d0-7713454d62e4
+      PROD_EXPECTED_VERSION: c547c24a-ff0a-4b6d-afe4-1bbdd80d23d9
       TARGET: https://nmh-voice-gpt-test.magical-budget.workers.dev
     steps:
       - uses: actions/checkout@v4
