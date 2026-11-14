@@ -1,5 +1,15 @@
 # NGỐ / NMH VOICE GPT — P0 ActionRegistry / Foreground Reminder / Audit
 
+## 2026-11-14 — PRODUCTION RELEASE VERIFIED (current, supersedes earlier "not deployed" entries)
+- **User-authorized production deploy accomplished** at existing https://nmh-voice-gpt-test.magical-budget.workers.dev/ ; Worker `nmh-voice-gpt-test`, Cloudflare version `08e0bbf2-a2e5-4b98-94dc-0cfee882e5b6`.
+- Guarded release GitHub Actions https://github.com/hvnm1206/TikTak-Service/actions/runs/43578218605 **SUCCESS**. 71 old + 17 P0 tests PASS; isolated pilot preflight PASS; original Worker version and D1 Time Travel bookmark backed up to 30-day artifact; additive production D1 migration `0004_reminders.sql` PASS; same Worker deployed, post-deploy voice/Marin/V3/OAuth UI/unauth/API error smoke PASS.
+- Exact rollback Worker version `fb2bacc5-b26e-4abc-9ee1-78cc222ac221`. D1 Time Travel bookmark is archived as artifact `ngo-p0-prod-version-and-d1-bookmark` under the release workflow; Worker code rollback does NOT roll back D1 (migration is additive and preserved).
+- `NMH_REMINDERS_MODE=active` and `NMH_MEMORY_V2_MODE=active` on production; no existing Google/V3 tables altered.
+- Independent Guarded Operator production GET verification PASS (three 200s): `/health` confirms `browser-stt+marin-tts`, `voice-write-synchronous-ack-v1`; `/api/v3/config` reports ready D1 and valid Google Web Client; `/api/reminders/capabilities` reports `enabled:true`, `foregroundOnly:true`.
+- **Physical iPhone UAT remains pending**: real Google session, user's OpenAI key, GPT tool invocation, Marin reminder playback exactly after two minutes while app visible, multi-tab behavior. User explicitly opted to test on main URL. Never claim iPhone PASS from HTTP.
+- Ngáo not touched. Existing production URL preserved. Historical content below describes state before this deployment, not current state.
+
+
 ## 2026-11-14 — Persistent pilot for physical iPhone UAT
 - Pilot URL: https://nmh-ngo-p0-pilot-20261114.magical-budget.workers.dev/ (separate Worker + separate D1; NMH_REMINDERS_MODE=active; Memory V2 OFF in pilot only).
 - CI deploy: https://github.com/hvnm1206/TikTak-Service/actions/runs/43577570928 — all 4 gates SUCCESS (71+17 unit/regression, strict baseline check, isolated remote D1 migration & Worker deploy, anonymous 401, app/UI, production intact).
