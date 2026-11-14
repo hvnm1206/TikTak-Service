@@ -167,3 +167,61 @@ test('save_note disabled without authenticated backend callback',async()=>{
  assert.ok(!tools.some(x=>x.name==='save_note'));
  assert.equal(r.answer,'Xin chào');
 });
+
+test('a saved note on prior turn NEVER exposes save_note on unrelated next question',async()=>{
+ const history=[
+  {role:'user',content:'Ngố, ghi lại cho tao mai gọi anh Nam'},
+  {role:'assistant',content:'Đã ghi vào file ghi chú.'},
+  {role:'user',content:'Hà Nội là thủ đô nước nào?'}
+ ];
+ let body;
+ let writes=0;
+ const r=await runAgent({apiKey:key,messages:history,onSaveNote:async()=>{writes++;return {ok:true,data:{}}},fetchImpl:async(_,o)=>{
+   body=JSON.parse(o.body);
+   return say('Hà Nội là thủ đô của Việt Nam.');
+ }});
+ assert.equal(writes,0);
+ assert.ok(!body.tools.some(t=>t.name==='save_note'),'no saved note tool on unrelated question');
+ assert.equal(r.answer,'Hà Nội là thủ đô của Việt Nam.');
+ assert.deepEqual(r.tools,[]);
+});
+test('unrequested save_note from upstream is refused without invoking D1 or hijacking answer',async()=>{
+ const messages=[
+  {role:'user',content:'Ghi vào file ghi chú mua đèn'},
+  {role:'assistant',content:'Đã ghi vào file ghi chú.'},
+  {role:'user',content:'Hai cộng ba bằng bao nhiêu?'}
+ ];
+ let n=0,writes=0;
+ let secondBody;
+ const r=await runAgent({apiKey:key,messages,onSaveNote:async()=>{writes++;return {ok:true,data:{}}},fetchImpl:async(_,o)=>{
+   n++;
+   if(n===1)return tool('save_note',{content:'mua đèn'});
+   secondBody=JSON.parse(o.body);
+   return say('Bằng năm.');
+ }});
+ assert.equal(writes,0,'save callback must never fire on unrelated turn');
+ assert.equal(n,2);
+ assert.equal(r.answer,'Bằng năm.');
+ assert.ok(!r.tools.includes('save_note'));
+ assert.equal(secondBody.input.filter(x=>x.type==='function_call').length,1);
+ assert.equal(secondBody.input.filter(x=>x.type==='function_call_output').length,1,'no duplicated upstream tool call');
+});
+test('explicit note request remains writeable even after an ordinary question',async()=>{
+ const history=[
+  {role:'user',content:'Thời tiết thế nào?'},
+  {role:'assistant',content:'Trời mát.'},
+  {role:'user',content:'Ghi lại cho tao ngày mai kiểm tra dây điện'}
+ ];
+ let writes=0;
+ const r=await runAgent({apiKey:key,messages:history,onSaveNote:async text=>{
+   writes++;
+   assert.equal(text,'ngày mai kiểm tra dây điện');
+   return {ok:true,data:{}};
+ },fetchImpl:async(_,o)=>{
+   const b=JSON.parse(o.body);
+   assert.ok(b.tools.some(x=>x.name==='save_note'));
+   return tool('save_note',{content:'ngày mai kiểm tra dây điện'});
+ }});
+ assert.equal(writes,1);
+ assert.equal(r.answer,'Đã ghi vào file ghi chú.');
+});
