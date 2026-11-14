@@ -23,3 +23,14 @@ test('client uses foreground polling, server atomic claim and manual Marin retry
  }
  assert.ok(!html.includes('serviceWorker')&&!html.includes('PushManager'));
 });
+
+test('10-minute bounded foreground polling, no old 10-second interval, deduplicates resume',()=>{
+ const html=enhanceReminderPage(page,{NMH_REMINDERS_MODE:'active'});
+ assert.ok(html.includes('REMINDER_POLL_MS=10*60*1000'));
+ assert.ok(html.includes('setInterval(()=>{void tick()},REMINDER_POLL_MS)'));
+ assert.ok(!html.includes('setInterval(()=>{void tick()},10000)'));
+ assert.ok(html.includes('if(document.visibilityState!==\'visible\'||checking)return;'));
+ assert.ok(html.includes('finally{checking=false}'));
+ assert.ok(html.includes('Date.now()-lastCheckAt>=60000'));
+ assert.ok(html.includes('if(document.visibilityState===\'visible\''));
+});
