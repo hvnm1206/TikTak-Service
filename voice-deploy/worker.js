@@ -1,9 +1,8 @@
 import { runAgent } from './agent-v2.js';
 import { enhanceVoicePage } from './presence-ui.js';
 import { enhanceV3Page } from './v3-ui.js';
-import { handleV3, loadV3Context, handleVoiceMemory, handleVoiceNote, memoryV2Subject } from './v3-backend.js';
+import { handleV3, loadV3Context, memoryV2Subject } from './v3-backend.js';
 import { memoryMode, runMemoryV2 } from './memory-v2.js';
-import { routeVoiceWrite } from './voice-write.js';
 import {buildActionRuntime,routeReminderApi} from './action-registry.js';
 import {remindersEnabled} from './reminders.js';
 import {enhanceReminderPage} from './reminders-client.js';
@@ -101,19 +100,13 @@ try{
    return r.ok?respond({ok:true,model:MODEL_V2}):respond({error:r.status===401?"API key không hợp lệ":"OpenAI HTTP "+r.status},r.status===401?401:502);
  }
  const question=String(body.messages.at(-1).content);
- const noteResult=await handleVoiceNote(request,env,question);
- if(noteResult)return respond({...noteResult,saveStatus:noteResult.saved===true?'saved':'failed'});
- const memoryResult=await handleVoiceMemory(request,env,question);
- if(memoryResult)return respond(memoryResult.saved===undefined?memoryResult:{...memoryResult,saveStatus:memoryResult.saved===true?'saved':'failed'});
- // Natural write command fallback is synchronous: classify → D1 → readback → spoken success/failure.
- // Ordinary chat, microphone, Web Search and Marin TTS remain untouched.
- const naturalWrite=await routeVoiceWrite(request,env,question,key,{signal:ctl.signal});
- if(naturalWrite)return respond(naturalWrite);
+ // All natural-language operations are selected by the same GPT conversation.
+ // No phrase-matching router, duplicate model classifier, or special memory path.
  const personalization=await loadV3Context(request,env,question);
  if(personalization.contextError)return respond({error:personalization.contextError},503);
  const actionRuntime=buildActionRuntime({request,env,utterance:question,requestId:body.requestId,signal:ctl.signal});
  const result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal:ctl.signal,actionRuntime});
- // Reminder actions are utility operations, not long-term personal memories. Do not feed their content to Memory V2.
+ // Verified tool actions are completed synchronously and are not reinterpreted by the background memory observer.
  if(result.actionStatus)return respond(result);
  // The new analyzer is an isolated observer. Off by default, never changes the spoken reply.
  // No extra network call, SQL or mic/TTS handling when disabled.
