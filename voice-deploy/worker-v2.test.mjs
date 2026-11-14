@@ -196,3 +196,70 @@ test('maintenance refuses stale Raw fallback when GitHub API unavailable',async(
   assert.match(body.error,/GitHub/);
  }finally{globalThis.fetch=orig}
 });
+
+test('Marin prefetch requests next segment DURING current playback and preserves order',async()=>{
+  const html=await(await worker.fetch(new Request(host+'/'))).text();
+  const script=html.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
+  assert.ok(script);
+  const a=script.indexOf('function speechParts(text)'),b=script.indexOf('\\n $("start").onclick',a);
+  assert.ok(a>=0&&b>a,'speak source is extractable');
+  const source=script.slice(a,b);
+  const build=new Function('deps',`
+    let active=true,gen=1,ttsRequestId=0,ttsCtl=null,ttsPrefetchCtl=null,style="nghiem_tuc",rate=1,voiceLastError="";
+    const fetchSpeechAudio=deps.fetchAudio,playAudioBuffer=deps.play,recordCost=deps.cost;
+    const setState=()=>{},setVoiceSource=()=>{},listen=deps.listen,showError=deps.error;
+    function closeVoice(){ttsRequestId++;ttsCtl?.abort();ttsPrefetchCtl?.abort();ttsCtl=null;ttsPrefetchCtl=null}
+    ${source}
+    return {speak,interrupt:()=>{gen++;closeVoice()},getState:()=>({ttsPrefetchCtl,ttsRequestId})};
+  `);
+  const requested=[],playbacks=[],costs=[],errors=[],listens=[];
+  const h=build({
+    fetchAudio:async(text)=>{requested.push(text);return {text}},
+    play:async(bytes,speed,done)=>{playbacks.push({text:bytes.text,done});return {duration:2}},
+    cost:x=>costs.push(x),listen:()=>listens.push('listen'),error:x=>errors.push(x)
+  });
+  await h.speak('Đây là đoạn thứ nhất. Đây là đoạn thứ hai.',1);
+  assert.equal(playbacks.length,1,'only first chunk plays initially');
+  assert.equal(requested.length,2,'next chunk request starts before first finishes');
+  assert.equal(playbacks[0].text,requested[0]);
+  playbacks[0].done();
+  for(let i=0;i<5;i++)await Promise.resolve();
+  assert.equal(playbacks.length,2);
+  assert.equal(playbacks[1].text,requested[1],'the prepared next chunk plays in order');
+  assert.equal(listens.length,0,'micro cannot restart between chunks');
+  playbacks[1].done();
+  for(let i=0;i<5;i++)await Promise.resolve();
+  assert.equal(listens.length,1,'micro resumes only after final chunk');
+  assert.equal(costs.length,2);
+  assert.deepEqual(errors,[]);
+});
+test('Marin prefetched audio cannot play after interruption',async()=>{
+  const html=await(await worker.fetch(new Request(host+'/'))).text();
+  const script=html.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
+  const a=script.indexOf('function speechParts(text)'),b=script.indexOf('\\n $("start").onclick',a);
+  const source=script.slice(a,b);
+  let pending;
+  const playbacks=[],listens=[],errors=[];
+  const make=new Function('deps',`
+    let active=true,gen=2,ttsRequestId=0,ttsCtl=null,ttsPrefetchCtl=null,style="nghiem_tuc",rate=1,voiceLastError="";
+    const fetchSpeechAudio=deps.fetchAudio,playAudioBuffer=deps.play,recordCost=()=>{};
+    const setState=()=>{},setVoiceSource=()=>{},listen=deps.listen,showError=deps.error;
+    function closeVoice(){ttsRequestId++;ttsCtl?.abort();ttsPrefetchCtl?.abort();ttsCtl=null;ttsPrefetchCtl=null}
+    ${source}
+    return {speak,interrupt:()=>{gen++;closeVoice()}};
+  `);
+  let calls=0;const h=make({
+    fetchAudio:(text)=>{calls++;return calls===1?Promise.resolve({text}):new Promise(resolve=>{pending=()=>resolve({text})})},
+    play:async(bytes,speed,done)=>{playbacks.push({bytes,done});return {duration:2}},
+    listen:()=>listens.push(1),error:e=>errors.push(e)
+  });
+  await h.speak('Đoạn đầu tiên. Đoạn thứ hai.',2);
+  assert.equal(calls,2,'prefetch started');
+  h.interrupt();
+  pending();
+  playbacks[0].done();
+  for(let i=0;i<5;i++)await Promise.resolve();
+  assert.equal(playbacks.length,1,'no post-interrupt playback');
+  assert.equal(listens.length,0,'interruption does not force microphone restart');
+  assert.deepEqual(errors,[]);
+});
