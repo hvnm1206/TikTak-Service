@@ -162,3 +162,14 @@ test('stale tool call is refused and normal current-turn response resumes',async
  const out=await runAgent({apiKey:'unit-test-placeholder',messages:[{role:'user',content:'Câu hỏi thông thường'}],fetchImpl:mock,actionRuntime:{tools:reminderToolSchemas,execute:async()=>({errorCode:'TURN_MISMATCH',answer:'Chưa thực hiện'})}});
  assert.equal(count,2);assert.equal(out.answer,'Trả lời câu hỏi hiện tại.');
 });
+
+test('two simultaneous set commands with distinct request IDs create exactly one row',async()=>{
+ const {db,sqlite}=dbFixture();
+ const [left,right]=await Promise.all([
+  doAction(db,'set_reminder',set,{requestId:'request_tab_A_123'}),
+  doAction(db,'set_reminder',set,{requestId:'request_tab_B_456'})
+ ]);
+ assert.equal(left.ok,true);assert.equal(right.ok,true);
+ assert.equal(left.id,right.id);
+ assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM nmh_reminders').get().n,1);
+});
