@@ -173,3 +173,48 @@ test('two simultaneous set commands with distinct request IDs create exactly one
  assert.equal(left.id,right.id);
  assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM nmh_reminders').get().n,1);
 });
+
+test('natural spoken 7pm tonight is valid without user giving calendar date or ISO seconds',async()=>{
+ const {db,sqlite}=dbFixture();
+ const utterance='7 giờ tối nay gọi tao dậy xem bóng đá';
+ const r=await executeReminderAction('set_reminder',{
+  text:'gọi dậy xem bóng đá',mode:'absolute',delay_seconds:0,local_at:'19:00',timezone:'Asia/Ho_Chi_Minh'
+ },{db,sub:'user-A',utterance,now});
+ assert.equal(r.ok,true);assert.equal(r.status,'verified');
+ assert.match(r.answer,/Đã đặt nhắc/);
+ const got=sqlite.prepare('SELECT due_at_ms AS due,text FROM nmh_reminders').get();
+ assert.equal(got.due,Date.parse('2026-11-14T12:00:00Z'));
+ assert.equal(got.text,'gọi dậy xem bóng đá');
+});
+test('ordinary time formats with / without seconds accepted; past, impossible, and ambiguous rejected',async()=>{
+ const {db,sqlite}=dbFixture();
+ const next=await doAction(db,'set_reminder',{text:'đi họp',mode:'absolute',delay_seconds:0,local_at:'2026-11-15T08:30',timezone:'Asia/Ho_Chi_Minh'});
+ assert.equal(next.ok,true);
+ assert.equal(sqlite.prepare("SELECT due_at_ms FROM nmh_reminders WHERE text='đi họp'").get().due_at_ms,Date.parse('2026-11-15T01:30:00Z'));
+ const yesterday=await doAction(db,'set_reminder',{...set,mode:'absolute',delay_seconds:0,local_at:'10:00'});
+ assert.equal(yesterday.ok,false);
+ const impossible=await doAction(db,'set_reminder',{...set,mode:'absolute',delay_seconds:0,local_at:'2026-11-14T25:00'});
+ assert.equal(impossible.ok,false);
+ const ambiguous=await doAction(db,'set_reminder',{...set,mode:'absolute',delay_seconds:0,local_at:''});
+ assert.equal(ambiguous.ok,false);
+ assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM nmh_reminders').get().n,1);
+});
+test('reminder prompt instructs GPT to understand natural time, not demand dates from user',async()=>{
+ let instructions='';
+ const r=await runAgent({apiKey:'sk-abcdefghijklmnopqrstuvwxyz123456',
+  messages:[{role:'user',content:'7 giờ tối nay gọi tao dậy xem bóng đá'}],
+  actionRuntime:{tools:reminderToolSchemas,execute:async(name,args)=>{
+   assert.equal(name,'set_reminder');
+   assert.equal(args.local_at,'19:00');
+   return {ok:true,status:'verified',answer:'Đã đặt nhắc lúc 19 giờ tối nay.'};
+  }},
+  fetchImpl:async(_url,options)=>{
+   const body=JSON.parse(options.body);instructions=body.instructions;
+   return new Response(JSON.stringify({output:[{type:'function_call',call_id:'call-tonight',name:'set_reminder',
+    arguments:JSON.stringify({text:'gọi dậy xem bóng đá',utterance_quote:'gọi tao dậy xem bóng đá',mode:'absolute',
+     delay_seconds:0,local_at:'19:00',timezone:'Asia/Ho_Chi_Minh'})}],usage:{input_tokens:100,output_tokens:40}}),{status:200});
+  }
+ });
+ assert.equal(r.actionOk,true);assert.match(r.answer,/Đã đặt nhắc/);
+ assert.match(instructions,/không bắt người dùng nói ngày tháng/);
+});
