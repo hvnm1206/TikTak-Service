@@ -181,7 +181,7 @@ test('maintenance source fallback serves only canonical fresh Raw content if Git
  try{
   const res=await worker.fetch(new Request(host+'/api/docs/maintenance'));
   assert.equal(res.status,200);
-  assert.equal(res.headers.get('x-nmh-doc-source'),'github-raw-fallback');
+  assert.equal(res.headers.get('x-nmh-doc-source'),'github-raw-fallback-freshness-unverified');
   assert.equal(await res.text(),md);
   assert.equal(attempts.length,2);
  }finally{globalThis.fetch=orig}
@@ -330,4 +330,16 @@ test('Memory V2 controls remain separate from mic/Marin UI and injected Setup sc
  assert.match(page,/id="resume"/);
  assert.match(page,/id="v3Documents"/);
  assert.match(page,/id="v3Memories"/);
+});
+
+test('GitHub 403 fallback accepts updated Markdown headings without hardcoded history marker',async()=>{
+ const original=globalThis.fetch;
+ const md='# NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH\n\n## 1. Production đã kiểm chứng\n- Nội dung hiện hành được tải đúng cấu trúc Markdown, không phụ thuộc tiêu đề bản cũ.';
+ globalThis.fetch=async(url)=>String(url).startsWith('https://api.github.com')?Response.json({message:'API rate limited'},{status:403}):new Response(md,{status:200});
+ try{
+  const r=await worker.fetch(new Request(host+'/api/docs/maintenance'));
+  assert.equal(r.status,200);
+  assert.equal(await r.text(),md);
+  assert.equal(r.headers.get('x-nmh-doc-source'),'github-raw-fallback-freshness-unverified');
+ }finally{globalThis.fetch=original}
 });
