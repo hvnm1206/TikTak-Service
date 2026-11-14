@@ -128,6 +128,23 @@ jobs:
            except Exception:pass
            time.sleep(3)
           else:raise AssertionError('Sandbox Google D1 config not ready after retry; no false PASS')
+          # Exact Prompt create -> D1 readback -> update -> conflict on isolated REAL D1.
+          initial_prompt='Chuyên nghiệp, rõ ràng; phản biện có căn cứ.'
+          edited_prompt='Chuyên nghiệp, rõ ràng, không đồng tình vô điều kiện.'
+          code,anon_profile=http('/api/v3/profile',login=False);assert code==401
+          code,before_profile=http('/api/v3/profile');assert code==200 and before_profile['revision']==0
+          code,created_profile=http('/api/v3/profile','PUT',{'prompt':initial_prompt,'revision':0})
+          assert code==200 and created_profile=={'ok':True,'prompt':initial_prompt,'revision':1,'verified':True},(code,created_profile)
+          code,got_profile=http('/api/v3/profile')
+          assert code==200 and got_profile['prompt']==initial_prompt and got_profile['revision']==1,got_profile
+          code,edited_profile=http('/api/v3/profile','PUT',{'prompt':edited_prompt,'revision':1})
+          assert code==200 and edited_profile.get('verified') is True and edited_profile.get('prompt')==edited_prompt and edited_profile.get('revision')==2,(code,edited_profile)
+          code,conflict=http('/api/v3/profile','PUT',{'prompt':'stale overwrite','revision':1})
+          assert code==409 and 'error' in conflict,(code,conflict)
+          code,final_profile=http('/api/v3/profile')
+          assert code==200 and final_profile['prompt']==edited_prompt and final_profile['revision']==2
+          assert q('SELECT prompt,revision FROM v3_profiles WHERE user_id=?',[sub])[0]=={'prompt':edited_prompt,'revision':2}
+          print('NGO_SANDBOX_PROMPT_CREATE_EDIT_READBACK_CONFLICT=PASS')
           status,anon=http('/api/reminders/due',login=False);assert status==401
           status,pending=http('/api/reminders/due');assert status==200 and [x['id'] for x in pending['reminders']]==[a_id]
           status,claim=http('/api/reminders/claim','POST',{'id':a_id});assert status==200 and claim['claimed']
