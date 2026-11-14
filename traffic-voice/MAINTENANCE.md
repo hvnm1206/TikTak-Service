@@ -53,3 +53,23 @@ Khi chủ sở hữu đã cấp quyền Maps/OpenAI/quota, tiến hành trong m�
 - Mã nguồn Traffic GitHub: `https://github.com/hvnm1206/TikTak-Service/tree/nmh-traffic-voice-v1-20261114/traffic-voice`.
 - CI Traffic: `https://github.com/hvnm1206/TikTak-Service/actions/workflows/traffic-voice-verify.yml` (có thể phải chọn nhánh Traffic).
 - Hướng dẫn cài đặt và giá: `README.md` cùng thư mục.
+
+
+## TRAFFIC GOOGLE CLOUD READONLY AUDIT 20261114 — vòng kiểm tra quyền bổ sung
+
+Yêu cầu từ chủ sản phẩm: **Operator chịu trách nhiệm làm đến sản phẩm cuối**, người dùng chỉ hỗ trợ với thao tác không thể thay thế như quyền Cloud Console, billing hoặc chấp thuận OAuth.
+
+Thực tế đã làm trong vòng kiểm tra này:
+
+- NMH Guarded Operator tạo Apps Script **test cô lập** `nmh-traffic-gcloud-readonly-audit-20261114` — script ID `1yypaUDSOToHnS1tyB276_WNxEgEHzmLv2ACEgWqUbgP9QusenSxKKiB9`. Không sửa Ngố/Mendo/CMT.
+- Mã kiểm toán truy vấn GET metadata của bốn project từng được nhắc đến: `nmh-gpt-control`, `bancan-toico`, `mendo-zaloOA-test`, `suachua-diennuoc-hanoi`. Chỉ mã trả về HTTP code và cờ billing/APIs/key count, **không gọi `getKeyString` hoặc xuất bí mật**.
+- Đã tạo Apps Script phiên bản 2 với Execution API riêng `access=MYSELF`. Guard chứng nhận `inspectTrafficCloudAccess` tại phiên bản 2: SHA-256 `20920feae107fad72c206c1c102a8a6cae77693fb7e078abfa1dbb715b4be174`.
+- Khi thực thi, Operator trả lỗi thực tế: `CLOUD_PROJECT_BINDING_REQUIRED`; Apps Script mới chưa gắn đúng standard Google Cloud project của OAuth client. Google project được Operator xác minh: `nmh-gpt-control`, number `762713178215`. Public Apps Script REST API không tự thay binding được. **Vì chưa chạy được, chưa được khẳng định Maps/billing/key đã có hoặc còn dùng được**.
+- Thử đọc workflow cũ `tiktak+googlemap-Hanoi` (inactive) qua Guarded Operator: workflowId không được chấp nhận thay `workflow_key`. Guard **BLOCK** yêu cầu thêm alias workflow vì đây là metadata mutation ngoài quyền kiểm toán. Không sửa workflow cũ hoặc registry.
+- Tìm trong GitHub Actions repo cho `GOOGLE_MAPS_API_KEY`, `OPENAI_API_KEY`, `TRAFFIC_ACCESS_TOKEN`: chưa có theo audit có chứng cứ `43614280513`. Backend Traffic vẫn fail-closed.
+- Đã mở luồng chính thức OpenAI Platform API key setup, cần thao tác chọn/cấp quyền tài khoản của chủ sở hữu. Không nhận hoặc hiển thị khóa trong chat.
+- Không có công cụ Google Cloud Console/browser trực tiếp ở phiên chat này; không thể tự xác nhận/enable Routes, Places, billing, tạo Google API key trong Cloud Console bằng việc đoán quyền.
+
+**Điều kiện chặn thực tế:** quyền truy cập Google Cloud Console hoặc cơ chế API Keys API được cấp quyền hợp lệ; sau đó kiểm tra billing, bật API với phê duyệt chi phí, tạo key mới có API restriction Routes/Places, lưu bí mật vào Traffic Worker và chạy test live. **Không coi việc tạo audit script là hoàn thành sản phẩm.**
+
+**Giữ nguyên điều kiện nghiệm thu:** Google Routes/Places live → AI chọn tool đúng → STT/TTS Safari iPhone thành công, gồm 10 lượt thoại và các tình huống lỗi. Không khẳng định PASS iPhone nếu chưa có kết quả thực.
