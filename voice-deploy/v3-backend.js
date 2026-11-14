@@ -183,9 +183,9 @@ export async function handleVoiceNote(req,env,question){
   const index=await db.prepare('SELECT body FROM v3_chunks WHERE user_id=? AND doc_id=? AND segment=?').bind(sub,verifyId,expectedSegments).first();
   if(!saved||saved.raw_text!==expectedText||Number(saved.segment_count)!==expectedSegments||index?.body!==intent.body)
    throw Error('Note read-after-write verification failed');
-  return {answer:'Đã ghi vào file ghi chú.',sources:[],tools:['save_note'],model:'local-note',saved:true,noteSegment:expectedSegments};
+  return {answer:'Đã ghi và kiểm tra trong GHI_CHU.md, mục '+expectedSegments+'.',sources:[],tools:['save_note'],model:'local-note',saved:true,noteSegment:expectedSegments,noteFile:NOTE_FILE};
  }catch{
-  return {answer:'Ghi chú chưa lưu thành công. Không xác nhận đã lưu.',sources:[],tools:[],model:'local-note'};
+  return {answer:'Chưa xác minh được việc lưu ghi chú. Kiểm tra GHI_CHU.md trong SETUP trước khi ghi lại để tránh trùng.',sources:[],tools:[],model:'local-note',saved:false};
  }
 }
 
