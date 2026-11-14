@@ -10,13 +10,14 @@ const del=(id,evidence)=>({type:'delete',id,evidence,confidence:.99});
 const result=ops=>({ok:true,json:async()=>({output:[{type:'message',content:[{type:'output_text',text:JSON.stringify({ops})}]}],usage:{input_tokens:40,output_tokens:30}})});
 function memoryDB(initial=[]){
  const memories=new Map(initial.map(x=>[x.id,{...x}])),ledger=new Set();
- let writes=0;
+ let writes=0,enabled=1;
  const db={
-  get writes(){return writes},memories,ledger,
+  get writes(){return writes},setEnabled(x){enabled=x?1:0},memories,ledger,
   prepare(sql){
    return {bind(...args){
     return {
      async first(){
+      if(sql.startsWith('SELECT enabled FROM v3_memory_v2_preferences'))return {enabled};
       if(sql.startsWith('SELECT turn_id'))return ledger.has(args[0]+'|'+args[1])?{turn_id:args[1]}:null;
       if(sql.startsWith('SELECT body')){const x=memories.get(args[1]);return x&&x.user_id===args[0]?{body:x.body}:null}
       throw Error('unhandled first '+sql);
@@ -130,4 +131,15 @@ test('model error and malformed JSON fail before any write',async()=>{
  const db=memoryDB();
  await assert.rejects(()=>runMemoryV2({mode:'active',sub:'user123',db,apiKey:'sk-'+'a'.repeat(42),userText:'Tên chó là Mít',assistantText:'OK',fetchImpl:async()=>({ok:true,json:async()=>({output:[{type:'message',content:[{type:'output_text',text:'wrong'}]}]})})}));
  assert.equal(db.writes,0);
+});
+
+test('revoking consent DURING analysis blocks subsequent D1 write',async()=>{
+ const db=memoryDB();
+ const r=await runMemoryV2({mode:'active',sub:'user123',db,apiKey:'sk-'+'a'.repeat(42),userText:'Con chó của tao tên Mít',assistantText:'Tôi hiểu',fetchImpl:async()=>{
+  db.setEnabled(false);
+  return result([add('Người dùng có chó tên Mít','Con chó của tao tên Mít')]);
+ }});
+ assert.equal(r.status,'opted-out');
+ assert.equal(db.writes,0);
+ assert.equal(db.memories.size,0);
 });
