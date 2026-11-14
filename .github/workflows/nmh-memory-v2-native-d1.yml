@@ -1,0 +1,82 @@
+name: NMH Memory V2 real D1 native write probe
+on:
+  push:
+    branches: [nmh-voice-memory-v2-stage-20261114]
+permissions:
+  contents: read
+jobs:
+  native-d1-probe:
+    if: >-
+      startsWith(github.event.head_commit.message, 'sandbox(memory-v2): verify native D1 writes')
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CLOUDFLARE_D1_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Prove exact separate test D1 binding, generate sandbox-only config
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_D1_TOKEN"
+          python3 - <<'PY'
+          import os,json,urllib.request,re
+          account=os.environ['CLOUDFLARE_ACCOUNT_ID']
+          url='https://api.cloudflare.com/client/v4/accounts/'+account+'/d1/database?per_page=100'
+          r=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_D1_TOKEN'],'User-Agent':'NMH-Memory-Test/1'})
+          with urllib.request.urlopen(r,timeout=25) as resp: d=json.load(resp)
+          assert d.get('success') is True
+          rows=d['result'] if isinstance(d['result'],list) else d['result'].get('databases',[])
+          rows=[x for x in rows if x.get('name')=='nmh-memory-v2-sandbox-20261114']
+          assert len(rows)==1
+          dbid=rows[0].get('uuid') or rows[0].get('id')
+          assert re.fullmatch(r'[0-9a-f-]{36}',dbid) and dbid!='3ce295cb-a84d-4a50-abee-d14fdd903514'
+          cfg={'name':'nmh-memory-v2-native-probe-20261114','main':'memory-v2-probe.js','compatibility_date':'2026-10-01','workers_dev':True,'d1_databases':[{'binding':'NMH_DB','database_name':'nmh-memory-v2-sandbox-20261114','database_id':dbid}],'vars':{'NMH_MEMORY_V2_PROBE_ENV':'sandbox'}}
+          with open('voice-deploy/wrangler-memory-v2-native-probe.generated.jsonc','w') as f:json.dump(cfg,f)
+          print('MEMORY_NATIVE_PROBE_BINDING=SANDBOX_ONLY')
+          PY
+      - name: Deploy ephemeral probe, run native DB.batch and clean Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd voice-deploy
+          config=wrangler-memory-v2-native-probe.generated.jsonc
+          cleanup(){
+            npx --yes wrangler@4.102.0 delete --config "$config" --force >/tmp/memory-probe-cleanup.log 2>&1 || { echo 'MEMORY_NATIVE_PROBE_WORKER_CLEANUP=FAILED';cat /tmp/memory-probe-cleanup.log; }
+          }
+          trap cleanup EXIT
+          npx --yes wrangler@4.102.0 deploy --config "$config"
+          python3 - <<'PY'
+          import secrets,os
+          with open('/tmp/nmh-memory-probe-secret','w') as f:f.write(secrets.token_urlsafe(48))
+          os.chmod('/tmp/nmh-memory-probe-secret',0o600)
+          PY
+          printf '%s' "$(cat /tmp/nmh-memory-probe-secret)" | npx --yes wrangler@4.102.0 secret put NMH_MEMORY_PROBE_SECRET --config "$config" >/tmp/memory-probe-secret-log
+          base='https://nmh-memory-v2-native-probe-20261114.magical-budget.workers.dev/isolated-check'
+          good=0
+          for i in 1 2 3 4 5 6 7 8; do
+            sleep 3
+            if curl --silent --show-error --max-time 30 -X POST -H "Authorization: Bearer $(cat /tmp/nmh-memory-probe-secret)" -H 'Content-Type: application/json' -o /tmp/nmh-memory-probe-result.json -w '%{http_code}' "$base" | grep -qx 200;then good=1;break;fi
+          done
+          if [ "$good" != 1 ];then echo 'MEMORY_NATIVE_PROBE_RESULT=FAILED';python3 - <<'PY'
+          import json
+          try: print(json.load(open('/tmp/nmh-memory-probe-result.json')))
+          except: print('Result unavailable')
+          PY
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/nmh-memory-probe-result.json'))
+          assert r.get('ok') and r.get('cleaned'),r
+          assert len(r.get('steps',[]))==6,r
+          print('MEMORY_V2_NATIVE_D1_WRITE_READ_DELETE=PASS')
+          print('MEMORY_V2_NATIVE_D1_OWNER_ISOLATION=PASS')
+          print('MEMORY_V2_NATIVE_D1_SHADOW_NO_WRITE=PASS')
+          print('MEMORY_V2_NATIVE_D1_TEST_DATA_CLEANUP=PASS')
+          PY
