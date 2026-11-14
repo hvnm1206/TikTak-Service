@@ -1,5 +1,18 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## CẬP NHẬT THỰC THI NGỐ P0 — 14/11/2026 (NHÁNH CÁCH LY, CHƯA DEPLOY PRODUCTION)
+
+- Mã mới NGỐ: https://github.com/hvnm1206/TikTak-Service/tree/nmh-voice-actions-reminders-p0-20261114/voice-deploy
+- Báo cáo thực thi và giới hạn nghiệm thu: https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-actions-reminders-p0-20261114/voice-deploy/NGO_P0_EXECUTION_REPORT_20261114.md
+- ĐÃ XÂY TRÊN NHÁNH CÁCH LY: ActionRegistry, backend xác nhận sau D1 readback, đặt/xem/hủy nhắc theo Google subject, claim nguyên tử chống lặp multi-tab, foreground notification/Marin retry, trace audit, feature flag mặc định OFF. Migration 0004 chỉ cộng bảng; CHƯA áp dụng production.
+- TEST THỰC TẾ: 71 bài hồi quy cũ + 16 bài mới PASS tại https://github.com/hvnm1206/TikTak-Service/actions/runs/43576714168 ; Worker/D1 Cloudflare sandbox thật, readback, rollback version chính xác, dọn sạch PASS tại https://github.com/hvnm1206/TikTak-Service/actions/runs/43576714181 .
+- Backup baseline: Worker version fb2bacc5-b26e-4abc-9ee1-78cc222ac221, Time Travel D1 bookmark artifact ở https://github.com/hvnm1206/TikTak-Service/actions/runs/43575735755 .
+- PRODUCTION CHƯA ĐỔI: Worker nmh-voice-gpt-test URL https://nmh-voice-gpt-test.magical-budget.workers.dev/ ; D1 nmh-voice-v3; giữ nguyên dữ liệu và các chức năng Voice/Marin/Search/OAuth/Memory V2.
+- CHƯA DONE: chưa test end-to-end OpenAI API key và Google subject thực của người dùng trên iPhone; chưa có bằng chứng lời nhắc 2 phút phát thực khi foreground. Không công bố iPhone PASS. Không hứa nhắc khi app đóng/khóa màn hình.
+- NGÁO CẤM sửa/deploy/đụng dữ liệu hoặc hạ tầng. Nhánh tài liệu nmh-voice-gpt-v1 không phải mã production, tuyệt đối không deploy từ nhánh này.
+
+---
+
 ## CẬP NHẬT CHỐT 14/11/2026 — NGỐ / NMH VOICE GPT (ĐỌC TRƯỚC CÁC MỐC LỊCH SỬ)
 
 **Đây là nguồn bàn giao MỚI NHẤT, chỉ ghi kế hoạch và nguồn kỹ thuật; CHƯA triển khai nhắc việc.**
