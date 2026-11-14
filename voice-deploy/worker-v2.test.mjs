@@ -199,9 +199,9 @@ test('maintenance refuses stale Raw fallback when GitHub API unavailable',async(
 
 test('Marin prefetch requests next segment DURING current playback and preserves order',async()=>{
   const html=await(await worker.fetch(new Request(host+'/'))).text();
-  const script=html.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
+  const script=html.slice(html.indexOf('<script>')+8,html.indexOf('</script>'));
   assert.ok(script);
-  const a=script.indexOf('function speechParts(text)'),b=script.indexOf('\\n $("start").onclick',a);
+  const a=script.indexOf('function speechParts(text)'),b=script.indexOf(' $("start").onclick',a);
   assert.ok(a>=0&&b>a,'speak source is extractable');
   const source=script.slice(a,b);
   const build=new Function('deps',`
@@ -235,8 +235,8 @@ test('Marin prefetch requests next segment DURING current playback and preserves
 });
 test('Marin prefetched audio cannot play after interruption',async()=>{
   const html=await(await worker.fetch(new Request(host+'/'))).text();
-  const script=html.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
-  const a=script.indexOf('function speechParts(text)'),b=script.indexOf('\\n $("start").onclick',a);
+  const script=html.slice(html.indexOf('<script>')+8,html.indexOf('</script>'));
+  const a=script.indexOf('function speechParts(text)'),b=script.indexOf(' $("start").onclick',a);
   const source=script.slice(a,b);
   let pending;
   const playbacks=[],listens=[],errors=[];
