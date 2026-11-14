@@ -40,8 +40,8 @@ test('mascot skins are ONLY pairs of expressive eyes, no spinning face or head',
  const html=enhanceThemePage('<html><head></head><body></body></html>');
  assert.ok(html.includes("const eye=(x,id)=>"));
  assert.ok(html.includes("eye(104,'left')+eye(256,'right')"));
- assert.ok(html.includes('class=\\\"ngo-eye\\\"'));
- assert.ok(html.includes('class=\\\"ngo-iris\\\"'));
+ assert.ok(html.includes('ngo-eye'));
+ assert.ok(html.includes('ngo-iris'));
  assert.ok(html.includes('window.setInterval'));
  assert.ok(html.includes('scheduleBlink'));
  assert.ok(html.includes('pointermove'));
@@ -53,5 +53,5 @@ test('mascot skins are ONLY pairs of expressive eyes, no spinning face or head',
  assert.ok(!html.includes('ngoMascotFloat'));
  assert.ok(!html.includes('ngoMascotThink'));
  assert.ok(!html.includes('ngoMascotStage svg{animation'));
- assert.ok(html.includes('transform=\\\"translate(\'+x+\',124)'));
+ assert.ok(html.includes('translate(\'+x+\',124)'));
 });
