@@ -22,6 +22,7 @@ const panel=String.raw`
    <p class="hint">Lưu trực tiếp nội dung TXT/Markdown vào Cloudflare D1, không cần R2 hoặc kích hoạt thanh toán. PDF/DOCX chưa hỗ trợ trích xuất ở phiên này.</p>
    <input id="v3File" type="file" accept=".txt,.md,.markdown,text/plain,text/markdown">
    <button type="button" id="v3Upload">THÊM TÀI LIỆU</button>
+   <p class="hint" id="v3NoteStatus">Trạng thái file ghi chú: đang tải...</p>
    <div id="v3Documents"></div>
   </details>
  </div>
@@ -54,6 +55,8 @@ const script=String.raw`
   rev=p.revision;$('v3Prompt').value=p.prompt||'';
   const ml=$('v3Memories');ml.replaceChildren();
   for(const item of m.memories||[])line(ml,item.body,async()=>{if(!confirm('Xóa ghi nhớ này?'))return;try{await req('/api/v3/memories/'+encodeURIComponent(item.id),'DELETE',{});await populate();msg('Đã xóa')}catch(e){msg(e.message)}},async()=>{const text=prompt('Sửa nội dung ghi nhớ:',item.body);if(text===null)return;try{await req('/api/v3/memories/'+encodeURIComponent(item.id),'PUT',{body:text.trim()});await populate();msg('Đã sửa')}catch(e){msg(e.message)}});
+  const note=(d.documents||[]).find(x=>x.name==='GHI_CHU.md');
+  $('v3NoteStatus').textContent=note?'GHI_CHU.md — '+Number(note.segment_count||0)+' mục đã lưu trong D1':'GHI_CHU.md — chưa có ghi chú trong tài khoản Google này';
   const dl=$('v3Documents');dl.replaceChildren();
   for(const item of d.documents||[])line(dl,item.name+' ('+item.segment_count+' đoạn)',async()=>{if(!confirm('Xóa tài liệu này?'))return;try{await req('/api/v3/documents/'+encodeURIComponent(item.id),'DELETE',{});await populate();msg('Đã xóa')}catch(e){msg(e.message)}},async()=>{try{const d=await req('/api/v3/documents/'+encodeURIComponent(item.id));alert(d.name+'\n\n'+d.text)}catch(e){msg(e.message)}});
  }
