@@ -53,7 +53,13 @@ const INSTRUCTIONS=[
 export async function analyzeMemory({apiKey,userText,existing,fetchImpl=fetch,signal}){
  if(typeof apiKey!=='string'||apiKey.length<20)throw Error('memory-key-unavailable');
  const input=JSON.stringify({memories:existing.slice(0,100).map(x=>({id:x.id,body:tidy(x.body).slice(0,500)})),user:tidy(userText).slice(0,1500)});
- const r=await fetchImpl('https://api.openai.com/v1/responses',{method:'POST',signal,headers:{authorization:'Bearer '+apiKey,'content-type':'application/json'},body:JSON.stringify({model:MEMORY_MODEL,instructions:INSTRUCTIONS,input,text:{format:{type:'json_object'}},store:false,reasoning:{effort:'none'},max_output_tokens:550})});
+ const r=await fetchImpl('https://api.openai.com/v1/responses',{method:'POST',signal,headers:{authorization:'Bearer '+apiKey,'content-type':'application/json'},body:JSON.stringify({model:MEMORY_MODEL,instructions:INSTRUCTIONS,input,text:{format:{type:'json_schema',name:'nmh_memory_v2_proposal',strict:true,schema:{
+  type:'object',additionalProperties:false,properties:{ops:{type:'array',items:{
+   type:'object',additionalProperties:false,
+   properties:{type:{type:'string',enum:['add','update','delete']},id:{type:['string','null']},body:{type:['string','null']},evidence:{type:'string'},confidence:{type:'number'}},
+   required:['type','id','body','evidence','confidence']
+  }}},required:['ops']
+ }}},store:false,reasoning:{effort:'none'},max_output_tokens:550})});
  if(!r.ok)throw Error('memory-analysis-http-'+r.status);
  const payload=await r.json();
  const output=(payload.output||[]).filter(x=>x?.type==='message').flatMap(x=>x.content||[]).filter(x=>x?.type==='output_text').map(x=>x.text||'').join('').trim();
