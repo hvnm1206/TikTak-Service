@@ -284,3 +284,5 @@ jobs:
 
 
 
+
+# Natural-language note saving bugfix explicitly requested by user 2026-11-14; release to existing Worker with rollback.
