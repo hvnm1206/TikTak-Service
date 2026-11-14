@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
-import {handleV3,loadV3Context,handleVoiceMemory,memoryIntent} from './v3-backend.js';
+import {handleV3,loadV3Context,handleVoiceMemory,memoryIntent,voiceNoteIntent} from './v3-backend.js';
 const host='https://voice.local.test';
 const config='792345678901-test-oauth.apps.googleusercontent.com';
 function db(){
@@ -211,4 +211,15 @@ test('D1-only V3 needs no R2 binding and rejects anonymous access',async()=>{
  assert.equal(conf.body.r2Required,false);
  const unauth=await handleV3(req('/api/v3/documents'),e);
  assert.equal(unauth.status,401);
+});
+
+test('explicit natural voice write is routed to memory; file-note directives routed separately',()=>{
+ assert.deepEqual(memoryIntent('Ghi lại con chó của tao tên Mít'),{action:'save',body:'con chó của tao tên Mít'});
+ assert.deepEqual(memoryIntent('Ghi ngày mai phải kiểm tra máy'),{action:'save',body:'ngày mai phải kiểm tra máy'});
+ assert.deepEqual(memoryIntent('Lưu giúp tao ngày mai gọi anh Nam'),{action:'save',body:'ngày mai gọi anh Nam'});
+ assert.equal(memoryIntent('Hỏi cách ghi nhớ hiệu quả'),null);
+ assert.equal(memoryIntent('Ghi vào file ghi chú ngày mai kiểm tra máy'),null);
+ assert.equal(voiceNoteIntent('Ghi vào file ghi chú ngày mai kiểm tra máy'),'ngày mai kiểm tra máy');
+ assert.equal(voiceNoteIntent('Lưu vào sổ ghi chú: kiểm tra máy bơm'),'kiểm tra máy bơm');
+ assert.equal(voiceNoteIntent('Tôi hỏi về file ghi chú'),null);
 });
