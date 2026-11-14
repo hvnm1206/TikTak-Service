@@ -396,3 +396,5 @@ jobs:
 # Temporary synthetic D1 live note test; no real user data copied or logged.
 
 # Retry synthetic note E2E with sanitized 403 diagnostics, user data untouched.
+
+# Authorized corrective release 2026-11-14: verified D1 note persistence and per-account note count.
