@@ -150,3 +150,15 @@ test('audit retention purges events older than 30 days on next action',async()=>
  await doAction(db,'list_reminders',{status:'pending'}, {now:now+1});
  assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM nmh_reminder_audit WHERE created_at_ms<?').get(now-2592000000).n,0);
 });
+
+test('stale tool call is refused and normal current-turn response resumes',async()=>{
+ let count=0;
+ const mock=async(_url,opts)=>{
+  count++;
+  if(count===1)return new Response(JSON.stringify({output:[{type:'function_call',name:'set_reminder',call_id:'old',arguments:JSON.stringify(set)}],usage:{input_tokens:2,output_tokens:3}}),{status:200});
+  assert.ok(JSON.parse(opts.body).input.some(x=>x.type==='function_call_output'));
+  return new Response(JSON.stringify({output:[{type:'message',content:[{type:'output_text',text:'Trả lời câu hỏi hiện tại.'}]}],usage:{input_tokens:2,output_tokens:3}}),{status:200});
+ };
+ const out=await runAgent({apiKey:'unit-test-placeholder',messages:[{role:'user',content:'Câu hỏi thông thường'}],fetchImpl:mock,actionRuntime:{tools:reminderToolSchemas,execute:async()=>({errorCode:'TURN_MISMATCH',answer:'Chưa thực hiện'})}});
+ assert.equal(count,2);assert.equal(out.answer,'Trả lời câu hỏi hiện tại.');
+});
