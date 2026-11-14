@@ -76,7 +76,7 @@ jobs:
               try:
                   with urllib.request.urlopen(request,timeout=35) as r:
                       data=r.read()
-                      return r.status,json.loads(data) if data else {}
+                      return r.status,(json.loads(data) if data.startswith(b'{') else {'success':r.status==200,'non_json_worker_body':True})
               except urllib.error.HTTPError as e:
                   data=e.read()
                   try:p=json.loads(data)
