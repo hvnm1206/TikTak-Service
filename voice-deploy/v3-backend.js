@@ -38,6 +38,11 @@ async function sessionSubject(req,env){
   return session&&session.expires_at>Date.now()?session.user_id:null;
  }catch{return null}
 }
+// Read-only session identity for opt-in Memory V2. No bypass of existing Google-cookie auth.
+export async function memoryV2Subject(req,env){
+ if(!productionReady(env))return null;
+ return sessionSubject(req,env);
+}
 async function verifiedGoogleIdentity(jwt,client,fetchImpl=fetch){
  if(typeof jwt!=='string'||jwt.length>12000)throw Error('Google token không hợp lệ');
  const parts=jwt.split('.');if(parts.length!==3)throw Error('Google token không hợp lệ');
