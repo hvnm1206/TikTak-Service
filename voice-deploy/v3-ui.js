@@ -38,7 +38,7 @@ const script=String.raw`
 (()=>{
  const $=id=>document.getElementById(id);
  const msg=s=>{$('v3Msg').textContent=String(s)};
- let rev=0,loginClient='',promptDirty=false,promptSaving=false,profileLoaded=false,loadedPrompt='',activePreset='';
+ let rev=0,loginClient='',promptDirty=false,promptSaving=false,profileLoaded=false,loadedPrompt='',activePreset='',presetSelectionPending=false;
  let savedPresets={};
  const promptStatus=s=>{$('v3PromptSaveStatus').textContent=String(s)};
  const markPromptDirty=()=>{promptDirty=true;promptStatus('Chưa lưu thay đổi. Bấm LƯU PROMPT để đồng bộ.')};
@@ -63,7 +63,7 @@ const script=String.raw`
  async function populate(){
   const [p,m,d]=await Promise.all([req('/api/v3/profile'),req('/api/v3/memories'),req('/api/v3/documents')]);
   // Never replace the user's unsaved edits on refresh or a late Google callback.
-  if(!promptDirty&&!promptSaving){
+  if(!promptDirty&&!promptSaving&&!presetSelectionPending){
    rev=p.revision;loadedPrompt=p.prompt||'';savedPresets=p.presets||{};activePreset=p.activePreset||'';$('v3Prompt').value=loadedPrompt;profileLoaded=true;
    promptStatus('Prompt đang được đồng bộ. Sửa rồi bấm LƯU PROMPT.');
   }else if(!profileLoaded){
@@ -126,9 +126,12 @@ const script=String.raw`
   if(promptSaving)return;
   if(promptDirty&&!confirm('Prompt đang sửa chưa lưu. Chuyển mẫu sẽ thay nội dung hiện tại. Tiếp tục?'))return;
   activePreset=key;
+  // Selecting a template is navigation, not a manual unsaved edit.
+  // The selected text is a preview until Save; do not trigger a spurious confirm on next selection.
   $('v3Prompt').value=savedPresets[key]??presets[key];
-  markPromptDirty();
-  promptStatus('Đang chỉnh mẫu '+(key==='danh'?'ĐANH ĐÁ':key==='chem'?'CHÉM GIÓ':'NGHIÊM TÚC')+'. Bấm LƯU PROMPT để cập nhật mẫu này và Prompt đang dùng.');
+  promptDirty=false;
+  presetSelectionPending=true;
+  promptStatus('Đang xem mẫu '+(key==='danh'?'ĐANH ĐÁ':key==='chem'?'CHÉM GIÓ':'NGHIÊM TÚC')+'. Chỉnh nội dung nếu muốn và bấm LƯU PROMPT để lưu riêng mẫu này.');
  };
  $('v3SampleDanh').onclick=()=>selectPreset('danh');
  $('v3SampleChem').onclick=()=>selectPreset('chem');
@@ -153,7 +156,7 @@ const script=String.raw`
    // Re-read independently to prove the newest revision belongs to this account.
    const confirmed=await req('/api/v3/profile');
    if(confirmed.prompt!==draft||confirmed.revision!==result.revision||confirmed.activePreset!==selectedKey||(selectedKey&&confirmed?.presets?.[selectedKey]!==draft))throw Error('Chưa đọc lại được đúng Prompt vừa lưu.');
-   rev=confirmed.revision;loadedPrompt=draft;savedPresets=confirmed.presets||{};activePreset=confirmed.activePreset||'';
+   rev=confirmed.revision;loadedPrompt=draft;savedPresets=confirmed.presets||{};activePreset=confirmed.activePreset||'';presetSelectionPending=false;
    if($('v3Prompt').value===draft){promptDirty=false;promptStatus('ĐÃ LƯU VÀ ĐỌC LẠI THÀNH CÔNG'+(selectedKey?' — mẫu này đã được cập nhật vĩnh viễn theo tài khoản.':'')+' — có hiệu lực từ lượt hỏi tiếp theo.');}
    else{promptDirty=true;promptStatus('Đã lưu bản vừa gửi. Có thay đổi mới chưa lưu trong ô Prompt.');}
   }catch(e){
