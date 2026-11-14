@@ -82,7 +82,7 @@ jobs:
           python3 - <<'PY'
           import json
           h=json.load(open('/tmp/ngo-before-health.json'));c=json.load(open('/tmp/ngo-before-config.json'))
-          assert h.get('ok') and h.get('voice')=='browser-stt+marin-tts' and h.get('writeVersion')=='semantic-actions-d1-readback-v1'
+          assert h.get('ok') and h.get('voice')=='browser-stt+marin-tts' and h.get('writeVersion')=='voice-write-synchronous-ack-v1'
           assert c.get('ready') and c.get('storage')=='Cloudflare D1'
           print('NGO_OLD_VOICE_HEALTH_AND_V3=PASS')
           PY
