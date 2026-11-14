@@ -1,5 +1,18 @@
 # NMH VOICE GPT — ĐIỂM BÀN GIAO DUY NHẤT CHO CỬA MỚI
 
+## CẬP NHẬT BÀN GIAO NGỐ NGÀY 14/11/2026 — ĐỌC NGUỒN CHÍNH TRƯỚC
+
+**Mã NGỐ thực tế đang ở nhánh này; tab BẢO TRÌ production lại đọc nhánh nmh-voice-gpt-v1. Không dùng mốc 51bd cũ để deploy lại.**
+
+- Bản bàn giao PHẠM VI ĐÃ CHỌN + test gates: https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-gpt-v1/voice-deploy/NGO_SELECTED_SCOPE_HANDOVER_20261114.md
+- Prompt cửa mới: https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-gpt-v1/voice-deploy/NGO_NEXT_CHAT_PROMPT_20261114.md
+- Production đã xác minh 14/11: Worker version fb2bacc5-b26e-4abc-9ee1-78cc222ac221; deployment evidence https://github.com/hvnm1206/TikTak-Service/actions/runs/43569160880. Cần đối chiếu lại Cloudflare API lúc bắt đầu cửa mới.
+- Chỉ làm 3 việc: ActionRegistry/ACK; reminders foreground D1; action trace/regression. Đợt này **chưa thực thi** nâng cấp nào trong 3 việc.
+- Ngáo chỉ đọc tham khảo, KHÔNG sửa/deploy/dữ liệu/hạ tầng.
+
+---
+
+
 ## 14/11/2026 — DỌN BỎ TOÀN BỘ LUỒNG GHI FILE BẰNG GIỌNG NÓI THỬ NGHIỆM (TRẠNG THÁI CHỐT MỚI NHẤT)
 
 **Yêu cầu:** Người dùng yêu cầu dọn sạch những chức năng thử nghiệm làm hỏng hội thoại, cấm làm mất các chức năng đang chạy. Giữ nguyên dữ liệu lưu trong D1, không xóa ghi nhớ hay tài liệu người dùng.
