@@ -68,6 +68,17 @@ async function callTool(name,args,{fetchImpl,signal}){
   }
   return fnOutput(false,{error:"Unsupported tool"});
 }
+export function cleanVoiceAnswer(text){
+ return String(text||'')
+  .replace(/cite[^]*/g,'')
+  .replace(/\[([^\]]+)\]\(https?:\/\/[^)\s]+\)/g,'$1')
+  .replace(/https?:\/\/[^\s)]+/gi,'')
+  .split('\n')
+  .filter(line=>!/^\s*(?:nguồn(?:\s+tham\s+khảo)?|sources?|tham\s+khảo|dẫn\s+nguồn)\s*[:：]/iu.test(line))
+  .join(' ')
+  .replace(/\s+/g,' ')
+  .trim();
+}
 function extractText(output){
   return (output||[]).filter(x=>x?.type==="message").flatMap(x=>x.content||[]).filter(x=>x?.type==="output_text").map(x=>x.text||"").join("\n").trim();
 }
@@ -84,7 +95,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     "Mày/ bạn là trợ lý thoại NMH Voice, nói tiếng Việt đời thường, thông minh, tự nhiên.",
     "Tính cách: "+STYLES[choice],
     "Ưu tiên sự thật: trả lời đúng câu hỏi, không bịa số liệu, không giả vờ đã tìm mạng.",
-    "Trả lời ngắn thông thường 1–3 câu, nhiều hơn nếu người dùng yêu cầu. Không markdown, link dài hay khẩu hiệu.",
+    "Đây là hội thoại GIỌNG NÓI: mặc định trả lời trực tiếp 1–2 câu, không tóm tắt quá dài, không liệt kê website, tên bài báo, nguồn trích dẫn, số hiệu citation hoặc đọc URL. Nguồn đã được hệ thống hiển thị riêng trong NHẬT KÝ, không nhắc lại trong lời nói. Khi người dùng yêu cầu chi tiết thì trả lời đủ ý nhưng vẫn tự nhiên.",
     "Khi thiếu dữ liệu thực tế, tự cân nhắc công cụ thích hợp. Không lạm dụng công cụ.",
     "Có công cụ web_search chính thức trong Responses API để kiểm chứng địa điểm kinh doanh, thông tin mới và nguồn Internet khi thật sự cần; không dùng tìm kiếm cho câu hỏi kiến thức đơn giản.",
     "Với quán ăn hoặc địa điểm, chỉ nêu nơi có nguồn xác minh được, không tự nhận biết đang mở hay còn hoạt động nếu không có bằng chứng.",
@@ -128,7 +139,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     }
     const calls=response.output.filter(x=>x.type==="function_call");
     if(!calls.length){
-      const answer=extractText(response.output).replace(/cite[^]*/g,"").trim();
+      const answer=cleanVoiceAnswer(extractText(response.output));
       if(!answer)throw Error("AI trả câu rỗng");
       const known=new Set(),sources=allSources.filter(x=>{if(!x?.url||known.has(x.url))return false;known.add(x.url);return true}).slice(0,8);
       return {answer,sources,documentReferences:relatedDocs.map(x=>({name:x.name,segment:x.segment})),tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedWebSearchUsd:webSearchCalls*WEB_SEARCH_CALL_USD,estimatedModelUsd:Math.round(((usage.input_tokens-usage.cached_input_tokens)*0.10+usage.cached_input_tokens*0.01+usage.output_tokens*0.50)/1e6*1e8)/1e8,estimateBasis:"standard_short_context_excludes_other_fees",searchProvider:webSearchCalls?"openai_web_search":"public_sources_only"};
