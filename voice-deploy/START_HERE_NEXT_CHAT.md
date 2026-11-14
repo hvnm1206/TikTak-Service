@@ -1,5 +1,19 @@
 # BÀN GIAO NGỐ — TRẠNG THÁI CHÍNH THỨC 14/11/2026
 
+## HIỆN HÀNH — SỬA LỖI CẢ BA MẪU TÍNH CÁCH ĐÁNH DẤU CHƯA LƯU GIẢ (14/11/2026)
+- **Ngố production:** https://nmh-voice-gpt-test.magical-budget.workers.dev/ — Worker version `2e5e6e61-4dce-4b0b-9683-d8c9710e978c`, rollback code `fcd54e1a-6611-4b13-8748-d73e71f5fdc1`.
+- **Lỗi từ ảnh người dùng:** vừa chọn một mẫu Đanh Đá/Chém Gió/Nghiêm Túc thì ứng dụng tự gắn cờ `promptDirty`, dù chưa sửa chữ nào. Khi chuyển mẫu, hiện cảnh báo giả “Prompt đang sửa chưa lưu”; thực tế workflow trước kiểm thử D1 nhưng chưa kiểm thử UI thật, nên bỏ sót lỗi này.
+- **Sửa mã:** chọn mẫu chỉ là xem/nạp văn bản đã lưu (nếu chưa có mới dùng mặc định), không được đánh dấu là nhập sửa. Hai trạng thái tách biệt: `promptDirty` chỉ khi người dùng thật sự gõ và `presetSelectionPending` khi mẫu được chọn nhưng chưa áp dụng. Tải lại hồ sơ ngầm không ghi đè mẫu đang chọn; save xác minh D1 rồi mới reset trạng thái. Trường hợp thật sự gõ mà chưa lưu vẫn cảnh báo trước khi đổi mẫu.
+- **Bằng chứng mới vượt quá API test:** chạy **JavaScript giao diện thực** trong VM mô phỏng event người dùng (chọn/sửa/lưu/đổi/mở lại, cả ba mẫu, check không alert giả, giữ bản nháp, refresh trễ). Tổng cộng **117/117 bài PASS**. Remote Cloudflare Worker+D1 tách biệt, rollback và dọn tài nguyên **PASS**: https://github.com/hvnm1206/TikTak-Service/actions/runs/43615224840 . Production Guard release **SUCCESS**: https://github.com/hvnm1206/TikTak-Service/actions/runs/43615360945 .
+- Guarded Operator GET root URL chính HTTP 200, HTML có source mới `presetSelectionPending=true`, `promptDirty=false` khi click chọn, `!presetSelectionPending` bảo vệ refresh, lưu vẫn chuyển `presetKey:selectedKey`. Micro, QR và các chức năng cũ vẫn có.
+- **Chưa có xác nhận iPhone thực với phiên Google của người dùng**; không được đồng nhất kiểm thử UI/DB sandbox với thiết bị cá nhân.
+- **Đặc tả và nguyên nhân gốc:** https://github.com/hvnm1206/TikTak-Service/blob/nmh-voice-actions-reminders-p0-20261114/voice-deploy/NGO_PROMPT_PRESETS_20261114.md
+
+Những mốc version phía dưới là lịch sử; không dùng làm baseline release.
+
+---
+
+
 ## MỚI NHẤT 14/11/2026 — SỬA MẪU TÍNH CÁCH TỰ TRỞ VỀ NỘI DUNG CŨ
 
 - **Production Worker:** `nmh-voice-gpt-test`, URL https://nmh-voice-gpt-test.magical-budget.workers.dev/ . **Version mới `fcd54e1a-6611-4b13-8748-d73e71f5fdc1`**, rollback code `c35801d0-a840-4d4c-adc1-155c6070489a`.
