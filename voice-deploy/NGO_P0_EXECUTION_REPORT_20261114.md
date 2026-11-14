@@ -3,6 +3,13 @@ Date: 2026-11-14 (Asia/Ho_Chi_Minh)
 Branch: nmh-voice-actions-reminders-p0-20261114
 Base source: nmh-voice-memory-v2-stage-20261114, commit 1ecd0fea29f6faa5a4b2891b28f826b3c2739755
 
+## Final automatic gates — verified 2026-11-14
+- Full existing regression: 71/71 PASS; new tests: 17/17 PASS (including atomic duplicate creation across concurrent tabs), run https://github.com/hvnm1206/TikTak-Service/actions/runs/43577061612
+- Live isolated Cloudflare Worker plus real remote D1, insert/claim/readback, exact Worker version rollback and resource cleanup: SUCCESS, run https://github.com/hvnm1206/TikTak-Service/actions/runs/43577061663
+- Prod Worker version checked and unchanged: fb2bacc5-b26e-4abc-9ee1-78cc222ac221; D1 production untouched.
+- Documentation branch nmh-voice-gpt-v1 updated: MAINTENANCE.md and voice-deploy/START_HERE_NEXT_CHAT.md. That branch is never the release source.
+- Automated/backend/sandbox gates: PASS. Release/iPhone foreground speech and real Google+OpenAI subject gates: NOT VERIFIED. Production release remains blocked; no inaccurate DONE claim.
+
 ## Scope & safeguard
 - Ngố only. Ngáo is absolutely read-only: no code, deployment, data or configuration touched.
 - Production Worker: nmh-voice-gpt-test, URL https://nmh-voice-gpt-test.magical-budget.workers.dev/
