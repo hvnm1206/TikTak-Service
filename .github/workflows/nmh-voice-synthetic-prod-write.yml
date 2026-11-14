@@ -20,7 +20,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import os,json,urllib.request,hashlib,secrets,uuid,time
+          import os,json,urllib.request,urllib.error,hashlib,secrets,uuid,time
           account=os.environ['CF_ACCOUNT'];d1='3ce295cb-a84d-4a50-abee-d14fdd903514'
           base='https://nmh-voice-gpt-test.magical-budget.workers.dev'
           endpoint=f'https://api.cloudflare.com/client/v4/accounts/{account}/d1/database/{d1}/query'
@@ -39,11 +39,16 @@ jobs:
            assert v['success'] and v['result'][0]['success'],'D1 query failure'
            return v['result'][0].get('results',[])
           def write(text,session=None):
-           h={'Origin':base,'Content-Type':'application/json'}
+           h={'Origin':base,'Content-Type':'application/json','Accept':'application/json','User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1'}
            if session:h['Cookie']='__Host-nmhv3='+session
            d={'apiKey':'sk-'+'a'*42,'messages':[{'role':'user','content':text}]}
            request=urllib.request.Request(base+'/api/chat',headers=h,data=json.dumps(d).encode(),method='POST')
-           with urllib.request.urlopen(request,timeout=25) as r:return r.status,json.load(r)
+           try:
+            with urllib.request.urlopen(request,timeout=25) as r:return r.status,json.load(r)
+           except urllib.error.HTTPError as e:
+            body=e.read(500).decode('utf-8','replace')
+            try:return e.code,json.loads(body)
+            except:return e.code,{'error':body[:250]}
           user='nmh_voice_write_smoke_'+uuid.uuid4().hex
           session=secrets.token_urlsafe(32);marker='SMOKE_'+uuid.uuid4().hex[:9]
           now=int(time.time()*1000);created=False
