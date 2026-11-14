@@ -16,3 +16,6 @@
 3. 409 conflict bảo vệ ghi đè từ thiết bị khác.
 4. Cloudflare sandbox D1 thật, cleanup, rollback PASS.
 5. Gated production release đúng Worker version; camera/iPhone thật cần người dùng thao tác cuối.
+
+## Sandbox retry
+- The first isolated run found an **obsolete test assertion** that expected the old five-field response without preset metadata; D1 returned the new correct response. Updated test to validate old fields plus new presets and activePreset. Re-run required before release.
