@@ -84,7 +84,7 @@ jobs:
           import json
           r=json.load(open('/tmp/nmh-memory-probe-result.json'))
           assert r.get('ok') and r.get('cleaned'),r
-          assert len(r.get('steps',[]))==8,r
+          assert len(r.get('steps',[]))==10,r
           print('MEMORY_V2_NATIVE_D1_WRITE_READ_DELETE=PASS')
           print('MEMORY_V2_NATIVE_D1_OWNER_ISOLATION=PASS')
           print('MEMORY_V2_NATIVE_D1_SHADOW_NO_WRITE=PASS')
