@@ -88,3 +88,55 @@ test('usage estimate uses current Standard short-context GPT-6 Luna rates and ca
   assert.equal(r.estimatedModelUsd,0.2775);
   assert.match(r.estimateBasis,/excludes_other_fees/);
 });
+
+test('hosted web search returns cited sources with one charged call and clean spoken answer',async()=>{
+  let req;
+  const fetchImpl=async(_,o)=>{req=JSON.parse(o.body);return response([
+    {type:'web_search_call',id:'ws1',status:'completed'},
+    {type:'message',content:[{type:'output_text',text:'Có quán bia gần sân Mỹ Đình. citeturn0search0',annotations:[
+      {type:'url_citation',url:'https://example.org/quan-bia',title:'Danh sách địa điểm'},
+      {type:'url_citation',url:'http://insecure.example/skip',title:'Unsafe'}
+    ]}]}
+  ])};
+  const r=await runAgent({apiKey:key,messages:[{role:'user',content:'Có quán bia hơi nào gần sân Mỹ Đình?'}],fetchImpl});
+  assert.equal(req.tools.filter(t=>t.type==='web_search').length,1);
+  assert.equal(req.max_tool_calls,1);
+  assert.equal(r.webSearchCalls,1);
+  assert.equal(r.estimatedWebSearchUsd,0.01);
+  assert.equal(r.searchProvider,'openai_web_search');
+  assert.deepEqual(r.tools,['web_search']);
+  assert.equal(r.sources.length,1);
+  assert.equal(r.sources[0].url,'https://example.org/quan-bia');
+  assert.doesNotMatch(r.answer,/cite/);
+});
+
+test('normal question does not claim a web call or incur web search charge',async()=>{
+  const r=await runAgent({apiKey:key,messages:[{role:'user',content:'2 cộng 3 bằng bao nhiêu?'}],fetchImpl:async()=>say('5')});
+  assert.equal(r.webSearchCalls,0);
+  assert.equal(r.estimatedWebSearchUsd,0);
+  assert.equal(r.searchProvider,'public_sources_only');
+});
+
+test('existing function tool survives alongside web search without extra charge',async()=>{
+  let round=0,second;
+  const r=await runAgent({apiKey:key,messages:msg,fetchImpl:async(_,o)=>{
+    round++;if(round===1)return tool('get_current_time',{timezone:'Asia/Ho_Chi_Minh'});
+    second=JSON.parse(o.body);return say('Đã tra giờ.');
+  }});
+  assert.equal(r.webSearchCalls,0);
+  assert.equal(r.estimatedWebSearchUsd,0);
+  assert.ok(second.tools.some(t=>t.type==='web_search'));
+  assert.deepEqual(r.tools,['get_current_time']);
+});
+
+test('OpenAI web search incompatibility does not silently fall back or invent results',async()=>{
+  await assert.rejects(()=>runAgent({apiKey:key,messages:msg,fetchImpl:async()=>({ok:false,status:400})}),/quyền hỗ trợ web_search/);
+});
+
+test('multiple hosted searches fail closed before claiming cost control',async()=>{
+  await assert.rejects(()=>runAgent({apiKey:key,messages:msg,fetchImpl:async()=>response([
+    {type:'web_search_call',id:'1',status:'completed'},
+    {type:'web_search_call',id:'2',status:'completed'},
+    {type:'message',content:[{type:'output_text',text:'Found'}]}
+  ])}),/vượt giới hạn/);
+});
