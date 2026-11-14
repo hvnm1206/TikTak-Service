@@ -19,6 +19,7 @@ export function buildActionRuntime({request,env,utterance,requestId,signal}){
    let sub;try{sub=await memoryV2Subject(request,env)}catch{return denied('AUTH_DB_ERROR','Chưa thực hiện: không kiểm tra được phiên đăng nhập.');}
    if(signal?.aborted)return denied('ABORTED','Chưa thực hiện: yêu cầu đã bị hủy.');
    if(name==='save_memory'){
+    if(!sub)return denied('AUTH','Chưa lưu ghi nhớ. Hãy đăng nhập Google trong SETUP.');
     const body=String(args?.body||'').trim();
     if(body.length<2||body.length>500||/[\u0000-\u001f\u007f]/u.test(body))return denied('INVALID_MEMORY','Chưa lưu được ghi nhớ: nội dung không hợp lệ.');
     if(!env?.NMH_DB)return denied('DB_UNAVAILABLE','Chưa lưu được ghi nhớ vì kho dữ liệu không sẵn sàng.');
