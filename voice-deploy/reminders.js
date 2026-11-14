@@ -49,8 +49,8 @@ async function setReminder(db,sub,args,opts){
  const prev=await db.prepare("SELECT id,text,due_at_ms FROM nmh_reminders WHERE user_id=? AND fingerprint=? AND created_at_ms>=? AND status='pending' ORDER BY created_at_ms DESC LIMIT 1")
   .bind(sub,fingerprint,opts.now-180000).first();
  if(prev){await opts.mark('EXECUTED',prev.id);await opts.mark('READBACK_VERIFIED',prev.id);return {ok:true,status:'verified',id:prev.id,duplicate:true,answer:'Lời nhắc này đã có: '+stamp(prev.due_at_ms)+', '+prev.text+'. Chỉ nhắc khi Ngố đang mở.'};}
- const supplied=typeof opts.requestId==='string'&&/^[a-zA-Z0-9_-]{8,90}$/.test(opts.requestId)?opts.requestId:'';
- const idem=supplied?await digest(sub+':'+supplied):fingerprint.slice(0,40)+':'+Math.floor(opts.now/120000);
+ // Atomic unique 3-minute bucket avoids two simultaneous tabs creating duplicates with distinct request IDs.
+ const idem=fingerprint.slice(0,40)+':'+Math.floor(opts.now/180000);
  const id=crypto.randomUUID();
  await db.prepare("INSERT OR IGNORE INTO nmh_reminders(id,user_id,text,due_at_ms,timezone,status,idem_key,fingerprint,created_at_ms,updated_at_ms) VALUES(?,?,?,?,?,'pending',?,?,?,?)")
   .bind(id,sub,text,due,'Asia/Ho_Chi_Minh',idem,fingerprint,opts.now,opts.now).run();
