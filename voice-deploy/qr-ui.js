@@ -28,7 +28,7 @@ export function buildQrSvg(rows=NGO_QR_HEX_ROWS,size=NGO_QR_SIZE){
 export function enhanceQrPage(html,env={}){
  const marker='<h2>SETUP</h2>';
  if(typeof html!=='string'||html.split(marker).length!==2)throw Error('NGO_SETUP_QR_MARKER_MISSING');
- const pilot=env.NMH_PERSONAL_MEMORY==='pilot';
+ const pilot=env.NMH_PERSONAL_MEMORY==='pilot'&&env.NMH_APP_CHANNEL!=='production';
  const url=pilot?NGO_PILOT_APP_URL:NGO_APP_URL;
  const qr=pilot?buildQrSvg(NGO_PILOT_QR_HEX_ROWS,NGO_PILOT_QR_SIZE):buildQrSvg();
  const box='<details id="ngoQrShare" open style="margin:16px 0;border:1px solid #64748b;border-radius:12px;padding:12px;background:#182437"><summary style="cursor:pointer;font-weight:700">MÃ QR MỞ NGỐ TRÊN ĐIỆN THOẠI</summary><div style="display:grid;justify-items:center;gap:10px;padding:12px 2px">'+qr+'<p class="hint" style="margin:0;text-align:center">Quét mã bằng camera để mở đúng ứng dụng Ngố. API key và tài khoản không nằm trong mã QR.</p><a id="ngoAppQrLink" href="'+url+'" target="_blank" rel="noopener noreferrer" style="color:#8bdcff;overflow-wrap:anywhere;word-break:break-word;text-align:center">'+url+'</a><button type="button" id="ngoAppQrCopy">SAO CHÉP LINK</button><p id="ngoAppQrStatus" class="hint" role="status" aria-live="polite"></p></div></details>';
