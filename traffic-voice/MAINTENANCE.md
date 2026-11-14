@@ -73,3 +73,15 @@ Thực tế đã làm trong vòng kiểm tra này:
 **Điều kiện chặn thực tế:** quyền truy cập Google Cloud Console hoặc cơ chế API Keys API được cấp quyền hợp lệ; sau đó kiểm tra billing, bật API với phê duyệt chi phí, tạo key mới có API restriction Routes/Places, lưu bí mật vào Traffic Worker và chạy test live. **Không coi việc tạo audit script là hoàn thành sản phẩm.**
 
 **Giữ nguyên điều kiện nghiệm thu:** Google Routes/Places live → AI chọn tool đúng → STT/TTS Safari iPhone thành công, gồm 10 lượt thoại và các tình huống lỗi. Không khẳng định PASS iPhone nếu chưa có kết quả thực.
+
+
+## KẾT QUẢ BINDING 23:51 (14/11/2026) — đã chạy kiểm toán thật, chưa đủ Maps API
+
+1. Chủ tài khoản đã gắn Apps Script `nmh-traffic-gcloud-readonly-audit-20261114` vào standard Cloud Project `nmh-gpt-control`, project number `762713178215`. `nmh_google_environment_preflight` báo `READY`, phiên bản Apps Script 2 thực thi thành công qua `nmh_script_run_readonly_function` đã được Guard chứng nhận.
+2. Bản read-only V2: `nmh-gpt-control` ACTIVE, Routes/Places đều DISABLED (200, state != ENABLED). API Keys và Cloud Billing trả 403. Kiểm tra thêm nội dung lỗi cho thấy 403 do **API Keys API và Cloud Billing API chưa được bật trên caller project 762713178215**, chưa đủ cơ sở quy kết thiếu vai trò IAM đối với các target project.
+3. Mở rộng kiểm toán GET-only V3: Cloud Resource Manager `projects:search` trả 15 dự án mà OAuth nhìn thấy. Script được chứng nhận V3 SHA256 `45df998632fa50587805a9800e075f00d3a070b6f1720012e7194d2c1579b9e0`, cập nhật deployment riêng `AKfycbyE15jxDk3lnxKgfKqwSVE4sC018Hitm6M_BxWi7IKDc8ZQr5nVgLnVAi_OF5SnVCa1Rg`; function run PASS.
+4. Trong 15 dự án Cloud Search thấy được, **không có dự án nào kiểm toán xác nhận đã ENABLED cả Routes API và Places API (New)**. Dự án `nmh-maps` ACTIVE nhưng Routes/Places đều DISABLED. Một số project có 403/400 nên không thể khẳng định trạng thái ngoài phạm vi có quyền.
+5. Chưa bật Routes/Places, chưa liên kết Billing, chưa tạo/tải API key và chưa ghi secret vào Worker. Đây là các hành động quản lý tài nguyên/có khả năng phát sinh phí; cần phê duyệt phạm vi và ngân sách từ chủ tài khoản trước khi mutation. API Keys API có tài liệu Google xác nhận miễn phí; điều đó **không** đồng nghĩa Routes/Places miễn phí.
+6. Đã xác minh URL Traffic `https://nmh-traffic-voice-v1.magical-budget.workers.dev/health` đang trả HTTP 200 với `mapsConfigured=false`, `aiConfigured=false`, `accessConfigured=false`; Ngố `/health` vẫn HTTP 200. Không có UAT iPhone và chưa nghiệm thu cuối.
+
+**Bước tiếp theo có điều kiện:** chủ tài khoản xác nhận dự án `nmh-maps`, chấp thuận liên kết billing/bật Routes/Places và giới hạn chi phí kiểm thử; Operator thực hiện bằng phương thức có quyền và giữ khóa bí mật trong Worker riêng, hoặc chỉ yêu cầu thao tác chủ sở hữu thực sự không thể thay thế. Phải kiểm thử API thật, kiểm tra cờ /health, 10 lượt voice iPhone, không tuyên bố thành công khi còn thiếu.
