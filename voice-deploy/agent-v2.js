@@ -110,7 +110,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
   const input=messages.slice(-16).map(m=>({role:m.role,content:str(m.content,1500)}));
   // Tool access is scoped to the CURRENT user turn, not previous note requests in history.
   const currentQuestion=String(messages.at(-1)?.content||"");
-  const allowNoteTool=typeof onSaveNote==="function"&&/(?:ghi\s+(?:lại|chú|vào)|lưu\s+(?:lại|vào|giúp)|chép\s+(?:lại|vào)|nhớ\s+(?:giúp|hộ|rằng)|thêm\s+vào\s+ghi\s+chú|giữ\s+lại|để\s+dành)/iu.test(currentQuestion);
+  const allowNoteTool=typeof onSaveNote==="function"&&/(?:ghi\s+(?:lại|chú|vào|lời\s+nhắc|giúp|hộ|cho)|lưu\s+(?:lại|vào|giúp)|chép\s+(?:lại|vào)|nhớ\s+(?:giúp|hộ|rằng)|thêm\s+vào\s+ghi\s+chú|giữ\s+lại|để\s+dành)/iu.test(currentQuestion);
   const allSources=[];const toolCalls=[];let webSearchCalls=0;let usage={input_tokens:0,output_tokens:0,cached_input_tokens:0,api_calls:0};let response=null;
   for(let round=0;round<3;round++){
     const controller=new AbortController();
