@@ -30,7 +30,7 @@ jobs:
       - name: New Memory V2 security and behavior tests
         run: |
           set -euo pipefail
-          node --test voice-deploy/memory-v2.test.mjs
+          node --test voice-deploy/memory-v2.test.mjs voice-deploy/memory-v2.preference.test.mjs
       - name: Prove additive SQLite migration and unchanged existing schema
         run: |
           python3 - <<'PY'
