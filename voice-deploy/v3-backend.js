@@ -99,9 +99,27 @@ export async function loadV3Context(req,env,question){
    const memories=(recent.results||[]).filter(x=>typeof x.body==='string'&&x.body.trim());
    const relevant=memories.map((x,index)=>({body:x.body,score:scoreSegment(question,x.body),index}))
      .filter(x=>x.score>0).sort((a,b)=>b.score-a.score||a.index-b.index);
-   const selected=relevant.slice(0,6);
+   // Multi-hop recall: preserve directly matching facts, then connect related facts
+   // through shared substantive terms. This is generic retrieval, not hardcoded
+   // people/relationships, and never crosses the signed-in user's memory scope.
+   const selected=relevant.slice(0,3);
+   const selectedIds=new Set(selected.map(x=>x.index));
+   const anchors=new Set(selected.flatMap(x=>extractTerms(x.body)));
+   const bridge=memories.map((x,index)=>({
+     body:x.body,index,overlap:extractTerms(x.body).filter(t=>anchors.has(t)).length,
+     direct:scoreSegment(question,x.body)
+   })).filter(x=>!selectedIds.has(x.index)&&x.overlap>0)
+     .sort((a,b)=>b.overlap-a.overlap||b.direct-a.direct||a.index-b.index);
+   for(const x of bridge){
+     if(selected.length>=6)break;
+     selected.push(x);selectedIds.add(x.index);
+   }
+   for(const x of relevant){
+     if(selected.length>=6)break;
+     if(!selectedIds.has(x.index)){selected.push(x);selectedIds.add(x.index)}
+   }
    for(let i=0;i<memories.length&&selected.length<6;i++){
-     if(!selected.some(x=>x.index===i))selected.push({body:memories[i].body,index:i});
+     if(!selectedIds.has(i)){selected.push({body:memories[i].body,index:i});selectedIds.add(i)}
    }
    const ranked=selected;
   const terms=extractTerms(question).slice(0,5);
