@@ -156,9 +156,11 @@ export async function handleVoiceNote(req,env,question){
    const entries=String(doc.raw_text).trim().split('\n').filter(Boolean);
    return {answer:'Các ghi chú gần đây: '+entries.slice(-5).join('. ').slice(0,1000),sources:[],tools:[],model:'local-note'};
   }
+  let verifyId,expectedText,expectedSegments;
   if(!doc){
    const text=intent.body;
    const uid=id(),now=Date.now();
+   verifyId=uid;expectedText=text;expectedSegments=1;
    await db.batch([
     db.prepare('INSERT INTO v3_documents (id,user_id,name,mime,segment_count,created_at,raw_text) VALUES (?,?,?,?,?,?,?)').bind(uid,sub,NOTE_FILE,'text/markdown',1,now,text),
     db.prepare('INSERT INTO v3_chunks (doc_id,user_id,segment,body) VALUES (?,?,?,?)').bind(uid,sub,1,text)
@@ -174,8 +176,14 @@ export async function handleVoiceNote(req,env,question){
     db.prepare('INSERT INTO v3_chunks (doc_id,user_id,segment,body) VALUES (?,?,?,?)').bind(doc.id,sub,segments+1,part)
    ]);
    if(Number(results?.[0]?.meta?.changes||0)!==1)throw Error('Concurrent note update not applied');
+   verifyId=doc.id;expectedText=prev+(prev?'\n':'')+part;expectedSegments=segments+1;
   }
-  return {answer:'Đã ghi vào file ghi chú.',sources:[],tools:['save_note'],model:'local-note'};
+  // Verify committed D1 state before reporting success; not just a mock batch result.
+  const saved=await db.prepare('SELECT id,raw_text,segment_count FROM v3_documents WHERE user_id=? AND id=?').bind(sub,verifyId).first();
+  const index=await db.prepare('SELECT body FROM v3_chunks WHERE user_id=? AND doc_id=? AND segment=?').bind(sub,verifyId,expectedSegments).first();
+  if(!saved||saved.raw_text!==expectedText||Number(saved.segment_count)!==expectedSegments||index?.body!==intent.body)
+   throw Error('Note read-after-write verification failed');
+  return {answer:'Đã ghi vào file ghi chú.',sources:[],tools:['save_note'],model:'local-note',saved:true,noteSegment:expectedSegments};
  }catch{
   return {answer:'Ghi chú chưa lưu thành công. Không xác nhận đã lưu.',sources:[],tools:[],model:'local-note'};
  }
