@@ -10,6 +10,7 @@ const panel=String.raw`
    <label for="v3Prompt" class="hint">Tự viết và chỉnh sửa Prompt. Áp dụng từ lượt hỏi tiếp theo.</label>
    <textarea id="v3Prompt" rows="7" maxlength="2500" style="width:100%;background:#111827;color:white;border:1px solid #64748b;border-radius:12px;padding:12px;font:inherit"></textarea>
    <div class="controls"><button type="button" id="v3SampleDanh">MẪU ĐANH ĐÁ</button><button type="button" id="v3SampleChem">MẪU CHÉM GIÓ</button><button type="button" id="v3SampleNghiem">MẪU NGHIÊM TÚC</button></div>
+   <p id="v3ActivePreset" class="hint" role="status" aria-live="polite">Đang dùng: Prompt riêng — chưa chọn mẫu.</p>
    <button type="button" class="primary" id="v3SavePrompt">LƯU PROMPT</button>
    <p id="v3PromptSaveStatus" class="hint" role="status" aria-live="polite" style="margin:8px 0 0;white-space:pre-wrap">Chỉnh sửa Prompt rồi bấm LƯU PROMPT. Chỉ xác nhận thành công sau khi đọc lại D1.</p>
   </details>
@@ -40,6 +41,18 @@ const script=String.raw`
  const msg=s=>{$('v3Msg').textContent=String(s)};
  let rev=0,loginClient='',promptDirty=false,promptSaving=false,profileLoaded=false,loadedPrompt='',activePreset='',presetSelectionPending=false;
  let savedPresets={};
+ const presetLabel={danh:'ĐANH ĐÁ',chem:'CHÉM GIÓ',nghiem:'NGHIÊM TÚC'};
+ const showPreset=()=>{
+  $('v3ActivePreset').textContent=activePreset?'ĐANG CHỈNH MẪU: '+presetLabel[activePreset]:'ĐANG CHỈNH: PROMPT RIÊNG (không thuộc mẫu nào)';
+  for(const [key,id] of [['danh','v3SampleDanh'],['chem','v3SampleChem'],['nghiem','v3SampleNghiem']]){
+   const b=$(id);b.classList?.toggle('selected',key===activePreset);b.setAttribute?.('aria-pressed',String(key===activePreset));
+  }
+ };
+ const inferLegacyPreset=p=>{
+  if(p?.activePreset)return p.activePreset;
+  const text=String(p?.prompt||'');
+  return Object.keys(presets).find(key=>text===presets[key]&&(!p?.presets||p.presets[key]===undefined))||'';
+ };
  const promptStatus=s=>{$('v3PromptSaveStatus').textContent=String(s)};
  const markPromptDirty=()=>{promptDirty=true;promptStatus('Chưa lưu thay đổi. Bấm LƯU PROMPT để đồng bộ.')};
  $('v3Prompt').addEventListener('input',markPromptDirty);
@@ -64,10 +77,10 @@ const script=String.raw`
   const [p,m,d]=await Promise.all([req('/api/v3/profile'),req('/api/v3/memories'),req('/api/v3/documents')]);
   // Never replace the user's unsaved edits on refresh or a late Google callback.
   if(!promptDirty&&!promptSaving&&!presetSelectionPending){
-   rev=p.revision;loadedPrompt=p.prompt||'';savedPresets=p.presets||{};activePreset=p.activePreset||'';$('v3Prompt').value=loadedPrompt;profileLoaded=true;
+   rev=p.revision;loadedPrompt=p.prompt||'';savedPresets=p.presets||{};activePreset=inferLegacyPreset(p);$('v3Prompt').value=loadedPrompt;profileLoaded=true;showPreset();
    promptStatus('Prompt đang được đồng bộ. Sửa rồi bấm LƯU PROMPT.');
   }else if(!profileLoaded){
-   rev=p.revision;loadedPrompt=p.prompt||'';savedPresets=p.presets||{};activePreset=p.activePreset||'';profileLoaded=true;
+   rev=p.revision;loadedPrompt=p.prompt||'';savedPresets=p.presets||{};if(!presetSelectionPending)activePreset=inferLegacyPreset(p);profileLoaded=true;showPreset();
   }
   const ml=$('v3Memories');ml.replaceChildren();
   for(const item of m.memories||[])line(ml,item.body,async()=>{if(!confirm('Xóa ghi nhớ này?'))return;try{await req('/api/v3/memories/'+encodeURIComponent(item.id),'DELETE',{});await populate();msg('Đã xóa')}catch(e){msg(e.message)}},async()=>{const text=prompt('Sửa nội dung ghi nhớ:',item.body);if(text===null)return;try{await req('/api/v3/memories/'+encodeURIComponent(item.id),'PUT',{body:text.trim()});await populate();msg('Đã sửa')}catch(e){msg(e.message)}});
@@ -125,7 +138,7 @@ const script=String.raw`
  const selectPreset=key=>{
   if(promptSaving)return;
   if(promptDirty&&!confirm('Prompt đang sửa chưa lưu. Chuyển mẫu sẽ thay nội dung hiện tại. Tiếp tục?'))return;
-  activePreset=key;
+  activePreset=key;showPreset();
   // Selecting a template is navigation, not a manual unsaved edit.
   // The selected text is a preview until Save; do not trigger a spurious confirm on next selection.
   $('v3Prompt').value=savedPresets[key]??presets[key];
@@ -143,7 +156,7 @@ const script=String.raw`
   try{
    // Load the latest revision and compare saved baseline before overwriting another device.
    const current=await req('/api/v3/profile');
-   if(!profileLoaded){rev=current.revision;loadedPrompt=current.prompt||'';savedPresets=current.presets||{};activePreset=current.activePreset||'';profileLoaded=true}
+   if(!profileLoaded){rev=current.revision;loadedPrompt=current.prompt||'';savedPresets=current.presets||{};if(!presetSelectionPending)activePreset=inferLegacyPreset(current);profileLoaded=true;showPreset()}
    if(current.revision!==rev&&current.prompt!==loadedPrompt){
     rev=current.revision;loadedPrompt=current.prompt||'';savedPresets=current.presets||{};
     promptDirty=true;promptStatus('Prompt đã được sửa trên thiết bị khác. Nội dung đang nhập vẫn được giữ. Kiểm tra trước khi bấm LƯU PROMPT lần nữa.');
@@ -156,7 +169,7 @@ const script=String.raw`
    // Re-read independently to prove the newest revision belongs to this account.
    const confirmed=await req('/api/v3/profile');
    if(confirmed.prompt!==draft||confirmed.revision!==result.revision||confirmed.activePreset!==selectedKey||(selectedKey&&confirmed?.presets?.[selectedKey]!==draft))throw Error('Chưa đọc lại được đúng Prompt vừa lưu.');
-   rev=confirmed.revision;loadedPrompt=draft;savedPresets=confirmed.presets||{};activePreset=confirmed.activePreset||'';presetSelectionPending=false;
+   rev=confirmed.revision;loadedPrompt=draft;savedPresets=confirmed.presets||{};activePreset=confirmed.activePreset||'';presetSelectionPending=false;showPreset();
    if($('v3Prompt').value===draft){promptDirty=false;promptStatus('ĐÃ LƯU VÀ ĐỌC LẠI THÀNH CÔNG'+(selectedKey?' — mẫu này đã được cập nhật vĩnh viễn theo tài khoản.':'')+' — có hiệu lực từ lượt hỏi tiếp theo.');}
    else{promptDirty=true;promptStatus('Đã lưu bản vừa gửi. Có thay đổi mới chưa lưu trong ô Prompt.');}
   }catch(e){
