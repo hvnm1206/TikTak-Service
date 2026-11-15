@@ -1,6 +1,16 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
 
+## Production hiện hành — Kết thúc dứt điểm luồng ghi nhớ (15/11/2026, giờ Việt Nam)
+
+- URL chính thức: https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Worker `19e0e386-d1dd-4892-a3b1-3a8eb7e93270`, source commit `0f4ef93a377e9b912d95a8a25c3e48db581373ae`, rollback Worker `9d6df409-fe7b-46e7-b5c1-e2d036a293fa`.
+- Nguyên nhân: giao diện giữ cặp lệnh ghi và xác nhận “đã ghi” trong 12 tin gửi lại cho GPT, nên lệnh cũ tiếp tục ảnh hưởng lựa chọn công cụ ở lượt sau.
+- Sửa bằng ranh giới giao dịch tổng quát, không hard-code tên người/tình huống: sau thao tác ghi/sửa/xóa/nhắc việc đã có receipt, lịch sử vẫn hiển thị cho người dùng nhưng phần lệnh đã đóng không còn được gửi làm thẩm quyền cho lượt mới. Hội thoại thông thường không bị cắt.
+- 139/139 kiểm thử PASS; kiểm riêng cả đường phát sớm và đường baseline, giữ nguyên lịch sử hội thoại thường. [Release #43686642613](https://github.com/hvnm1206/TikTak-Service/actions/runs/43686642613) · [Verify #43686642574](https://github.com/hvnm1206/TikTak-Service/actions/runs/43686642574).
+- Probe production HTTP 200 có `actionBoundary`, `currentTurnContext`, SpeechRecognition và Marin. UAT iPhone thực vẫn chờ người dùng thử chuỗi: ghi một thông tin → hỏi chủ đề không liên quan.
+
+
+
 ## Production hiện hành — Làm sạch đuôi nguồn khỏi câu tra mạng (15/11/2026, giờ Việt Nam)
 
 - URL chính thức: https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Worker `9d6df409-fe7b-46e7-b5c1-e2d036a293fa`, source commit `1ef1ff4b942ba26fab3982ad1742c7b68669ff75`, rollback Worker `0ed691b3-2396-406f-908e-5a6429053c2a`.
