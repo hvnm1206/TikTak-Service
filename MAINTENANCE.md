@@ -1,5 +1,15 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## 15/11/2026 (23:39) — NGỐ: THÊM GIAO DIỆN "CORGI — CẢ KHUÔN MẶT" VÀO THƯ VIỆN (MỚI NHẤT)
+
+**Yêu cầu:** người dùng chê các giao diện mắt cũ không thể hiện được đôi mắt lanh lợi; duyệt bản thử mặt corgi (artifact riêng) và yêu cầu "đưa thêm vào thư viện".
+
+**Đã làm:** `corgi-face-ui.js` thêm lựa chọn `corgiface` vào SETUP → giao diện, **giữ nguyên** Mặc định/Mắt Ngố/Mắt Vịt/Mắt Corgi. Mặt corgi SVG (lông vàng cam, mắt hổ phách, miệng cười) với chuyển động: mắt giật liếc + giữ, nhìn theo ngón tay, chớp ngẫu nhiên/chớp đôi, tai/lông mày/nghiêng đầu, miệng theo trạng thái. Trạng thái lấy từ `#ngoMascotStage[data-state]` (listening→nghe, processing→nghĩ, speaking→nói, error→tò mò); chạm khi rảnh → vui. Engine nằm trong `ngoThemeScript`.
+
+**Bằng chứng:** 158/158 test PASS. Lần phát hành đầu (run 43736543812) dừng ở GATE 1 do test viết sai, **không deploy**. [Release 43736614736](https://github.com/hvnm1206/TikTak-Service/actions/runs/43736614736) SUCCESS; version **`6b3a2675-2889-4305-a332-f2584cdf4515`**, rollback **`f2d3967d-8e61-4934-a68d-9725912d0ada`**. Chạy thử trên Chromium với trang thật: gắn đúng 1 lần, đổi qua lại không nhân đôi, không lỗi JS. Chưa nghiệm thu trên iPhone. Miệng khi nói đang mô phỏng nhịp, chưa bám âm lượng thật.
+
+---
+
 ## 15/11/2026 (23:11) — NGỐ: PHÁT GIỌNG NGAY KHI ĐANG VỀ + ĐỌC D1 SONG SONG (MỚI NHẤT)
 
 **Số đo iPhone thật trước sửa (SETUP):** chốt câu 0.02s · chữ GPT đầu 4.23s · byte âm thanh đầu 1.08s · âm thanh 5.37s · chốt câu → tiếng đầu **9.60s** · Memory/D1 1.45s. Nguyên nhân: client chờ tải trọn MP3 (~4.2s sau byte đầu); `loadV3Context` chạy 4 truy vấn D1 nối tiếp tới D1 ở ENAM.
