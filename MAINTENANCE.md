@@ -1,5 +1,15 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 15/11/2026 (23:11) — NGỐ: PHÁT GIỌNG NGAY KHI ĐANG VỀ + ĐỌC D1 SONG SONG (MỚI NHẤT)
+
+**Số đo iPhone thật trước sửa (SETUP):** chốt câu 0.02s · chữ GPT đầu 4.23s · byte âm thanh đầu 1.08s · âm thanh 5.37s · chốt câu → tiếng đầu **9.60s** · Memory/D1 1.45s. Nguyên nhân: client chờ tải trọn MP3 (~4.2s sau byte đầu); `loadV3Context` chạy 4 truy vấn D1 nối tiếp tới D1 ở ENAM.
+
+**Đã sửa:** `fast-voice-ui.js` `ngoStreamSpeech()` phát PCM 24 kHz theo khối (0.35s đầu, sau ~1s), gain cố định đo từ khối đầu, lỗi bất kỳ → quay về đường MP3 cũ; câu trả lời ngắn không có preview cũng phát dạng luồng; `closeVoice()` dừng mọi khối. `worker.js` `/api/tts` nhận `format:"pcm"`. `v3-backend.js` đọc profile/ghi nhớ/tài liệu/hồ sơ học bằng một `Promise.all`.
+
+**Bằng chứng:** 157/157 test PASS. [Release 43734024810](https://github.com/hvnm1206/TikTak-Service/actions/runs/43734024810) SUCCESS; version mới **`f2d3967d-8e61-4934-a68d-9725912d0ada`**, rollback **`8cd227c6-75b3-4fa1-9ac4-f50b1d52d980`**. **Chưa có số đo iPhone sau sửa.**
+
+---
+
 ## 15/11/2026 — NGỐ: TIẾNG TO HƠN + PHẢN ỨNG NHANH HƠN (TRẠNG THÁI MỚI NHẤT)
 
 **Yêu cầu người dùng:** tiếng nhỏ, phản ứng chậm.
