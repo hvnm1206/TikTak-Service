@@ -94,7 +94,7 @@ export function cleanVoiceAnswer(text){
   .replace(/\[([^\]]+)\]\(https?:\/\/[^)\s]+\)/g,'$1')
   .replace(/https?:\/\/[^\s)]+/gi,'')
   .replace(/\s+(?:nguồn(?:\s+tham\s+khảo)?|sources?|tham\s+khảo|dẫn\s+nguồn|citations?)\s*[:：][^\n]*/giu,'')
-  .replace(/(?:^|\n)\s*(?:[-–—*•]\s*)?(?:nguồn(?:\s+tham\s+khảo)?|sources?|tham\s+khảo|dẫn\s+nguồn|citations?)\b[\s\S]*$/iu,'')
+  .replace(/(?:^|\n)\s*(?:[-–—*•]\s*)?(?:nguồn(?:\s+tham\s+khảo)?|sources?|tham\s+khảo|dẫn\s+nguồn|citations?)\s*(?:[:：])?\s*(?:\n[\s\S]*)?$/iu,'')
   .split('\n')
   .filter(line=>!/^\s*(?:nguồn(?:\s+tham\s+khảo)?|sources?|tham\s+khảo|dẫn\s+nguồn|citations?)\s*[:：]/iu.test(line))
   .join(' ')
