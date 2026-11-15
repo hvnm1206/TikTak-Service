@@ -1,6 +1,13 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
-## Production hiện hành — phát câu đầu sớm (15/11/2026, giờ Việt Nam)
+## Production hiện hành — Ghi nhớ thông minh (15/11/2026, giờ Việt Nam)
+
+- URL chính thức: https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Worker `c9cdc3ad-89a3-4b7c-acf3-e2ce32ae55ec`, commit `6b62388298c558b314c43b8f12dcbdcc6d433271`, rollback Worker `f7e18962-ea91-4899-8cb3-975a304b99bd` đã chạy thành công ở lượt trước.
+- SETUP → **GHI NHỚ THÔNG MINH** → **CẬP NHẬT KẾT QUẢ**. Kết quả theo tài khoản Google. D1 production được bổ sung bảng bằng migration 0006 và 0007, có bookmark Time Travel trong artifact của lượt phát hành.
+- 133/133 kiểm thử và kiểm tra HTTP production PASS. Đã kiểm trên URL chính thức: nút có trong HTML, QR trỏ về URL chính thức, API kết quả trả 401 khi chưa đăng nhập. [Release](https://github.com/hvnm1206/TikTak-Service/actions/runs/43656179242) · [Lượt rollback](https://github.com/hvnm1206/TikTak-Service/actions/runs/43629240654).
+- Chờ nghiệm thu một lượt trên iPhone thực: đăng nhập Google, nói tự nhiên, xem trạng thái phân tích và kiểm tra Ngố dùng đúng thông tin ở lượt sau.
+
+## Mốc trước — phát câu đầu sớm (15/11/2026, giờ Việt Nam)
 
 - Ngố chạy tại https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Worker version `f7e18962-ea91-4899-8cb3-975a304b99bd`, commit ứng dụng `b3fbd9d19423adb0029b17f3c907240472344461`, rollback về `2e5e6e61-4dce-4b0b-9683-d8c9710e978c`.
 - SETUP → **Phát câu đầu sớm** bật mặc định và có thể tắt để so sánh. Hội thoại vẫn dùng Marin qua `gpt-4o-mini-tts`. **Thử Realtime Marin** là chức năng nghe mẫu riêng. Bộ đo bổ sung Safari chốt câu, chữ GPT đầu, byte âm thanh đầu và giải mã/phát.
