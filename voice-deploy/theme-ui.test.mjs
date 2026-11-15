@@ -29,7 +29,7 @@ test('Marin volume uses peak-safe gain without pumping compressor, preserving mi
  assert.ok(patch.includes('audioCtx.createGain()')&&!patch.includes('audioCtx.createDynamicsCompressor()'));
  assert.ok(patch.includes('meter.connect(gain)')&&patch.includes('avatarFace?.setAudio(meter)'));
  assert.ok(src.includes('enhanceVolumePage(enhanceVoicePage('));
- assert.ok(patch.includes('gain.connect(audioCtx.destination)')&&patch.includes('calculateStableAudioGain(decoded,voiceGain)'));
+ assert.ok(patch.includes('gain.connect(audioCtx.destination)')&&patch.includes('loudVoiceProcess(decoded,voiceGain)'));
  assert.ok(src.includes('nmh_voice_gain_v1')&&src.includes('id=\\\"gain\\\"'));
  assert.ok(src.includes('clamp(load(\\\"nmh_voice_gain_v1\\\",\\\"1.55\\\"),1,2.5,1.55)'));
  assert.ok(src.includes('enhanceThemePage(enhanceReminderPage(enhanceV3Page(PAGE,env),env))'));

@@ -124,14 +124,17 @@ async function readResponseStream(body,{onEvent,permitSpeech}){
     blocked=true;
     if(item.type==='web_search_call')await onEvent({type:'tool',name:'web_search'});
    }
-   if(!finalItem&&item?.type==='message'&&item.phase==='final_answer')finalItem=item.id;
+   // Models that do not label phase still stream the final answer message: treat missing phase as final, never 'commentary'.
+   if(!finalItem&&item?.type==='message'&&(item.phase==null||item.phase==='final_answer'))finalItem=item.id;
   }
   if(event.type!=='response.output_text.delta')return;
   await onEvent({type:'firstText'});
   if(event.item_id!==finalItem||blocked||!permitSpeech||previewSent)return;
   finalText+=event.delta;
   // A bounded, plain sentence avoids speaking URL/citation fragments or partial numbers.
-  const first=finalText.match(/^([^.!?\n]{12,175}[.!?])(?=\s)/u)?.[1]?.trim();
+  let first=finalText.match(/^([^.!?\n]{12,175}[.!?])(?=\s)/u)?.[1]?.trim();
+  // Long first sentence: start speaking at a natural comma pause instead of waiting for the full stop.
+  if(!first&&finalText.length>=110&&!/^[^.!?\n]{0,175}[.!?]/u.test(finalText))first=finalText.match(/^([^.!?\n]{30,140},)(?=\s)/u)?.[1]?.trim();
   const cleanFirst=cleanVoiceAnswer(first);
   if(cleanFirst&&!/[<>{}\[\]:/]/u.test(cleanFirst)){
    previewSent=true;

@@ -267,3 +267,55 @@ test('weather daily unavailable returns explicit failure, never a fake tomorrow 
  assert.equal(result.ok,false);
  assert.match(result.data.error,/chưa cung cấp dữ liệu theo ngày/);
 });
+
+function sseBody(events){
+ const encoder=new TextEncoder();
+ return new ReadableStream({start(c){for(const e of events)c.enqueue(encoder.encode('data: '+JSON.stringify(e)+'\n\n'));c.close()}});
+}
+async function previewsFor(events){
+ const seen=[];
+ const r=await runAgent({apiKey:key,messages:msg,onEvent:async e=>seen.push(e),fetchImpl:async()=>({ok:true,body:sseBody(events)})});
+ return {previews:seen.filter(x=>x.type==='preview').map(x=>x.text),answer:r.answer};
+}
+test('early voice preview also works when the model does not label message phase',async()=>{
+ const text='Hà Nội hôm nay mát, khoảng hai mươi độ. Chiều có thể mưa nhẹ.';
+ const {previews,answer}=await previewsFor([
+  {type:'response.output_item.added',item:{type:'message',id:'m1'}},
+  {type:'response.output_text.delta',item_id:'m1',delta:'Hà Nội hôm nay mát, khoảng hai mươi độ. '},
+  {type:'response.output_text.delta',item_id:'m1',delta:'Chiều có thể mưa nhẹ.'},
+  {type:'response.completed',response:{output:[{type:'message',id:'m1',content:[{type:'output_text',text}]}],usage:{input_tokens:10,output_tokens:5}}}
+ ]);
+ assert.deepEqual(previews,['Hà Nội hôm nay mát, khoảng hai mươi độ.']);
+ assert.ok(answer.startsWith(previews[0]));
+});
+test('commentary-phase messages never start early voice',async()=>{
+ const {previews}=await previewsFor([
+  {type:'response.output_item.added',item:{type:'message',phase:'commentary',id:'c1'}},
+  {type:'response.output_text.delta',item_id:'c1',delta:'Đang suy nghĩ về câu hỏi này nhé. '},
+  {type:'response.completed',response:{output:[{type:'message',phase:'commentary',id:'c1',content:[{type:'output_text',text:'Đang suy nghĩ về câu hỏi này nhé.'}]}],usage:{input_tokens:1,output_tokens:1}}}
+ ]);
+ assert.deepEqual(previews,[]);
+});
+test('long first sentence starts early voice at a comma pause; decimal commas are not split',async()=>{
+ const part1='Theo dự báo thì nhiệt độ trung bình khoảng 1,5 độ cao hơn hôm qua,';
+ const part2=' gió đông bắc nhẹ cấp hai cấp ba và độ ẩm khá cao nên anh nhớ mang theo áo khoác mỏng khi ra ngoài buổi tối nhé';
+ const text=part1+part2+'.';
+ const {previews,answer}=await previewsFor([
+  {type:'response.output_item.added',item:{type:'message',phase:'final_answer',id:'m1'}},
+  {type:'response.output_text.delta',item_id:'m1',delta:part1},
+  {type:'response.output_text.delta',item_id:'m1',delta:part2},
+  {type:'response.output_text.delta',item_id:'m1',delta:'.'},
+  {type:'response.completed',response:{output:[{type:'message',phase:'final_answer',id:'m1',content:[{type:'output_text',text}]}],usage:{input_tokens:1,output_tokens:1}}}
+ ]);
+ assert.deepEqual(previews,[part1]);
+ assert.ok(answer.startsWith(previews[0]));
+});
+test('short complete first sentence still wins over comma fallback',async()=>{
+ const {previews}=await previewsFor([
+  {type:'response.output_item.added',item:{type:'message',phase:'final_answer',id:'m1'}},
+  {type:'response.output_text.delta',item_id:'m1',delta:'Có chứ, tao nhớ mày mà. Mày là Hải béo, chủ nhân của tao, người hay hỏi linh tinh lúc nửa đêm,'},
+  {type:'response.output_text.delta',item_id:'m1',delta:' đúng không.'},
+  {type:'response.completed',response:{output:[{type:'message',phase:'final_answer',id:'m1',content:[{type:'output_text',text:'x'}]}],usage:{input_tokens:1,output_tokens:1}}}
+ ]);
+ assert.deepEqual(previews,['Có chứ, tao nhớ mày mà.']);
+});
