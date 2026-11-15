@@ -110,6 +110,25 @@ test('hosted web search returns cited sources with one charged call and clean sp
   assert.doesNotMatch(r.answer,/cite/);
 });
 
+test('url_citation annotation spans are structurally removed even without citation symbols',async()=>{
+ const text='Hà Nội hôm nay 25 độ. Vietnam Weather Daily';
+ const start=Array.from(text).indexOf('V');
+ const r=await runAgent({apiKey:key,messages:msg,fetchImpl:async()=>response([
+  {type:'web_search_call',id:'ws1',status:'completed'},
+  {type:'message',content:[{type:'output_text',text,annotations:[
+   {type:'url_citation',start_index:start,end_index:Array.from(text).length,url:'https://example.org/weather',title:'Vietnam Weather Daily'}
+  ]}]}
+ ])});
+ assert.equal(r.answer,'Hà Nội hôm nay 25 độ.');
+ assert.equal(r.sources.length,1);
+ assert.equal(r.sources[0].url,'https://example.org/weather');
+});
+
+test('source appendix without a colon is removed from voice text',()=>{
+ assert.equal(cleanVoiceAnswer('Kết quả chính.\nNguồn tham khảo\nExample News\nAnother Site'),'Kết quả chính.');
+ assert.equal(cleanVoiceAnswer('Kết quả chính.\n• Sources\nExample News'),'Kết quả chính.');
+});
+
 test('normal question does not claim a web call or incur web search charge',async()=>{
   const r=await runAgent({apiKey:key,messages:[{role:'user',content:'2 cộng 3 bằng bao nhiêu?'}],fetchImpl:async()=>say('5')});
   assert.equal(r.webSearchCalls,0);

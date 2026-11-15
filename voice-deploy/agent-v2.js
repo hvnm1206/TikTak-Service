@@ -94,6 +94,7 @@ export function cleanVoiceAnswer(text){
   .replace(/\[([^\]]+)\]\(https?:\/\/[^)\s]+\)/g,'$1')
   .replace(/https?:\/\/[^\s)]+/gi,'')
   .replace(/\s+(?:nguồn(?:\s+tham\s+khảo)?|sources?|tham\s+khảo|dẫn\s+nguồn|citations?)\s*[:：][^\n]*/giu,'')
+  .replace(/(?:^|\n)\s*(?:[-–—*•]\s*)?(?:nguồn(?:\s+tham\s+khảo)?|sources?|tham\s+khảo|dẫn\s+nguồn|citations?)\b[\s\S]*$/iu,'')
   .split('\n')
   .filter(line=>!/^\s*(?:nguồn(?:\s+tham\s+khảo)?|sources?|tham\s+khảo|dẫn\s+nguồn|citations?)\s*[:：]/iu.test(line))
   .join(' ')
@@ -101,8 +102,16 @@ export function cleanVoiceAnswer(text){
   .replace(/\s+/g,' ')
   .trim();
 }
+function stripUrlCitationSpans(part){
+  const chars=Array.from(String(part?.text||''));
+  const spans=(part?.annotations||[])
+    .filter(a=>a?.type==='url_citation'&&Number.isInteger(a.start_index)&&Number.isInteger(a.end_index)&&a.start_index>=0&&a.end_index>a.start_index&&a.end_index<=chars.length)
+    .sort((a,b)=>b.start_index-a.start_index);
+  for(const a of spans)chars.splice(a.start_index,a.end_index-a.start_index);
+  return chars.join('');
+}
 function extractText(output){
-  return (output||[]).filter(x=>x?.type==="message").flatMap(x=>x.content||[]).filter(x=>x?.type==="output_text").map(x=>x.text||"").join("\n").trim();
+  return (output||[]).filter(x=>x?.type==="message").flatMap(x=>x.content||[]).filter(x=>x?.type==="output_text").map(stripUrlCitationSpans).join("\n").trim();
 }
 async function readResponseStream(body,{onEvent,permitSpeech}){
  let finalText='',finalItem=null,data=[],completed=null,previewSent=false,blocked=false;
