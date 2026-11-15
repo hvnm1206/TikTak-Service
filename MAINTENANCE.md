@@ -1,5 +1,14 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+
+## Production hiện hành — Làm sạch trích dẫn khỏi câu thoại (15/11/2026, giờ Việt Nam)
+
+- URL chính thức: https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Worker `0ed691b3-2396-406f-908e-5a6429053c2a`, source commit `781f73a1895190569c8367a933820ae1e1f65db4`, rollback Worker `c9cdc3ad-89a3-4b7c-acf3-e2ce32ae55ec`.
+- Sửa đúng lớp chuẩn hóa câu trả lời: loại bỏ citation máy, mã `turn...search...`, footnote, khối Nguồn/Source/Citation và URL khỏi phụ đề/Marin; nguồn xác minh vẫn giữ riêng trong NHẬT KÝ. Cả câu hoàn chỉnh và câu phát sớm dùng chung bộ lọc.
+- 135/135 kiểm thử PASS, gồm ca citation nhiều định dạng và streaming preview. Guard phát hành, D1 bookmark/schema, rollback pin và HTTP production PASS. [Release #43683558630](https://github.com/hvnm1206/TikTak-Service/actions/runs/43683558630) · [Verify #43683558684](https://github.com/hvnm1206/TikTak-Service/actions/runs/43683558684).
+- Không thay đổi mic, lựa chọn công cụ tìm kiếm, Marin, Memory, Prompt, OAuth hoặc nhắc việc. Nghiệm thu nghe thực tế trên iPhone vẫn do người dùng xác nhận; kiểm thử tự động không thay thế UAT thiết bị.
+
+
 ## Production hiện hành — Ghi nhớ thông minh (15/11/2026, giờ Việt Nam)
 
 - URL chính thức: https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Worker `c9cdc3ad-89a3-4b7c-acf3-e2ce32ae55ec`, commit `6b62388298c558b314c43b8f12dcbdcc6d433271`, rollback Worker `f7e18962-ea91-4899-8cb3-975a304b99bd` đã chạy thành công ở lượt trước.
