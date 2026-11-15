@@ -85,12 +85,19 @@ async function callTool(name,args,{fetchImpl,signal}){
 }
 export function cleanVoiceAnswer(text){
  return String(text||'')
-  .replace(/cite[^]*/g,'')
+  // Strip machine citation payloads before the text reaches captions or TTS.
+  .replace(/(?:cite|openaiCitation)[^]*/giu,'')
+  .replace(/【[^】]*(?:†|turn\d+|search\d+|source|nguồn)[^】]*】/giu,'')
+  .replace(/\[(?:\^?\d+|turn\d+(?:search|news|fetch|view)\d+(?:\s*[,;]\s*turn\d+(?:search|news|fetch|view)\d+)*|nguồn(?:\s+\d+)?)\]/giu,'')
+  .replace(/\bturn\d+(?:search|news|fetch|view)\d+\b/giu,'')
+  .replace(/\(\s*(?:nguồn|source|tham\s+khảo)\s*[:：][^)]*\)/giu,'')
   .replace(/\[([^\]]+)\]\(https?:\/\/[^)\s]+\)/g,'$1')
   .replace(/https?:\/\/[^\s)]+/gi,'')
+  .replace(/\s+(?:nguồn(?:\s+tham\s+khảo)?|sources?|tham\s+khảo|dẫn\s+nguồn|citations?)\s*[:：][^\n]*/giu,'')
   .split('\n')
-  .filter(line=>!/^\s*(?:nguồn(?:\s+tham\s+khảo)?|sources?|tham\s+khảo|dẫn\s+nguồn)\s*[:：]/iu.test(line))
+  .filter(line=>!/^\s*(?:nguồn(?:\s+tham\s+khảo)?|sources?|tham\s+khảo|dẫn\s+nguồn|citations?)\s*[:：]/iu.test(line))
   .join(' ')
+  .replace(/\s+([,.;!?])/g,'$1')
   .replace(/\s+/g,' ')
   .trim();
 }
@@ -116,9 +123,10 @@ async function readResponseStream(body,{onEvent,permitSpeech}){
   finalText+=event.delta;
   // A bounded, plain sentence avoids speaking URL/citation fragments or partial numbers.
   const first=finalText.match(/^([^.!?\n]{12,175}[.!?])(?=\s)/u)?.[1]?.trim();
-  if(first&&!/[<>{}\[\]:/]/u.test(first)){
+  const cleanFirst=cleanVoiceAnswer(first);
+  if(cleanFirst&&!/[<>{}\[\]:/]/u.test(cleanFirst)){
    previewSent=true;
-   await onEvent({type:'preview',text:first});
+   await onEvent({type:'preview',text:cleanFirst});
   }
  }
  for await(const line of responseLines(body)){

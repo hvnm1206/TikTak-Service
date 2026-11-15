@@ -149,6 +149,32 @@ test('speech text omits URLs and citation lists while keeping source links separ
 });
 
 
+test('all known citation artifacts are removed from captions and speech',()=>{
+ const samples=[
+  ['Kết quả đúng. 【1†source】','Kết quả đúng.'],
+  ['Kết quả đúng. [1] [turn0search0]','Kết quả đúng.'],
+  ['Kết quả đúng turn2search3.','Kết quả đúng.'],
+  ['Kết quả đúng. (Nguồn: Example News)','Kết quả đúng.'],
+  ['Kết quả đúng. Citation: Example News','Kết quả đúng.'],
+  ['Kết quả đúng.\nSources: Example News','Kết quả đúng.']
+ ];
+ for(const [raw,want] of samples)assert.equal(cleanVoiceAnswer(raw),want);
+});
+
+test('streaming preview is cleaned by the same citation filter as final speech',async()=>{
+ const encoder=new TextEncoder();
+ const events=[
+  {type:'response.output_item.added',item:{type:'message',phase:'final_answer',id:'m1'}},
+  {type:'response.output_text.delta',item_id:'m1',delta:'Kết quả đã xác minh. [turn0search0] '},
+  {type:'response.completed',response:{output:[{type:'message',phase:'final_answer',id:'m1',content:[{type:'output_text',text:'Kết quả đã xác minh. [turn0search0]'}]}],usage:{input_tokens:10,output_tokens:5}}}
+ ];
+ const body=new ReadableStream({start(c){for(const e of events)c.enqueue(encoder.encode('data: '+JSON.stringify(e)+'\n\n'));c.close()}});
+ const seen=[];
+ const r=await runAgent({apiKey:key,messages:msg,onEvent:async e=>seen.push(e),fetchImpl:async()=>({ok:true,body})});
+ assert.equal(seen.find(x=>x.type==='preview')?.text,'Kết quả đã xác minh.');
+ assert.equal(r.answer,'Kết quả đã xác minh.');
+});
+
 test('regular conversation continues after a historical note request without save_note tool',async()=>{
  const history=[
   {role:'user',content:'Ghi lại giúp tao việc ngày mai'},
