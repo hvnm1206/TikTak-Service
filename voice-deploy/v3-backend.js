@@ -92,15 +92,18 @@ export async function loadV3Context(req,env,question){
  const sub=await sessionSubject(req,env);
  if(!sub)return {personalPrompt:'',memories:[],documents:[]};
  try{
-  const profile=await env.NMH_DB.prepare('SELECT prompt FROM v3_profiles WHERE user_id=?').bind(sub).first();
-  const recent=await env.NMH_DB.prepare('SELECT body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 40').bind(sub).all();
+  // Independent owner-scoped reads run in parallel: one D1 round trip instead of four sequential ones.
+  const terms=extractTerms(question).slice(0,5);
+  const [profile,recent,rows,learned]=await Promise.all([
+   env.NMH_DB.prepare('SELECT prompt FROM v3_profiles WHERE user_id=?').bind(sub).first(),
+   env.NMH_DB.prepare('SELECT body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 40').bind(sub).all(),
+   terms.length?env.NMH_DB.prepare('SELECT c.body, c.segment, d.name FROM v3_chunks c JOIN v3_documents d ON d.id=c.doc_id AND d.user_id=c.user_id WHERE c.user_id=? AND ('+terms.map(()=>'c.body LIKE ?').join(' OR ')+') LIMIT 80').bind(sub,...terms.map(x=>'%'+x+'%')).all():{results:[]},
+   personalMemoryEnabled(env)?getPersonalContext(env.NMH_DB,sub,question).catch(()=>[]):[]
+  ]);
   // Supply the latest owner-scoped facts to GPT without hardcoded relationship
   // graphs, lexical bridges, or phrase-specific selection rules.
   const memories=(recent.results||[]).filter(x=>typeof x.body==='string'&&x.body.trim()).slice(0,20);
-  const terms=extractTerms(question).slice(0,5);
-  const rows=terms.length?await env.NMH_DB.prepare('SELECT c.body, c.segment, d.name FROM v3_chunks c JOIN v3_documents d ON d.id=c.doc_id AND d.user_id=c.user_id WHERE c.user_id=? AND ('+terms.map(()=>'c.body LIKE ?').join(' OR ')+') LIMIT 80').bind(sub,...terms.map(x=>'%'+x+'%')).all():{results:[]};
   const docs=(rows.results||[]).map(x=>({...x,score:scoreSegment(question,x.body)})).filter(x=>x.score>=3).sort((a,b)=>b.score-a.score).slice(0,4).map(x=>({name:x.name,segment:x.segment,text:x.body.slice(0,900)}));
-  const learned=personalMemoryEnabled(env)?await getPersonalContext(env.NMH_DB,sub,question).catch(()=>[]):[];
   return {personalPrompt:maxText(profile?.prompt,2500),memories:memories.map(x=>x.body),documents:docs,...(learned.length?{learned}: {})};
  }catch{return {personalPrompt:'',memories:[],documents:[],contextError:'Không truy cập được kho cá nhân, không thể xác minh tài liệu.'}}
 }

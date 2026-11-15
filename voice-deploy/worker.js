@@ -91,14 +91,14 @@ if(u.pathname==="/api/realtime-speech-preview"){
  }catch(e){return respond({error:String(e?.message||'Lỗi Realtime').slice(0,150)},502)}
 }
 if(u.pathname==="/api/tts"){
- const text=String(body?.text||"").trim(),style=body?.style;
+ const text=String(body?.text||"").trim(),style=body?.style,pcm=body?.format==="pcm";
  if(!text||text.length>500)return respond({error:"Văn bản đọc không hợp lệ"},400);
  const speakingSpeed=style==="nghiem_tuc"?1:0.756;
  const instructions=style==="nghiem_tuc"?"Speak natural Vietnamese clearly and calmly.":"Speak lively conversational Vietnamese with a playful, youthful and expressive voice; clear Northern Vietnamese intonation.";
  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),30000);
  try{
   const r=await fetch("https://api.openai.com/v1/audio/speech",{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},signal:ctl.signal,
-  body:JSON.stringify({model:"gpt-4o-mini-tts",voice:"marin",input:text,instructions,response_format:"mp3",speed:speakingSpeed})});
+  body:JSON.stringify({model:"gpt-4o-mini-tts",voice:"marin",input:text,instructions,response_format:pcm?"pcm":"mp3",speed:speakingSpeed})});
   if(!r.ok){
    let detail="";try{const err=await r.json();detail=String(err?.error?.message||"").slice(0,160)}catch{}
    const code=r.status===401?"TTS_INVALID_API_KEY":r.status===403?"TTS_PERMISSION_DENIED":r.status===429?"TTS_RATE_LIMIT":r.status===400?"TTS_INVALID_REQUEST":"TTS_UPSTREAM_ERROR";
@@ -106,7 +106,7 @@ if(u.pathname==="/api/tts"){
   }
   const contentType=r.headers.get("content-type")||"";
   if(!contentType.includes("audio/")&&!contentType.includes("octet-stream"))return respond({error:"OpenAI TTS trả dữ liệu không phải âm thanh",code:"TTS_NON_AUDIO_RESPONSE"},502);
-  return new Response(r.body,{status:200,headers:{"content-type":"audio/mpeg","cache-control":"no-store","x-content-type-options":"nosniff","x-nmh-tts-source":"openai-marin"}});
+  return new Response(r.body,{status:200,headers:{"content-type":pcm?"audio/L16;rate=24000;channels=1":"audio/mpeg","cache-control":"no-store","x-content-type-options":"nosniff","x-nmh-tts-source":"openai-marin"}});
  }catch(e){return respond({error:e?.name==="AbortError"?"TTS quá thời gian":"Không kết nối TTS"},504)}finally{clearTimeout(tm)}
 }
 const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),55000);

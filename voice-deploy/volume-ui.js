@@ -4,7 +4,7 @@
 // speech level of each decoded chunk to a target set by the slider, then applies an offline
 // look-ahead peak limiter on the PCM itself: louder, consistent between chunks, no clipping and
 // no realtime compressor pumping. Pure JS, runs once per chunk before playback.
-export function loudVoiceProcess(decoded, userGain=1.55){
+export function loudVoiceProcess(decoded, userGain=1.55, fixedGain=0){
   const n=Number(decoded?.numberOfChannels)||0;
   const length=Number(decoded?.length)||0;
   if(!n||!length||typeof decoded.getChannelData!=='function')return {gain:1,minEnvelope:1};
@@ -31,10 +31,11 @@ export function loudVoiceProcess(decoded, userGain=1.55){
   const gate=Math.max(1e-4,loudest*.01); // -40 dBFS absolute, -20 dB relative to loudest frame
   let sum=0,count=0;
   for(const ms of frames)if(ms>=gate){sum+=ms;count++}
-  if(!count)return {gain:1,minEnvelope:1};
-  const activeRms=Math.sqrt(sum/count);
+  if(!count&&!(fixedGain>0))return {gain:1,minEnvelope:1};
+  const activeRms=Math.sqrt(sum/Math.max(1,count));
   const target=.2*ug; // default 1.55 => 0.31 RMS target; max 2.5 => 0.5 (limiter keeps peaks <= 0.95)
-  const gain=Math.max(.25,Math.min(10,target/activeRms));
+  // Streaming playback passes the gain measured on the first block so later blocks keep the same level.
+  const gain=fixedGain>0?Math.max(.25,Math.min(10,fixedGain)):Math.max(.25,Math.min(10,target/activeRms));
   // 2) Required per-sample gain so |x*gain*env| <= ceiling.
   const ceiling=.95;
   const env=new Float32Array(length);
@@ -58,7 +59,7 @@ export function loudVoiceProcess(decoded, userGain=1.55){
       data[i]=y>.98?.98:y<-.98?-.98:y;
     }
   }
-  return {gain,minEnvelope};
+  return {gain,minEnvelope,measured:true};
 }
 const ORIGINAL='let meter=null;try{meter=audioCtx.createAnalyser();meter.fftSize=256;s.connect(meter);meter.connect(audioCtx.destination)}catch{s.connect(audioCtx.destination)}avatarFace?.setAudio(meter);audioSource=s;s.onended=';
 const LOUD='const gain=audioCtx.createGain();gain.gain.value=1;loudVoiceProcess(decoded,voiceGain);let meter=null;try{meter=audioCtx.createAnalyser();meter.fftSize=256;s.connect(meter);meter.connect(gain)}catch{s.connect(gain)}gain.connect(audioCtx.destination);avatarFace?.setAudio(meter);audioSource=s;s.onended=';

@@ -8,33 +8,91 @@ export function currentTurnContext(history,limit=12){
 const client=String.raw`
  ${currentTurnContext.toString()}
 
+
+ // Progressive Marin playback: PCM 24 kHz s16le blocks are scheduled as they arrive,
+ // instead of waiting for the whole MP3 (measured ~4 s wait on iPhone 15/11/2026).
+ var ngoStreamSources=[];
+ function ngoStopStream(){for(const x of ngoStreamSources){x.onended=null;try{x.stop()}catch{}try{x.disconnect()}catch{}}ngoStreamSources=[]}
+ async function ngoStreamSpeech(text,voiceStyle,signal,playbackSpeed,onDone,valid,onFirstByte){
+  if(!audioCtx)throw Error("AUDIO_STREAM_NOT_UNLOCKED");
+  ngoAudioSessionSafe("playback");
+  if(audioCtx.state!=="running")await audioCtx.resume();
+  if(audioCtx.state!=="running")throw Error("AUDIO_CONTEXT_SUSPENDED");
+  const r=await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},cache:"no-store",body:JSON.stringify({apiKey:key,text,style:voiceStyle,format:"pcm"}),signal});
+  if(!r.ok||!r.body)throw Error("TTS_STREAM_HTTP_"+r.status);
+  const reader=r.body.getReader(),rate=24000;
+  const meter=audioCtx.createAnalyser();meter.fftSize=256;meter.connect(audioCtx.destination);
+  let pending=new Uint8Array(0),odd=null,nextTime=0,fixed=0,total=0,started=false,firstByte=false,last=null,resolveStart,rejectStart;
+  const startPromise=new Promise((a,b)=>{resolveStart=a;rejectStart=b});
+  function schedule(bytes,final){
+   const samples=Math.floor(bytes.length/2);if(!samples)return;
+   const buf=audioCtx.createBuffer(1,samples,rate),ch=buf.getChannelData(0),view=new DataView(bytes.buffer,bytes.byteOffset,samples*2);
+   for(let i=0;i<samples;i++)ch[i]=view.getInt16(i*2,true)/32768;
+   const res=loudVoiceProcess(buf,voiceGain,fixed);
+   if(!fixed&&res.measured)fixed=res.gain;
+   const s=audioCtx.createBufferSource();s.buffer=buf;s.playbackRate.value=playbackSpeed;s.connect(meter);
+   const at=Math.max(audioCtx.currentTime+.03,nextTime);s.start(at);nextTime=at+buf.duration/playbackSpeed;total+=buf.duration;
+   ngoStreamSources.push(s);audioSource=s;last=s;
+   if(!started){started=true;globalThis.nmhVoiceLatencyMark?.("ttsReady");avatarFace?.setAudio(meter);resolveStart({duration:0,stream:true})}
+  }
+  (async()=>{
+   try{
+    let threshold=rate*2*.35; // first block 0.35 s, later blocks ~1 s
+    while(true){
+     const {value,done}=await reader.read();
+     if(!valid()){await reader.cancel().catch(()=>{});throw Error("AUDIO_CANCELLED")}
+     if(value&&value.length){
+      if(!firstByte){firstByte=true;onFirstByte?.()}
+      const merged=new Uint8Array(pending.length+value.length);merged.set(pending);merged.set(value,pending.length);pending=merged;
+     }
+     if(pending.length>=threshold||(done&&pending.length)){
+      const even=pending.length-(pending.length%2);
+      schedule(pending.subarray(0,even),done);pending=pending.slice(even);threshold=rate*2;
+     }
+     if(done)break;
+    }
+    if(!started)throw Error("TTS_STREAM_EMPTY");
+    recordCost({ttsSeconds:total,ttsChunks:1});
+    const ended=()=>{if(audioSource===last){audioSource=null;avatarFace?.setAudio(null)}ngoStreamSources=[];onDone?.()};
+    if(audioCtx.currentTime>=nextTime-.01)ended();else last.onended=ended;
+   }catch(e){if(!started)rejectStart(e);else{ngoStopStream();onDone?.()}}
+  })();
+  return startPromise;
+ }
+ function ngoAudioSessionSafe(t){try{if(typeof ngoAudioSession==="function")ngoAudioSession(t)}catch{}}
  async function fastVoice(body,g,turn){
   const fetchControl=new AbortController();controller=fetchControl;
   const valid=()=>active&&g===gen&&!fetchControl.signal.aborted;
   let first='',firstPlay=null,audioFinished=null,previewNode=null;
   const styleAtStart=body.style;
   const playbackSpeed=Math.min(2,Math.max(.7,(styleAtStart==="nghiem_tuc"?1:1.455)*rate));
-  function startPreview(text){
+  function startPreview(text,bubble=true){
    if(firstPlay)return;
    first=text;
-   previewNode=document.createElement("div");
+   if(bubble){previewNode=document.createElement("div");
    previewNode.className="bubble assistant";
    previewNode.textContent=text;
    $("history").append(previewNode);
-   $("history").scrollTop=$("history").scrollHeight;
+   $("history").scrollTop=$("history").scrollHeight;}
    globalThis.nmhVoiceLatencyMark?.("ttsStart");
    firstPlay=(async()=>{
-    const bytes=await fetchSpeechAudio(text,styleAtStart,fetchControl.signal,()=>globalThis.nmhVoiceLatencyMark?.("ttsFirstByte"));
-    if(!valid())return false;
-    globalThis.nmhVoiceLatencyMark?.("ttsReady");
     let finish;
     audioFinished=new Promise(resolve=>{finish=resolve});
-    const audio=await playAudioBuffer(bytes,playbackSpeed,finish,valid);
+    try{
+     await ngoStreamSpeech(text,styleAtStart,fetchControl.signal,playbackSpeed,finish,valid,()=>globalThis.nmhVoiceLatencyMark?.("ttsFirstByte"));
+    }catch(e){
+     if(!valid())return false;
+     // Fallback: original whole-file MP3 path.
+     const bytes=await fetchSpeechAudio(text,styleAtStart,fetchControl.signal,()=>globalThis.nmhVoiceLatencyMark?.("ttsFirstByte"));
+     if(!valid())return false;
+     globalThis.nmhVoiceLatencyMark?.("ttsReady");
+     const audio=await playAudioBuffer(bytes,playbackSpeed,finish,valid);
+     recordCost({ttsSeconds:audio.duration,ttsChunks:1});
+    }
     if(!valid())return false;
     setState("speaking","OpenAI Marin");
     setVoiceSource("OpenAI Marin — đang phát");
     globalThis.nmhVoiceLatencyMark?.("firstAudio");
-    recordCost({ttsSeconds:audio.duration,ttsChunks:1});
     return true;
    })().catch(()=>false);
   }
@@ -70,6 +128,7 @@ const client=String.raw`
    globalThis.nmhVoiceLatencyServer?.(result.latency);
    recordCost({gptUsd:Number(result.estimatedModelUsd||0),webUsd:Number(result.estimatedWebSearchUsd||0)});
    turn.content=result.answer;turn.sources=result.sources||[];turn.actionBoundary=!!result.actionStatus;history.push(turn);render();
+   if(!firstPlay){const firstPart=speechParts(result.answer)[0];if(firstPart)startPreview(firstPart,false)}
    const played=await firstPlay;
    if(!valid())return;
    if(!played){speak(result.answer,g);return}
@@ -143,6 +202,7 @@ export function enhanceFastVoice(page){
  p=replaceOnce(p,'const buffer=await r.arrayBuffer();','const buffer=onFirstByte&&r.body?await readVoiceBytes(r.body,onFirstByte):await r.arrayBuffer();');
  p=replaceOnce(p,'async function playAudioBuffer(buffer,playbackSpeed,onDone){','async function playAudioBuffer(buffer,playbackSpeed,onDone,valid=()=>true){');
  p=replaceOnce(p,'const s=audioCtx.createBufferSource();s.buffer=decoded;','if(!valid())throw Error("AUDIO_CANCELLED");const s=audioCtx.createBufferSource();s.buffer=decoded;');
+ p=replaceOnce(p,'function closeVoice(){ttsRequestId++;','function closeVoice(){ngoStopStream();ttsRequestId++;');
  p=replaceOnce(p,'gen++;closeVoice();listen()','gen++;controller?.abort();controller=null;closeVoice();listen()');
  p=replaceOnce(p,'!(active&&s==="speaking")','!(active&&(s==="speaking"||s==="processing"))');
  p=replaceOnce(p,'<h2>SETUP</h2>','<h2>SETUP</h2><label><input id="fastVoiceEnabled" type="checkbox" checked style="width:auto"> Phát câu đầu sớm</label><label for="realtimeText">Văn bản thử giọng Realtime</label><input id="realtimeText" maxlength="300"><button type="button" id="testRealtime">THỬ REALTIME MARIN</button><p id="realtimeDiagnostic" aria-live="polite"></p>');

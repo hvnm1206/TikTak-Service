@@ -81,6 +81,6 @@ test('real Worker page (basic and fast voice) carries both switches, compiles, a
   for(const marker of ['ngoAudioSession("playback")','ngoAudioSession("auto")','ngoEndTimer','id="ngoLoudSpeaker"','id="ngoFastEndpoint"'])assert.ok(html.includes(marker),marker);
   for(const s of html.matchAll(/<script>([\s\S]*?)<\/script>/g))new vm.Script(s[1]);
   const off=await (await worker.fetch(new Request('https://voice.example/'),{...env,NMH_VOICE_BOOST:'off'},{})).text();
-  assert.ok(!off.includes('ngoAudioSession'));
+  assert.ok(!off.includes('let ngoLoudSpeaker')&&!off.includes('ngoEndTimer'));
  }
 });
