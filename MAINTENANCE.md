@@ -1,13 +1,13 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
 
-## Production hiện hành — Làm sạch trích dẫn khỏi câu thoại (15/11/2026, giờ Việt Nam)
+## Production hiện hành — Làm sạch đuôi nguồn khỏi câu tra mạng (15/11/2026, giờ Việt Nam)
 
-- URL chính thức: https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Worker `0ed691b3-2396-406f-908e-5a6429053c2a`, source commit `781f73a1895190569c8367a933820ae1e1f65db4`, rollback Worker `c9cdc3ad-89a3-4b7c-acf3-e2ce32ae55ec`.
-- Sửa đúng lớp chuẩn hóa câu trả lời: loại bỏ citation máy, mã `turn...search...`, footnote, khối Nguồn/Source/Citation và URL khỏi phụ đề/Marin; nguồn xác minh vẫn giữ riêng trong NHẬT KÝ. Cả câu hoàn chỉnh và câu phát sớm dùng chung bộ lọc.
-- 135/135 kiểm thử PASS, gồm ca citation nhiều định dạng và streaming preview. Guard phát hành, D1 bookmark/schema, rollback pin và HTTP production PASS. [Release #43683558630](https://github.com/hvnm1206/TikTak-Service/actions/runs/43683558630) · [Verify #43683558684](https://github.com/hvnm1206/TikTak-Service/actions/runs/43683558684).
-- Không thay đổi mic, lựa chọn công cụ tìm kiếm, Marin, Memory, Prompt, OAuth hoặc nhắc việc. Nghiệm thu nghe thực tế trên iPhone vẫn do người dùng xác nhận; kiểm thử tự động không thay thế UAT thiết bị.
-
+- URL chính thức: https://nmh-voice-gpt-test.magical-budget.workers.dev/ . Worker `9d6df409-fe7b-46e7-b5c1-e2d036a293fa`, source commit `1ef1ff4b942ba26fab3982ad1742c7b68669ff75`, rollback Worker `0ed691b3-2396-406f-908e-5a6429053c2a`.
+- Nguyên nhân lần sửa trước chưa đủ: chỉ lọc citation theo mẫu chữ, chưa dùng `start_index/end_index` của `url_citation`; vì vậy đuôi tên nguồn không có ký hiệu vẫn lọt sang câu thoại.
+- Đã sửa theo cấu trúc annotation, không hard-code tên báo/website: cắt đúng span được OpenAI đánh dấu trước khi tạo phụ đề và gửi Marin; đồng thời bỏ khối Nguồn/Source ở cuối. Nguồn xác minh vẫn giữ riêng trong NHẬT KÝ.
+- 137/137 kiểm thử PASS, gồm đuôi citation không có ký hiệu, source appendix, câu hợp lệ bắt đầu bằng “Nguồn…”, web search, mic, Marin, Memory và hồi quy cũ. [Release #43685930263](https://github.com/hvnm1206/TikTak-Service/actions/runs/43685930263) · [Verify #43685930240](https://github.com/hvnm1206/TikTak-Service/actions/runs/43685930240).
+- HTTP production, D1 bookmark/schema và rollback pin PASS. Nghiệm thu nghe thực tế trên iPhone vẫn do người dùng xác nhận; kiểm thử tự động không thay thế UAT thiết bị.
 
 ## Production hiện hành — Ghi nhớ thông minh (15/11/2026, giờ Việt Nam)
 
