@@ -1,5 +1,26 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## 15/11/2026 — NGỐ: TIẾNG TO HƠN + PHẢN ỨNG NHANH HƠN (TRẠNG THÁI MỚI NHẤT)
+
+**Yêu cầu người dùng:** tiếng nhỏ, phản ứng chậm.
+
+**Nguyên nhân xác minh từ source:**
+- `volume-ui.js` cũ giới hạn gain bằng `0.88/peak`; TTS có đỉnh ~0.9 nên gain thực ≈ 0.98, thanh âm lượng 1.55 và 2.5 cho ra cùng mức (đo trên mẫu giọng thật: −17.9 dBFS cả hai).
+- Sau Safari SpeechRecognition, trang ở phiên âm thanh có thu âm; iOS phát Web Audio nhỏ ở chế độ này (cơ chế đã biết, chưa đo trên máy của người dùng).
+- `agent-v2.js` chỉ bật phát câu đầu sớm khi message có `phase==='final_answer'`; model không gắn phase thì phải chờ GPT viết xong mới phát.
+- Safari tự chốt câu sau khoảng lặng dài.
+
+**Đã sửa:**
+- `volume-ui.js`: `loudVoiceProcess()` chuẩn hóa độ to theo RMS phần có tiếng (mục tiêu 0.2×thanh trượt) + limiter look-ahead 4 ms / release 80 ms offline trên PCM, đỉnh ≤0.95, không DynamicsCompressor. Đo mẫu thật: mặc định +5.1 dB, tối đa +6.5 dB, đoạn nhỏ +12 dB.
+- `voice-boost-ui.js` (mới): `navigator.audioSession.type="playback"` khi phát, `"auto"` trước khi mở micro; chốt câu nhanh sau 1,0 s không có kết quả mới. Hai công tắc trong SETUP (`ngo_loud_speaker_v1`, `ngo_fast_endpoint_v1`); env `NMH_VOICE_BOOST=off` tắt toàn bộ.
+- `agent-v2.js`: phát sớm cả khi message không có phase (vẫn loại `commentary`); câu đầu dài ≥110 ký tự thì phát từ dấu phẩy đầu (không cắt số thập phân).
+
+**Bằng chứng:** 152/152 test PASS (139 cũ + 13 mới). [Release 43732856120](https://github.com/hvnm1206/TikTak-Service/actions/runs/43732856120) SUCCESS: GATE 1 152 PASS, pin version + D1 bookmark PASS, deploy cùng Worker, smoke PASS. Version mới **`8cd227c6-75b3-4fa1-9ac4-f50b1d52d980`**, rollback **`19e0e386-d1dd-4892-a3b1-3a8eb7e93270`**. Source commit `99e215a`. Workflow verify bị lệch pin cũ `9d6df409` (không liên quan bản này) đã cập nhật pin sang version mới.
+
+**Chưa nghiệm thu:** chưa nghe thực trên iPhone; chưa có số đo độ trễ thật (xem dòng ĐỘ TRỄ trong SETUP sau 3–5 lượt). Nếu micro không nhận sau khi Ngố nói → tắt "Ưu tiên loa ngoài". Nếu bị cắt ngang khi ngập ngừng → tắt "Chốt câu nhanh".
+
+---
+
 ## 14/11/2026 — DỌN BỎ TOÀN BỘ LUỒNG GHI FILE BẰNG GIỌNG NÓI THỬ NGHIỆM (TRẠNG THÁI CHỐT MỚI NHẤT)
 
 **Yêu cầu:** Người dùng yêu cầu dọn sạch những chức năng thử nghiệm làm hỏng hội thoại, cấm làm mất các chức năng đang chạy. Giữ nguyên dữ liệu lưu trong D1, không xóa ghi nhớ hay tài liệu người dùng.
