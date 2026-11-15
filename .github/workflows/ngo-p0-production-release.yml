@@ -150,18 +150,23 @@ jobs:
             grep -q "$marker" /tmp/ngo-live-ui.html || { echo "::error::missing UI marker $marker";false; }
           done
           code=$(curl --silent --max-time 15 -o /tmp/ngo-anon -w '%{http_code}' "$TARGET/api/reminders/due")
+          echo "Smoke ngo-anon: HTTP $code"
           test "$code" = 401
           code=$(curl --silent --max-time 15 -o /tmp/ngo-anon -w '%{http_code}' "$TARGET/api/v3/memory-v2-preference")
+          echo "Smoke ngo-anon: HTTP $code"
           test "$code" = 401
           code=$(curl --silent --max-time 15 -o /tmp/ngo-anon-personal -w '%{http_code}' "$TARGET/api/v3/personal-memory")
+          echo "Smoke ngo-anon-personal: HTTP $code"
           test "$code" = 401
-          ! grep -q 'nmh-ngo-memory-pilot-20261115.magical-budget.workers.dev' /tmp/ngo-live-ui.html
+          if grep -Fq 'href="https://nmh-ngo-memory-pilot-20261115.magical-budget.workers.dev/' /tmp/ngo-live-ui.html; then echo '::error::Pilot QR link on production'; false; fi
           code=$(curl --silent --max-time 15 -o /tmp/ngo-bad-chat -w '%{http_code}' -X POST -H "Origin: $TARGET" -H 'Content-Type: application/json' --data '{"apiKey":"invalid","messages":[{"role":"user","content":"hi"}]}' "$TARGET/api/chat")
+          echo "Smoke ngo-bad-chat: HTTP $code"
           test "$code" = 400
           code=$(curl --silent --max-time 15 -o /tmp/ngo-bad-tts -w '%{http_code}' -X POST -H "Origin: $TARGET" -H 'Content-Type: application/json' --data '{"apiKey":"invalid","text":"hi"}' "$TARGET/api/tts")
+          echo "Smoke ngo-bad-tts: HTTP $code"
           test "$code" = 400
           curl --fail --silent --max-time 20 "$TARGET/api/docs/maintenance" -o /tmp/ngo-maintenance.md
-          grep -q 'NGỐ P0 PILOT' /tmp/ngo-maintenance.md
+          grep -q '^# NMH VOICE GPT' /tmp/ngo-maintenance.md || { echo '::error::Invalid maintenance document'; false; }
           python3 - <<'PY'
           import os,json,urllib.request
           url='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/workers/scripts/'+os.environ['PROD_WORKER']+'/deployments'
