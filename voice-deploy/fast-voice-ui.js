@@ -1,4 +1,13 @@
+export function currentTurnContext(history,limit=12){
+ const rows=Array.isArray(history)?history:[];
+ let boundary=-1;
+ for(let i=rows.length-1;i>=0;i--)if(rows[i]?.actionBoundary===true){boundary=i;break}
+ return rows.slice(boundary+1).slice(-limit).map(m=>({role:m.role,content:m.content}));
+}
+
 const client=String.raw`
+ ${currentTurnContext.toString()}
+
  async function fastVoice(body,g,turn){
   const fetchControl=new AbortController();controller=fetchControl;
   const valid=()=>active&&g===gen&&!fetchControl.signal.aborted;
@@ -60,7 +69,7 @@ const client=String.raw`
    globalThis.nmhVoiceLatencyMark?.("chatDone");
    globalThis.nmhVoiceLatencyServer?.(result.latency);
    recordCost({gptUsd:Number(result.estimatedModelUsd||0),webUsd:Number(result.estimatedWebSearchUsd||0)});
-   turn.content=result.answer;turn.sources=result.sources||[];history.push(turn);render();
+   turn.content=result.answer;turn.sources=result.sources||[];turn.actionBoundary=!!result.actionStatus;history.push(turn);render();
    const played=await firstPlay;
    if(!valid())return;
    if(!played){speak(result.answer,g);return}
@@ -118,7 +127,9 @@ export function enhanceFastVoice(page){
  const start=page.indexOf(' async function ask(text,g){'),end=page.indexOf('\n function speechParts',start);
  if(start<0||end<0)throw Error('NMH fast voice ask integration mismatch');
  let p=page.slice(0,start)+client+'\n async function ask(text,g){'+
-  'if($("fastVoiceEnabled").checked===false){await askBaseline(text,g);return}setState("processing");globalThis.nmhVoiceLatencyMark?.("chatStart");history.push({role:"user",content:text});render();await fastVoice({messages:history.slice(-12).map(m=>({role:m.role,content:m.content})),style},g,{role:"assistant"});}'+page.slice(start,end).replace("function ask(","function askBaseline(")+page.slice(end);
+  'if($("fastVoiceEnabled").checked===false){await askBaseline(text,g);return}setState("processing");globalThis.nmhVoiceLatencyMark?.("chatStart");history.push({role:"user",content:text});render();await fastVoice({messages:currentTurnContext(history),style},g,{role:"assistant"});}'+page.slice(start,end).replace("function ask(","function askBaseline(")+page.slice(end);
+ p=replaceOnce(p,'messages:history.slice(-12).map(m=>({role:m.role,content:m.content}))','messages:currentTurnContext(history)');
+ p=replaceOnce(p,'history.push({role:"assistant",content:d.answer,sources:d.sources||[]});','history.push({role:"assistant",content:d.answer,sources:d.sources||[],actionBoundary:!!d.actionStatus});');
  p=replaceOnce(p,'async function speak(text,g){','async function speak(text,g,firstPrepared=null,continuation=false,turnStyle=style){');
  p=replaceOnce(p,'let index=0,prefetched=null;','let index=0,prefetched=firstPrepared;');
  p=replaceOnce(p,'if(i===0)globalThis.nmhVoiceLatencyMark?.("ttsStart");','if(i===0&&!continuation)globalThis.nmhVoiceLatencyMark?.("ttsStart");');

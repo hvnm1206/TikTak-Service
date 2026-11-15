@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import worker from './worker.js';
 import {responseLines} from './response-events.js';
 import {previewRealtimeSpeech} from './realtime-speech.js';
+import {currentTurnContext} from './fast-voice-ui.js';
 
 const origin='https://voice.example';
 const env={NMH_FAST_VOICE:'active'};
@@ -26,6 +27,28 @@ test('pilot serves runnable opt-in voice UI and legacy route stays gated',async(
  assert.match(pilot,/speechEnd/);
  assert.doesNotMatch(await page({}),/async function fastVoice/);
  assert.equal((await worker.fetch(request(),{})).status,404);
+});
+
+test('a completed action closes its command context before the next turn',()=>{
+ const history=[
+  {role:'user',content:'Hãy ghi nhớ tôi thích trà xanh'},
+  {role:'assistant',content:'Đã ghi nhớ: tôi thích trà xanh',actionBoundary:true},
+  {role:'user',content:'Ngày mai thời tiết thế nào?'}
+ ];
+ assert.deepEqual(currentTurnContext(history),[{role:'user',content:'Ngày mai thời tiết thế nào?'}]);
+ const ordinary=[
+  {role:'user',content:'Hà Nội ở đâu?'},
+  {role:'assistant',content:'Ở miền Bắc Việt Nam.'},
+  {role:'user',content:'Còn Đà Nẵng?'}
+ ];
+ assert.deepEqual(currentTurnContext(ordinary),ordinary);
+});
+
+test('both fast and baseline clients mark completed actions and use closed-turn context',async()=>{
+ const page=await (await worker.fetch(new Request(origin+'/'),env)).text();
+ assert.match(page,/turn\.actionBoundary=!!result\.actionStatus/);
+ assert.match(page,/actionBoundary:!!d\.actionStatus/);
+ assert.equal((page.match(/messages:currentTurnContext\(history\)/g)||[]).length,2);
 });
 
 test('approved final sentence reaches the client before GPT completes',async()=>{
