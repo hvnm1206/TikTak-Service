@@ -20,7 +20,7 @@ jobs:
       GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
       PROD_DB_ID: '3ce295cb-a84d-4a50-abee-d14fdd903514'
       PROD_WORKER: nmh-voice-gpt-test
-      PROD_EXPECTED_VERSION: 8cd227c6-75b3-4fa1-9ac4-f50b1d52d980
+      PROD_EXPECTED_VERSION: f2d3967d-8e61-4934-a68d-9725912d0ada
       TARGET: https://nmh-voice-gpt-test.magical-budget.workers.dev
     steps:
       - uses: actions/checkout@v4
@@ -146,7 +146,7 @@ jobs:
           done
           test "$ready" = 1
           curl --fail --silent --max-time 20 "$TARGET/" -o /tmp/ngo-live-ui.html
-          for marker in 'id="start"' 'id="resume"' 'id="avatar"' 'v3MemoryV2Section' 'id="v3LearnedReload"' 'CẬP NHẬT KẾT QUẢ' 'nmhReminderToast' 'Marin' 'ttsPrefetchCtl' 'loudVoiceProcess(decoded,voiceGain)' 'ngoAudioSession("playback")' 'id="ngoFastEndpoint"' 'ngoStreamSpeech' 'https://nmh-voice-gpt-test.magical-budget.workers.dev/';do
+          for marker in 'id="start"' 'id="resume"' 'id="avatar"' 'v3MemoryV2Section' 'id="v3LearnedReload"' 'CẬP NHẬT KẾT QUẢ' 'nmhReminderToast' 'Marin' 'ttsPrefetchCtl' 'loudVoiceProcess(decoded,voiceGain)' 'ngoAudioSession("playback")' 'id="ngoFastEndpoint"' 'ngoStreamSpeech' 'value="corgiface"' 'https://nmh-voice-gpt-test.magical-budget.workers.dev/';do
             grep -q "$marker" /tmp/ngo-live-ui.html || { echo "::error::missing UI marker $marker";false; }
           done
           code=$(curl --silent --max-time 15 -o /tmp/ngo-anon -w '%{http_code}' "$TARGET/api/reminders/due")
