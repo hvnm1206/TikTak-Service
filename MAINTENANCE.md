@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 16/11/2026 (14:10) — NGỐ: SỬA CỤT TỪ CUỐI CÂU (MỚI NHẤT)
+
+**Phản hồi:** câu trả lời hơi cụt ở từ cuối (rõ hơn từ khi dùng Google Leda, giọng kết thúc gọn, không có đuôi im lặng dài như Marin). **Nguyên nhân:** `listen()` chạy ngay khi nguồn âm thanh cuối báo kết thúc; bộ đệm loa iPhone còn ~0,1–0,2 s, mở SpeechRecognition chuyển phiên âm thanh và cắt mất. **Sửa:** `ngoListenAfterPlayback()` (voice-boost) chờ outputLatency + baseLatency + 0,3 s (tối đa 0,7 s), bỏ qua nếu lượt đã đổi; áp dụng cho cả đường MP3 (`speak`) và đường phát luồng; luồng phát thêm 0,25 s im lặng ở cuối. 165/165 test PASS. [Release 43821469091](https://github.com/hvnm1206/TikTak-Service/actions/runs/43821469091) SUCCESS; version **`4d11d5db-17a1-4fbf-bc4d-91c836f77390`**, rollback **`ee4219a1-2675-4bd5-bc41-21d7e4363f41`**. Đã cập nhật mốc release/verify.
+
+---
+
 ## 16/11/2026 (12:45) — NGỐ: GIỌNG GOOGLE LEDA ĐÃ CHẠY TRÊN PRODUCTION (MỚI NHẤT)
 
 Người dùng thêm secret `GOOGLE_TTS_KEY` (key `ngao-tts`, Google Cloud project Tiktak-sb, giới hạn Cloud Text-to-Speech API) qua dashboard Cloudflare → Cloudflare tạo version mới **`ee4219a1-2675-4bd5-bc41-21d7e4363f41`** (100%). **Bằng chứng:** [probe chỉ đọc 43812277775](https://github.com/hvnm1206/TikTak-Service/actions/runs/43812277775): danh sách secret = `GOOGLE_TTS_KEY`; `/api/tts` với key OpenAI giả trả 200, `x-nmh-tts-source: google-chirp3-leda`, PCM 92.512 bytes và MP3 8.928 bytes. Đã cập nhật `PROD_EXPECTED_VERSION` (release) và mốc verify sang `ee4219a1`. Workflow probe: `.github/workflows/ngo-google-tts-probe.yml`, chạy khi commit bắt đầu bằng `probe(ngo): google voice`. Lưu ý: sửa biến/secret trên dashboard luôn tạo version mới → phải cập nhật mốc trước lần release kế tiếp.
