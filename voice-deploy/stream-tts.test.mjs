@@ -12,7 +12,7 @@ async function harness({chunks,failHttp=false}){
  const code=html.slice(a,end);
  const started=[];let now=0;
  class Src{constructor(){this.playbackRate={value:1}}connect(){}disconnect(){}start(at){this.at=at;started.push(this)}stop(){this.stopped=true}}
- const audioCtx={state:'running',get currentTime(){return now},resume:async()=>{},
+ const audioCtx={state:'running',sampleRate:48000,get currentTime(){return now},resume:async()=>{},
   createAnalyser:()=>({connect(){}}),createBufferSource:()=>new Src(),
   createBuffer:(c,n,r)=>{const d=new Float32Array(n);return {numberOfChannels:1,length:n,sampleRate:r,duration:n/r,getChannelData:()=>d}}};
  const costs=[],requests=[];
@@ -27,23 +27,30 @@ async function harness({chunks,failHttp=false}){
 }
 function pcm(seconds,amp=8000){const n=Math.round(24000*seconds),b=new Uint8Array(n*2),v=new DataView(b.buffer);for(let i=0;i<n;i++)v.setInt16(i*2,Math.round(amp*Math.sin(i*.07)*Math.sin(i/2400)),true);return b}
 
-test('first audio is scheduled after 0.35 s of PCM, not after the whole response',async()=>{
- const whole=pcm(3),parts=[whole.slice(0,17000),whole.slice(17000,60000),whole.slice(60000)];
+test('v2: 0.5 s jitter buffer, then sample-exact back-to-back blocks with no gaps, every sample played once',async()=>{
+ const whole=pcm(3),parts=[];for(let o=0;o<whole.length;){const n=2000+Math.floor(Math.random()*9000);parts.push(whole.slice(o,o+n+(n%2)));o+=n+(n%2)}
  const h=await harness({chunks:parts});
- let done=false;
- const first=await h.ctx.run('Xin chào',"danh_da",new AbortController().signal,1.455,()=>{done=true},()=>true,null);
+ const first=await h.ctx.run('Xin chào',"danh_da",new AbortController().signal,1.455,()=>{},()=>true,null);
  assert.equal(first.stream,true);
  assert.equal(h.requests[0].format,'pcm');
- await new Promise(r=>setTimeout(r,10));
- assert.ok(h.started.length>=2,'blocks scheduled progressively');
- const firstLen=h.started[0].buffer.length;
- assert.ok(firstLen<=17000/2+1&&firstLen>=8400,'first block about 0.35 s: '+firstLen);
- for(let i=1;i<h.started.length;i++)assert.ok(h.started[i].at>=h.started[i-1].at+h.started[i-1].buffer.duration/1.455-1e-9,'blocks are back to back, no overlap');
- const total=h.started.reduce((s,x)=>s+x.buffer.length,0);
- assert.equal(total,24000*3,'every sample played once');
+ await new Promise(r=>setTimeout(r,20));
+ assert.ok(h.started.length>=2,'progressive');
+ assert.ok(h.started[0].buffer.length>=48000*.5,'jitter buffer >=0.5 s before first sound');
+ for(let i=1;i<h.started.length;i++){
+  const prev=h.started[i-1];
+  assert.ok(Math.abs(h.started[i].at-(prev.at+prev.buffer.length/48000))<1e-9,'block '+i+' starts exactly where previous ends');
+  assert.equal(h.started[i].playbackRate.value,1,'speed is resampled, not node playbackRate');
+ }
+ const out=h.started.reduce((s,x)=>s+x.buffer.length,0);
+ const expected=Math.round(24000*3/(24000*1.455/48000))+Math.round(48000*.006); // + limiter tail flush
+ assert.ok(Math.abs(out-expected)<=2,`output samples ${out} vs ${expected}`);
+ assert.ok(h.started.every(x=>x.buffer.getChannelData(0).every(v=>Math.abs(v)<=.98)),'limited');
+ // continuity across block joins: no jump larger than the signal's own max step
+ const all=new Float32Array(out);let o=0;for(const x of h.started){all.set(x.buffer.getChannelData(0),o);o+=x.buffer.length}
+ let maxStep=0,joinStep=0,pos=0;for(let i=1;i<all.length;i++)maxStep=Math.max(maxStep,Math.abs(all[i]-all[i-1]));
+ for(const x of h.started.slice(0,-1)){pos+=x.buffer.length;joinStep=Math.max(joinStep,Math.abs(all[pos]-all[pos-1]))}
+ assert.ok(joinStep<=maxStep*1.01,`join ${joinStep} vs max ${maxStep}`);
  assert.equal(h.costs.length,1);
- h.started.at(-1).onended?.();
- assert.ok(done||h.started.at(-1).onended===undefined);
 });
 test('HTTP failure rejects so the caller falls back to the old MP3 path',async()=>{
  const h=await harness({chunks:[],failHttp:true});
@@ -73,4 +80,10 @@ test('TTS endpoint requests PCM from OpenAI only when asked, MP3 otherwise',asyn
   }
  }finally{globalThis.fetch=orig}
  assert.deepEqual(seen,['pcm','mp3']);
+});
+test('SETUP switch off sends playback back to the old whole-file MP3 path',async()=>{
+ const h=await harness({chunks:[pcm(1)]});
+ h.ctx.ngoStreamVoice=false;
+ await assert.rejects(h.ctx.run('x',"danh_da",new AbortController().signal,1,()=>{},()=>true,null),/STREAM_VOICE_OFF/);
+ assert.equal(h.requests.length,0);
 });

@@ -9,47 +9,107 @@ const client=String.raw`
  ${currentTurnContext.toString()}
 
 
- // Progressive Marin playback: PCM 24 kHz s16le blocks are scheduled as they arrive,
- // instead of waiting for the whole MP3 (measured ~4 s wait on iPhone 15/11/2026).
+ // Progressive Marin playback, v2 (16/11/2026). v1 waited for 1 s blocks (audible gaps), let each
+ // node resample 24 kHz + playbackRate on its own (clicks at joins) and restarted the limiter per block.
+ // v2: one continuous Catmull-Rom resampler 24 kHz -> context rate (speed folded in, phase carried
+ // across network chunks), 0.5 s jitter buffer, sample-exact back-to-back scheduling, fixed gain
+ // measured once, memoryless soft-knee limiter (no state to reset between blocks).
  var ngoStreamSources=[];
  function ngoStopStream(){for(const x of ngoStreamSources){x.onended=null;try{x.stop()}catch{}try{x.disconnect()}catch{}}ngoStreamSources=[]}
+ function ngoSoftLimit(x){const a=Math.abs(x);if(a<=.72)return x;const y=.72+.26*Math.tanh((a-.72)/.26);return x<0?-y:y}
+ function ngoMakeLimiter(rate){
+  // Streaming look-ahead peak limiter: 5 ms delay, gain reaches the needed reduction before the peak,
+  // 120 ms release; state persists across blocks so there is no reset at joins.
+  const L=Math.max(1,Math.round(rate*.005)),ceil=.92,att=1-Math.exp(-1/(L/3)),rel=1-Math.exp(-1/(rate*.12));
+  const delay=new Float32Array(L),req=new Float32Array(L);let w=0,env=1,filled=0;
+  return function(x){
+   const out=new Float32Array(x.length);
+   for(let i=0;i<x.length;i++){
+    const v=x[i],a=Math.abs(v);req[w]=a>ceil?ceil/a:1;
+    let m=1;for(let k=0;k<L;k++)if(req[k]<m)m=req[k];
+    env+= (m<env?att:rel)*(m-env);if(env>m&&m<1&&env-m>.001&&m===req[w])env=Math.min(env,m+(env-m)*.5);
+    const d=filled<L?0:delay[w];delay[w]=v;w=(w+1)%L;if(filled<L)filled++;
+    const y=d*env;out[i]=y>.98?.98:y<-.98?-.98:y;
+   }
+   return out;
+  };
+ }
+ function ngoMakeResampler(ratio){
+  // ratio = input samples per output sample (24000*speed/ctxRate). Catmull-Rom, phase kept across calls.
+  let keep=new Float32Array([0]),pos=0; // keep[0] is the sample before the current position
+  return function(input,flush){
+   let src=new Float32Array(keep.length+input.length);src.set(keep);src.set(input,keep.length);
+   const realLen=src.length;
+   if(flush){const pad=new Float32Array(realLen+2);pad.set(src);pad[realLen]=pad[realLen+1]=src[realLen-1]||0;src=pad}
+   const out=[];
+   const limit=flush?realLen-1:src.length-3; // need src[i+2] with i=floor(pos)+1
+   while(Math.floor(pos)+1<=limit){
+    const i=Math.floor(pos)+1,t=pos-Math.floor(pos);
+    const p0=src[i-1],p1=src[i],p2=src[i+1],p3=src[i+2];
+    out.push(p1+.5*t*(p2-p0+t*(2*p0-5*p1+4*p2-p3+t*(3*(p1-p2)+p3-p0))));
+    pos+=ratio;
+   }
+   const drop=Math.min(Math.floor(pos),realLen-1);
+   keep=src.slice(drop,realLen);pos-=drop;
+   return Float32Array.from(out);
+  };
+ }
  async function ngoStreamSpeech(text,voiceStyle,signal,playbackSpeed,onDone,valid,onFirstByte){
+  if(typeof ngoStreamVoice!=="undefined"&&!ngoStreamVoice)throw Error("STREAM_VOICE_OFF");
   if(!audioCtx)throw Error("AUDIO_STREAM_NOT_UNLOCKED");
   ngoAudioSessionSafe("playback");
   if(audioCtx.state!=="running")await audioCtx.resume();
   if(audioCtx.state!=="running")throw Error("AUDIO_CONTEXT_SUSPENDED");
   const r=await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},cache:"no-store",body:JSON.stringify({apiKey:key,text,style:voiceStyle,format:"pcm"}),signal});
   if(!r.ok||!r.body)throw Error("TTS_STREAM_HTTP_"+r.status);
-  const reader=r.body.getReader(),rate=24000;
+  const reader=r.body.getReader(),inRate=24000,outRate=audioCtx.sampleRate;
+  const resample=ngoMakeResampler(inRate*playbackSpeed/outRate),limiter=ngoMakeLimiter(outRate);
   const meter=audioCtx.createAnalyser();meter.fftSize=256;meter.connect(audioCtx.destination);
-  let pending=new Uint8Array(0),odd=null,nextTime=0,fixed=0,total=0,started=false,firstByte=false,last=null,resolveStart,rejectStart;
+  let odd=null,queue=[],queued=0,nextTime=0,gain=0,measure=[],measured=0,total=0,started=false,firstByte=false,last=null,resolveStart,rejectStart;
   const startPromise=new Promise((a,b)=>{resolveStart=a;rejectStart=b});
-  function schedule(bytes,final){
-   const samples=Math.floor(bytes.length/2);if(!samples)return;
-   const buf=audioCtx.createBuffer(1,samples,rate),ch=buf.getChannelData(0),view=new DataView(bytes.buffer,bytes.byteOffset,samples*2);
-   for(let i=0;i<samples;i++)ch[i]=view.getInt16(i*2,true)/32768;
-   const res=loudVoiceProcess(buf,voiceGain,fixed);
-   if(!fixed&&res.measured)fixed=res.gain;
-   const s=audioCtx.createBufferSource();s.buffer=buf;s.playbackRate.value=playbackSpeed;s.connect(meter);
-   const at=Math.max(audioCtx.currentTime+.03,nextTime);s.start(at);nextTime=at+buf.duration/playbackSpeed;total+=buf.duration;
+  const START=Math.round(outRate*.5),MIN=Math.round(outRate*.12);
+  function decode(bytes){
+   let data=bytes;if(odd!==null){data=new Uint8Array(bytes.length+1);data[0]=odd;data.set(bytes,1);odd=null}
+   if(data.length%2){odd=data[data.length-1];data=data.subarray(0,data.length-1)}
+   const n=data.length/2,f=new Float32Array(n),v=new DataView(data.buffer,data.byteOffset,data.length);
+   for(let i=0;i<n;i++)f[i]=v.getInt16(i*2,true)/32768;return f;
+  }
+  function pickGain(){
+   // one loudness measurement on the first ~0.5 s of speech, then fixed for the whole utterance
+   const all=new Float32Array(measured);let o=0;for(const m of measure){all.set(m,o);o+=m.length}
+   const b={numberOfChannels:1,length:all.length,sampleRate:outRate,getChannelData:()=>all.slice()};
+   const res=loudVoiceProcess(b,voiceGain);gain=res.measured?Math.min(6,res.gain):1;measure=null;
+  }
+  function flushQueue(force){
+   if(!queued||(!force&&queued<MIN))return;
+   if(!gain)pickGain();
+   const buf=audioCtx.createBuffer(1,queued,outRate),ch=buf.getChannelData(0);let o=0;
+   for(const q of queue){const g=new Float32Array(q.length);for(let i=0;i<q.length;i++)g[i]=q[i]*gain;ch.set(limiter(g),o);o+=q.length}
+   queue=[];queued=0;
+   const s=audioCtx.createBufferSource();s.buffer=buf;s.connect(meter);
+   const now=audioCtx.currentTime;
+   if(nextTime<now+.02){ // first block or underrun: short fade-in avoids a click
+    const fade=Math.min(ch.length,Math.round(outRate*.006));for(let i=0;i<fade;i++)ch[i]*=i/fade;
+    nextTime=now+.04;
+   }
+   s.start(nextTime);nextTime+=buf.length/outRate;total+=buf.length/outRate*playbackSpeed;
    ngoStreamSources.push(s);audioSource=s;last=s;
    if(!started){started=true;globalThis.nmhVoiceLatencyMark?.("ttsReady");avatarFace?.setAudio(meter);resolveStart({duration:0,stream:true})}
   }
+  function push(out){
+   if(!out.length)return;queue.push(out);queued+=out.length;
+   if(measure){measure.push(out);measured+=out.length}
+   if(!started){if(queued>=START)flushQueue(true);return}
+   // keep ~0.25 s scheduled ahead; flush as soon as there is enough or the queue is running low
+   if(queued>=MIN||nextTime-audioCtx.currentTime<.25)flushQueue(true);
+  }
   (async()=>{
    try{
-    let threshold=rate*2*.35; // first block 0.35 s, later blocks ~1 s
     while(true){
      const {value,done}=await reader.read();
      if(!valid()){await reader.cancel().catch(()=>{});throw Error("AUDIO_CANCELLED")}
-     if(value&&value.length){
-      if(!firstByte){firstByte=true;onFirstByte?.()}
-      const merged=new Uint8Array(pending.length+value.length);merged.set(pending);merged.set(value,pending.length);pending=merged;
-     }
-     if(pending.length>=threshold||(done&&pending.length)){
-      const even=pending.length-(pending.length%2);
-      schedule(pending.subarray(0,even),done);pending=pending.slice(even);threshold=rate*2;
-     }
-     if(done)break;
+     if(value&&value.length){if(!firstByte){firstByte=true;onFirstByte?.()}push(resample(decode(value),false))}
+     if(done){push(resample(new Float32Array(0),true));push(new Float32Array(Math.round(outRate*.006)));flushQueue(true);break}
     }
     if(!started)throw Error("TTS_STREAM_EMPTY");
     recordCost({ttsSeconds:total,ttsChunks:1});
