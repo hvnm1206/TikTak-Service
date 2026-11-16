@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 16/11/2026 (12:45) — NGỐ: GIỌNG GOOGLE LEDA ĐÃ CHẠY TRÊN PRODUCTION (MỚI NHẤT)
+
+Người dùng thêm secret `GOOGLE_TTS_KEY` (key `ngao-tts`, Google Cloud project Tiktak-sb, giới hạn Cloud Text-to-Speech API) qua dashboard Cloudflare → Cloudflare tạo version mới **`ee4219a1-2675-4bd5-bc41-21d7e4363f41`** (100%). **Bằng chứng:** [probe chỉ đọc 43812277775](https://github.com/hvnm1206/TikTak-Service/actions/runs/43812277775): danh sách secret = `GOOGLE_TTS_KEY`; `/api/tts` với key OpenAI giả trả 200, `x-nmh-tts-source: google-chirp3-leda`, PCM 92.512 bytes và MP3 8.928 bytes. Đã cập nhật `PROD_EXPECTED_VERSION` (release) và mốc verify sang `ee4219a1`. Workflow probe: `.github/workflows/ngo-google-tts-probe.yml`, chạy khi commit bắt đầu bằng `probe(ngo): google voice`. Lưu ý: sửa biến/secret trên dashboard luôn tạo version mới → phải cập nhật mốc trước lần release kế tiếp.
+
+---
+
 ## 16/11/2026 (11:25) — NGỐ: GIỌNG GOOGLE CHIRP3-HD "LEDA" NHƯ NGÁO (MỚI NHẤT)
 
 **Yêu cầu:** người dùng thấy giọng Ngáo hay hơn, yêu cầu đổi; học tính năng của Ngáo (không lấy luật giao thông). **Đã làm:** `/api/tts` gọi Google TTS `vi-VN-Chirp3-HD-Leda` khi có secret `GOOGLE_TTS_KEY` (PCM LINEAR16 bỏ đầu WAV cho phát luồng, MP3 cho đường cũ), giữ tốc độ giọng trẻ con 0,756 × phát 1,455 như Ngáo; Google tính theo ký tự nên không tốn thêm. Google lỗi → tự về OpenAI Marin. Tắt bằng env `NGO_GOOGLE_TTS=off`; đổi giọng bằng `NGO_GOOGLE_VOICE`. Client ghi nguồn giọng (`x-nmh-tts-source`), không tính phí TTS theo giây cho giọng Google, trạng thái hiện "Google Leda".
