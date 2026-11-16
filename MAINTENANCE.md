@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 16/11/2026 (08:25) — NGỐ: SỬA LỖI "WEB SEARCH VƯỢT GIỚI HẠN" (MỚI NHẤT)
+
+**Lỗi iPhone:** "OpenAI: Web Search vượt giới hạn một lượt gọi mỗi câu hỏi". **Nguyên nhân:** `agent-v2.js` gửi `max_tool_calls:1` nhưng OpenAI vẫn có thể trả 2 `web_search_call` (tìm + mở trang); code ném lỗi sau khi các lượt này đã tính tiền → mất câu trả lời đã trả phí. **Sửa:** giữ câu trả lời, tính đủ mọi lượt vào ước phí, vẫn bỏ web_search khỏi các vòng sau. Test cũ "fail closed" đổi thành test giữ câu trả lời + đếm đủ chi phí. 159/159 PASS. [Release 43786038302](https://github.com/hvnm1206/TikTak-Service/actions/runs/43786038302) SUCCESS; version **`e0411fbe-de8b-4755-b7ac-90d26a0cdd88`**, rollback **`97ff413d-5ae2-4fb4-b8c2-8052cecc9def`**.
+
+---
+
 ## 16/11/2026 (08:00) — NGỐ: GIỌNG PHÁT LUỒNG MƯỢT LẠI (MỚI NHẤT)
 
 **Phản hồi người dùng:** tiếng nghẹt, không trơn mượt (sau bản phát luồng f2d3967d).
