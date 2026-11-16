@@ -1,5 +1,10 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Tra đường chạy được; trả lời chi tiết hơn
+- 01:07 chủ app thay TOMTOM_KEY đúng (lần trước dán nhầm ID khóa → 401). Bản e9896c86 do Cloudflare tạo.
+- 01:10 phản hồi: chạy nhưng quá sơ lược/không chính xác. Thêm path (đường theo thứ tự), arrive_at, cho phép 3–5 câu với câu hỏi đường; nói điểm đến đã hiểu để phát hiện tìm nhầm. Test 174/174.
+- Production 35b2a264-916f-4634-879e-7e22b42c5646; rollback e9896c86-bb62-4031-a98e-c3c52e416e4a.
+
 ## 17/11/2026 — TomTom từ chối khóa: cắt khoảng trắng + báo chi tiết
 - Ảnh màn hình 00:16: TomTom 401/403. Worker trim TOMTOM_KEY (khoảng trắng/xuống dòng/ngoặc); lỗi ghi bước Search/Routing, HTTP và thông điệp TomTom (che khóa). Test 174/174.
 - Production 6944be49-4dfc-4831-9892-eed639596f62; rollback 8f03f784-aead-480c-9668-12279f90219f.
