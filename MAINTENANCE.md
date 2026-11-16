@@ -1,5 +1,10 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Vietmap chạy song song TomTom để so sánh
+- Chủ app duyệt thử Vietmap (miễn phí 60.000 transactions, 1.500/ngày cho routing). Secret mới: VIETMAP_KEY.
+- TomTom vẫn chính; thêm 1 lần gọi Vietmap route v4 cùng tọa độ → dòng xanh 'So sánh' trên màn hình. Vietmap thành nguồn chính khi là khóa duy nhất hoặc NGO_ROUTE_PROVIDER=vietmap; NGO_ROUTE_COMPARE=off tắt so sánh. Test 179/179.
+- Production 13c8323d-0f0d-4793-8edb-a057a6951bb8; rollback efea5d4d-4b70-437c-90bc-8a0b07526aad.
+
 ## 17/11/2026 — Canh giao thông dọc đường (hướng 2)
 - Google Maps dẫn đường/nhắc rẽ; Ngố (đang mở) mỗi 4 phút gọi /api/route-check (1 lần TomTom, không GPT) từ vị trí hiện tại.
 - Chỉ nói khi: chậm thêm ≥5 phút (tên đường + giờ đến mới), đóng đường/công trình, đường khác nhanh hơn ≥4 phút (cập nhật nút Google Maps). Im lặng 6 phút giữa 2 lần báo, không lặp.
