@@ -19,7 +19,7 @@ async function harness({chunks,failHttp=false}){
  const ctx={audioCtx,key:'sk-x',voiceGain:1.55,loudVoiceProcess,recordCost:c=>costs.push(c),avatarFace:null,audioSource:null,
   nmhVoiceLatencyMark:()=>{},
   fetch:async(url,opt)=>{requests.push(JSON.parse(opt.body));if(failHttp)return {ok:false,status:500};
-   let i=0;return {ok:true,body:{getReader:()=>({read:async()=>i<chunks.length?{value:chunks[i++],done:false}:{done:true},cancel:async()=>{}})}}},
+   let i=0;return {ok:true,headers:{get:()=>null},body:{getReader:()=>({read:async()=>i<chunks.length?{value:chunks[i++],done:false}:{done:true},cancel:async()=>{}})}}},
   Error,Promise,Uint8Array,DataView,Math,Float32Array,Number,JSON};
  ctx.globalThis=ctx;
  vm.runInNewContext(code+';globalThis.run=ngoStreamSpeech;globalThis.stop=ngoStopStream;',ctx);

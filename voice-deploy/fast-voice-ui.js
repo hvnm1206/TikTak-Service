@@ -62,6 +62,7 @@ const client=String.raw`
   if(audioCtx.state!=="running")throw Error("AUDIO_CONTEXT_SUSPENDED");
   const r=await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},cache:"no-store",body:JSON.stringify({apiKey:key,text,style:voiceStyle,format:"pcm"}),signal});
   if(!r.ok||!r.body)throw Error("TTS_STREAM_HTTP_"+r.status);
+  globalThis.ngoTtsSource=r.headers.get("x-nmh-tts-source")||"";
   const reader=r.body.getReader(),inRate=24000,outRate=audioCtx.sampleRate;
   const resample=ngoMakeResampler(inRate*playbackSpeed/outRate),limiter=ngoMakeLimiter(outRate);
   const meter=audioCtx.createAnalyser();meter.fftSize=256;meter.connect(audioCtx.destination);
@@ -150,8 +151,9 @@ const client=String.raw`
      recordCost({ttsSeconds:audio.duration,ttsChunks:1});
     }
     if(!valid())return false;
-    setState("speaking","OpenAI Marin");
-    setVoiceSource("OpenAI Marin — đang phát");
+    const ngoVoiceName=String(globalThis.ngoTtsSource||"").startsWith("google")?"Google Leda":"OpenAI Marin";
+    setState("speaking",ngoVoiceName);
+    setVoiceSource(ngoVoiceName+" — đang phát");
     globalThis.nmhVoiceLatencyMark?.("firstAudio");
     return true;
    })().catch(()=>false);
@@ -198,7 +200,7 @@ const client=String.raw`
    await Promise.race([audioFinished,new Promise(resolve=>fetchControl.signal.addEventListener("abort",resolve,{once:true}))]);
    if(!valid())return;
    if(remainder){ttsPrefetchCtl=null;speak(remainder,g,next,true,styleAtStart)}
-   else{closeVoice();setVoiceSource("OpenAI Marin — đã phát hoàn tất");listen()}
+   else{closeVoice();setVoiceSource((String(globalThis.ngoTtsSource||"").startsWith("google")?"Google Leda":"OpenAI Marin")+" — đã phát hoàn tất");listen()}
   }catch(e){
    if(!valid())return;
    previewNode?.remove();
