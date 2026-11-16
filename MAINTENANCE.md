@@ -1,5 +1,13 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 16/11/2026 (11:25) — NGỐ: GIỌNG GOOGLE CHIRP3-HD "LEDA" NHƯ NGÁO (MỚI NHẤT)
+
+**Yêu cầu:** người dùng thấy giọng Ngáo hay hơn, yêu cầu đổi; học tính năng của Ngáo (không lấy luật giao thông). **Đã làm:** `/api/tts` gọi Google TTS `vi-VN-Chirp3-HD-Leda` khi có secret `GOOGLE_TTS_KEY` (PCM LINEAR16 bỏ đầu WAV cho phát luồng, MP3 cho đường cũ), giữ tốc độ giọng trẻ con 0,756 × phát 1,455 như Ngáo; Google tính theo ký tự nên không tốn thêm. Google lỗi → tự về OpenAI Marin. Tắt bằng env `NGO_GOOGLE_TTS=off`; đổi giọng bằng `NGO_GOOGLE_VOICE`. Client ghi nguồn giọng (`x-nmh-tts-source`), không tính phí TTS theo giây cho giọng Google, trạng thái hiện "Google Leda".
+
+**Bằng chứng:** 164/164 test PASS (+4 test Google). [Release 43803916778](https://github.com/hvnm1206/TikTak-Service/actions/runs/43803916778) SUCCESS; version **`35d83a94-3123-4908-8d9e-af026786100e`**, rollback **`64a6eb95-ae06-4feb-88ed-6e50a9932fbd`**. **Phụ thuộc:** secret `GOOGLE_TTS_KEY` phải được người dùng thêm trên Cloudflare; nếu khóa Google giới hạn theo IP/referrer thì sẽ rơi về Marin. Chưa nghiệm thu trên iPhone.
+
+---
+
 ## 16/11/2026 (10:40) — NGỐ: GIẢM CHI PHÍ — SIẾT TÌM WEB + TRẢ LỜI NGẮN (MỚI NHẤT)
 
 **Đánh giá chi phí (ước tính 15/11 từ SETUP, ngày thử nghiệm nhiều):** ~30.800đ/ngày; giọng Marin ~60%, Web Search ~28% (~33 lượt), model ~12%. Chưa đối chiếu hóa đơn OpenAI.
