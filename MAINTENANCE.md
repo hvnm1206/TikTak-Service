@@ -1,5 +1,13 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 16/11/2026 (23:15) — NGỐ: TRA ĐƯỜNG CHUYỂN SANG TOMTOM (MỚI NHẤT)
+
+**Lý do:** bật Routes API trên Google Cloud báo "Maps Platform unavailable in this region" — tài khoản thanh toán của người dùng không được dùng Google Maps Platform. Người dùng từ chối phương án chỉ mở Google Maps (không đọc được tình trạng). **Đã làm:** `tomtomRoute` (agent-v2): TomTom Search (countrySet VN, ưu tiên gần điểm xuất phát) + Calculate Route (car, traffic=true, 2 tuyến thay thế, sectionType=traffic, hướng dẫn vi-VN) = 2 lượt/câu, miễn phí 2.500 lượt/ngày, không cần thẻ. Mỗi tuyến: thời gian hiện tại/lúc thoáng, chậm bao nhiêu, đường chính, điểm tắc/công trình/đóng đường kèm tên đường (trễ ≥1 phút). Nút dẫn đường vẫn mở Google Maps theo tọa độ chính xác (link miễn phí). Worker ưu tiên secret `TOMTOM_KEY`; Google chỉ khi có `GOOGLE_MAPS_KEY`. Công tắc SETUP vẫn mặc định TẮT.
+
+**Bằng chứng:** 171/171 test PASS. [Release 43905193145](https://github.com/hvnm1206/TikTak-Service/actions/runs/43905193145) SUCCESS; version **`4113e598-e7ba-4799-85a1-d10ab89e0e60`**, rollback **`6ff63b3d-4a29-4ff9-b993-589e895f512b`**. **Phụ thuộc:** người dùng tạo tài khoản developer.tomtom.com và thêm secret `TOMTOM_KEY` trên Cloudflare (thao tác này tạo version mới → cập nhật mốc trước release kế tiếp). Chưa gọi TomTom thật.
+
+---
+
 ## 16/11/2026 (22:50) — NGỐ: TRA ĐƯỜNG & GIAO THÔNG GOOGLE MAPS, BẢN 1 (MỚI NHẤT)
 
 **Yêu cầu (đã duyệt):** biết điểm xuất phát/điểm đến, đưa tuyến, báo tình trạng và gợi ý phương án; phải có nút bật/tắt. Người dùng đi ô tô. **Đã làm:** công cụ `get_driving_route` (agent-v2) gọi Google Routes `computeRoutes` 1 lần/câu: DRIVE, TRAFFIC_AWARE (SKU Pro), tối đa 3 tuyến, thời gian hiện tại vs lúc thoáng, số đoạn chậm/tắc, tuyến chính; điểm đến gửi dạng địa chỉ (không gọi Places). Xuất phát = vị trí iPhone (watchPosition, chỉ khi bật) hoặc nơi người dùng nói. Kết quả có `mapsUrl` → nút "Mở Google Maps dẫn đường" (chỉ nhận link google.com/maps/dir). Công tắc SETUP "Tra đường & giao thông" **mặc định TẮT**: tắt thì không đọc vị trí, không gửi công cụ, không hiện nút. Tắt toàn hệ thống: env `NGO_ROUTES=off`. Khóa: `GOOGLE_MAPS_KEY` hoặc dùng `GOOGLE_TTS_KEY`. **Chưa làm (bản 2):** canh đường định kỳ khi đang lái; không dẫn đường từng ngã rẽ (giao Google Maps). Đường 1 chiều/cấm phụ thuộc dữ liệu Google.
