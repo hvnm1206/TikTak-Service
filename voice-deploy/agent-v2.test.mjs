@@ -394,6 +394,7 @@ test('TomTom provider: 2 calls (place + route with live traffic), car, 3 options
   assert.equal(r.data.routes[0].status,'có đoạn tắc');
   assert.deepEqual(JSON.parse(JSON.stringify(r.data.routes[0].slow_points)),[{street:'Phạm Hùng',kind:'ùn tắc',delay_minutes:7}],'only delays >= 1 min, named by street');
   assert.equal(r.data.routes[0].via,'Phạm Hùng, Láng');
+  assert.equal(r.data.routes[0].path,'Láng → Phạm Hùng','streets in driving order');assert.match(r.data.routes[0].arrive_at,/^\d{2}:\d{2}$/);
   assert.equal(r.data.routes[1].status,'thông thoáng');
   assert.equal(r.mapsUrl,'https://www.google.com/maps/dir/?api=1&origin=21.02000,105.81000&destination=21.02850,105.77820&travelmode=driving');
   const bad=await tomtomRoute({destination:'Hồ Gươm',origin:'Cầu Giấy'},{routeContext:{provider:'tomtom',apiKey:'bad'},fetchImpl:async()=>new Response('{}',{status:403})});
