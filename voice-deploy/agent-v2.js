@@ -15,7 +15,7 @@ const TOOLS=[
   {type:"function",name:"search_encyclopedia",description:"Tra cứu kiến thức bách khoa tiếng Việt trong Wikipedia, không dùng cho sự kiện mới diễn ra.",parameters:{type:"object",properties:{query:{type:"string",description:"Từ khóa kiến thức"}} ,required:["query"],additionalProperties:false},strict:true},
   {type:"function",name:"search_news",description:"Tìm các tin mới trên nguồn RSS công khai; thông tin có thể không đầy đủ, cần dẫn URL nguồn.",parameters:{type:"object",properties:{query:{type:"string",description:"Nội dung muốn tìm tin tức"}} ,required:["query"],additionalProperties:false},strict:true}
 ];
-const ROUTE_TOOL={type:"function",name:"get_driving_route",description:"Tính đường đi Ô TÔ theo giao thông thực tế hiện tại bằng Google Maps: thời gian có tắc đường, thời gian lúc thoáng, quãng đường, mức độ chậm/tắc và tối đa 3 phương án tuyến. Dùng khi người dùng hỏi đường đi, mất bao lâu, có tắc không, nên đi đường nào. Điểm xuất phát mặc định là vị trí hiện tại của người dùng nếu có.",parameters:{type:"object",properties:{destination:{type:"string",description:"Điểm đến như người dùng nói, kèm thành phố nếu biết, ví dụ 'Mỹ Đình, Hà Nội'"},origin:{type:"string",description:"Điểm xuất phát nếu người dùng nói rõ; để trống để dùng vị trí hiện tại"}},required:["destination","origin"],additionalProperties:false},strict:true};
+const ROUTE_TOOL={type:"function",name:"get_driving_route",description:"Tính đường đi Ô TÔ theo giao thông thực tế hiện tại: thời gian có tắc đường, thời gian lúc thoáng, quãng đường, mức độ chậm/tắc và tối đa 3 phương án tuyến. Dùng khi người dùng hỏi đường đi, mất bao lâu, có tắc không, nên đi đường nào. Điểm xuất phát mặc định là vị trí hiện tại của người dùng nếu có.",parameters:{type:"object",properties:{destination:{type:"string",description:"Điểm đến như người dùng nói, kèm thành phố nếu biết, ví dụ 'Mỹ Đình, Hà Nội'"},origin:{type:"string",description:"Điểm xuất phát nếu người dùng nói rõ; để trống để dùng vị trí hiện tại"}},required:["destination","origin"],additionalProperties:false},strict:true};
 const WEB_SEARCH={type:"web_search",search_context_size:"low"};
 const WEB_SEARCH_CALL_USD=0.01; // OpenAI published base rate; excludes search content tokens.
 const str=(x,max=180)=>String(x||"").trim().slice(0,max);
@@ -29,7 +29,49 @@ async function retrieve(url,fetchImpl,signal){
 }
 const fnOutput=(ok,data,sources=[])=>({ok,data,sources});
 function fmtMin(sec){const m=Math.round(sec/60);return m<60?m+" phút":Math.floor(m/60)+" giờ "+(m%60)+" phút"}
+// 16/11/2026: Google Maps Platform cannot bill the owner's account region, so TomTom (free 2,500 calls/day, VN traffic) is the
+// route provider. Two calls per question: search the place, then route with live traffic. Navigation still opens Google Maps.
+async function tomtomPlace(q,key,near,fetchImpl,signal){
+  const u=new URL("https://api.tomtom.com/search/2/search/"+encodeURIComponent(q)+".json");
+  u.searchParams.set("key",key);u.searchParams.set("countrySet","VN");u.searchParams.set("limit","1");u.searchParams.set("language","vi-VN");
+  if(near){u.searchParams.set("lat",String(near.lat));u.searchParams.set("lon",String(near.lng))}
+  const r=await fetchImpl(u,{signal});if(!r.ok)throw Error("TOMTOM_SEARCH_"+r.status);
+  const x=(await r.json())?.results?.[0];if(!x?.position)return null;
+  return {lat:x.position.lat,lng:x.position.lon,name:str(x.poi?.name||x.address?.freeformAddress||q,120)};
+}
+export async function tomtomRoute(args,{routeContext,fetchImpl,signal}){
+  const key=routeContext.apiKey,destination=str(args.destination,160),originText=str(args.origin,160),o=routeContext.origin;
+  if(destination.length<2)return fnOutput(false,{error:"Chưa rõ điểm đến."});
+  if(!originText&&!(o&&Number.isFinite(o.lat)&&Number.isFinite(o.lng)))return fnOutput(false,{error:"Chưa có vị trí hiện tại (iPhone chưa cho phép định vị). Hỏi người dùng điểm xuất phát."});
+  let from,to;
+  try{
+    from=originText?await tomtomPlace(originText,key,o,fetchImpl,signal):{lat:o.lat,lng:o.lng,name:"vị trí hiện tại"};
+    to=await tomtomPlace(destination,key,from||o,fetchImpl,signal);
+  }catch(e){return fnOutput(false,{error:/_40[13]$/.test(e.message)?"TomTom từ chối khóa (TOMTOM_KEY sai hoặc chưa kích hoạt).":"TomTom tìm địa điểm lỗi: "+e.message})}
+  if(!from)return fnOutput(false,{error:"Không tìm thấy điểm xuất phát '"+originText+"'."});
+  if(!to)return fnOutput(false,{error:"Không tìm thấy điểm đến '"+destination+"' ở Việt Nam."});
+  const u=new URL("https://api.tomtom.com/routing/1/calculateRoute/"+from.lat+","+from.lng+":"+to.lat+","+to.lng+"/json");
+  for(const [k,v] of Object.entries({key,traffic:"true",travelMode:"car",maxAlternatives:"2",computeTravelTimeFor:"all",sectionType:"traffic",instructionsType:"text",language:"vi-VN",routeRepresentation:"none"}))u.searchParams.set(k,v);
+  const r=await fetchImpl(u,{signal});
+  if(!r.ok)return fnOutput(false,{error:r.status===403||r.status===401?"TomTom từ chối khóa (TOMTOM_KEY sai hoặc chưa kích hoạt).":"TomTom tính đường lỗi HTTP "+r.status});
+  const routes=((await r.json())?.routes||[]).slice(0,3);
+  if(!routes.length)return fnOutput(false,{error:"TomTom không tìm được tuyến."});
+  const out=routes.map((rt,i)=>{
+    const sm=rt.summary||{},ins=rt.guidance?.instructions||[];
+    const streetAt=idx=>{let s="";for(const x of ins){if((x.pointIndex??0)<=idx&&x.street)s=x.street}return s};
+    const len={};for(let k=0;k<ins.length;k++){const st=ins[k].street;if(!st)continue;const next=ins[k+1]?.routeOffsetInMeters??sm.lengthInMeters??0;len[st]=(len[st]||0)+Math.max(0,next-(ins[k].routeOffsetInMeters||0))}
+    const via=Object.entries(len).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]).join(", ");
+    const jams=(rt.sections||[]).filter(x=>x.sectionType==="TRAFFIC"&&(x.delayInSeconds||0)>=60).sort((a,b)=>(b.delayInSeconds||0)-(a.delayInSeconds||0)).slice(0,3)
+      .map(x=>({street:streetAt(x.startPointIndex||0)||"chưa rõ tên đường",kind:x.simpleCategory==="ROAD_CLOSURE"?"đóng đường":x.simpleCategory==="ROAD_WORK"?"công trình":"ùn tắc",delay_minutes:Math.round((x.delayInSeconds||0)/60)}));
+    const now=sm.travelTimeInSeconds||0,free=sm.noTrafficTravelTimeInSeconds||Math.max(0,now-(sm.trafficDelayInSeconds||0));
+    return {option:i+1,via,duration_now:fmtMin(now),duration_free_flow:fmtMin(free),delay_minutes:Math.max(0,Math.round((sm.trafficDelayInSeconds??(now-free))/60)),distance_km:Math.round((sm.lengthInMeters||0)/100)/10,
+      status:jams.some(j=>j.kind!=="ùn tắc")?"có sự cố trên đường":jams.length?"có đoạn tắc":"thông thoáng",slow_points:jams};
+  });
+  const mapsUrl="https://www.google.com/maps/dir/?api=1&origin="+from.lat.toFixed(5)+","+from.lng.toFixed(5)+"&destination="+to.lat.toFixed(5)+","+to.lng.toFixed(5)+"&travelmode=driving";
+  return {...fnOutput(true,{provider:"TomTom",from:from.name,to:to.name,routes:out,note:"Giao thông thời gian thực của TomTom tại lúc hỏi; có thể khác Google Maps."}),mapsUrl};
+}
 export async function drivingRoute(args,{routeContext,fetchImpl,signal}){
+  if(routeContext?.provider==="tomtom")return tomtomRoute(args,{routeContext,fetchImpl,signal});
   const key=routeContext?.apiKey;if(!key)return fnOutput(false,{error:"Tra đường chưa được bật."});
   const destination=str(args.destination,160),originText=str(args.origin,160);
   if(destination.length<2)return fnOutput(false,{error:"Chưa rõ điểm đến."});

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runAgent, MODEL, cleanVoiceAnswer, drivingRoute } from './agent-v2.js';
+import { runAgent, MODEL, cleanVoiceAnswer, drivingRoute, tomtomRoute } from './agent-v2.js';
 
 const key='sk-'+ 'a'.repeat(40);
 const msg=[{role:'user',content:'Tra thông tin cho tôi'}];
@@ -372,4 +372,31 @@ test('agent offers the route tool and returns mapsUrl when route context is pres
   assert.match(first.instructions,/get_driving_route/);
   assert.equal(r.answer,'Mất 10 phút, đường thoáng.');
   assert.match(r.mapsUrl,/^https:\/\/www\.google\.com\/maps\/dir\//);
+});
+test('TomTom provider: 2 calls (place + route with live traffic), car, 3 options, jam street names, Google Maps link for navigation',async()=>{
+  const calls=[];
+  const f=async(u)=>{u=new URL(String(u));calls.push(u);
+    if(u.pathname.startsWith('/search/'))return new Response(JSON.stringify({results:[{position:{lat:21.0285,lon:105.7782},poi:{name:'SVĐ Mỹ Đình'},address:{freeformAddress:'Mỹ Đình, Hà Nội'}}]}));
+    return new Response(JSON.stringify({routes:[
+      {summary:{lengthInMeters:9800,travelTimeInSeconds:1560,trafficDelayInSeconds:480,noTrafficTravelTimeInSeconds:1080},
+       guidance:{instructions:[{routeOffsetInMeters:0,pointIndex:0,street:'Láng'},{routeOffsetInMeters:2000,pointIndex:40,street:'Phạm Hùng'},{routeOffsetInMeters:9800,pointIndex:200}]},
+       sections:[{sectionType:'TRAFFIC',startPointIndex:60,simpleCategory:'JAM',delayInSeconds:420},{sectionType:'TRAFFIC',startPointIndex:10,simpleCategory:'JAM',delayInSeconds:20}]},
+      {summary:{lengthInMeters:11200,travelTimeInSeconds:1680,trafficDelayInSeconds:60,noTrafficTravelTimeInSeconds:1620},guidance:{instructions:[{routeOffsetInMeters:0,pointIndex:0,street:'Trần Duy Hưng'}]},sections:[]}]}));
+  };
+  const r=await drivingRoute({destination:'Mỹ Đình',origin:''},{routeContext:{provider:'tomtom',apiKey:'tk',origin:{lat:21.02,lng:105.81}},fetchImpl:f});
+  assert.equal(calls.length,2,'one place search + one route');
+  assert.equal(calls[0].searchParams.get('countrySet'),'VN');assert.equal(calls[0].searchParams.get('key'),'tk');
+  assert.match(calls[1].pathname,/calculateRoute\/21\.02,105\.81:21\.0285,105\.7782\/json/);
+  for(const [k,v] of [['traffic','true'],['travelMode','car'],['maxAlternatives','2'],['sectionType','traffic']])assert.equal(calls[1].searchParams.get(k),v);
+  assert.equal(r.ok,true);assert.equal(r.data.to,'SVĐ Mỹ Đình');
+  assert.equal(r.data.routes[0].duration_now,'26 phút');assert.equal(r.data.routes[0].delay_minutes,8);
+  assert.equal(r.data.routes[0].status,'có đoạn tắc');
+  assert.deepEqual(JSON.parse(JSON.stringify(r.data.routes[0].slow_points)),[{street:'Phạm Hùng',kind:'ùn tắc',delay_minutes:7}],'only delays >= 1 min, named by street');
+  assert.equal(r.data.routes[0].via,'Phạm Hùng, Láng');
+  assert.equal(r.data.routes[1].status,'thông thoáng');
+  assert.equal(r.mapsUrl,'https://www.google.com/maps/dir/?api=1&origin=21.02000,105.81000&destination=21.02850,105.77820&travelmode=driving');
+  const bad=await tomtomRoute({destination:'Hồ Gươm',origin:'Cầu Giấy'},{routeContext:{provider:'tomtom',apiKey:'bad'},fetchImpl:async()=>new Response('{}',{status:403})});
+  assert.equal(bad.ok,false);assert.match(bad.data.error,/TOMTOM_KEY/);
+  const none=await tomtomRoute({destination:'Hồ Gươm',origin:''},{routeContext:{provider:'tomtom',apiKey:'tk',origin:null},fetchImpl:async()=>{throw Error('should not call')}});
+  assert.match(none.data.error,/điểm xuất phát/);
 });
