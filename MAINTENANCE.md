@@ -1,5 +1,17 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 16/11/2026 (10:40) — NGỐ: GIẢM CHI PHÍ — SIẾT TÌM WEB + TRẢ LỜI NGẮN (MỚI NHẤT)
+
+**Đánh giá chi phí (ước tính 15/11 từ SETUP, ngày thử nghiệm nhiều):** ~30.800đ/ngày; giọng Marin ~60%, Web Search ~28% (~33 lượt), model ~12%. Chưa đối chiếu hóa đơn OpenAI.
+
+**Đã làm (`agent-v2.js`, theo duyệt của người dùng, không đổi chất giọng):** (1) quy tắc web_search ghi rõ TỐN PHÍ, chỉ dùng khi người dùng yêu cầu tra mạng hoặc cần thông tin thay đổi theo thời gian mà kiến thức sẵn có và công cụ miễn phí (get_weather, search_news, search_encyclopedia) không đáp ứng; kiến thức phổ thông/giải thích/trò chuyện không tìm. (2) mặc định 1–2 câu ngắn (~15–35 từ), bỏ rào đón/chào kết; chi tiết khi được yêu cầu. Không hardcode câu nói.
+
+**Bằng chứng:** 160/160 test PASS (thêm test quy tắc chi phí trong instructions). [Release 43799488594](https://github.com/hvnm1206/TikTak-Service/actions/runs/43799488594) SUCCESS; version **`64a6eb95-ae06-4feb-88ed-6e50a9932fbd`**, rollback **`e0411fbe-de8b-4755-b7ac-90d26a0cdd88`**. **Chưa có số liệu sau thay đổi** — cần so ô ƯỚC PHÍ/lượt Web Search sau 1 ngày dùng.
+
+**Ghi nhận chưa làm:** giọng trẻ con (Đanh Đá/Chém Gió) tạo TTS ở tốc độ 0,756 rồi phát 1,455× → dư ~32% tiền giọng; người dùng chấp nhận giữ chất giọng. Azure NamMinh (rẻ hơn, có F0 miễn phí) tạm dừng vì khai thẻ Azure không thành công.
+
+---
+
 ## 16/11/2026 (08:25) — NGỐ: SỬA LỖI "WEB SEARCH VƯỢT GIỚI HẠN" (MỚI NHẤT)
 
 **Lỗi iPhone:** "OpenAI: Web Search vượt giới hạn một lượt gọi mỗi câu hỏi". **Nguyên nhân:** `agent-v2.js` gửi `max_tool_calls:1` nhưng OpenAI vẫn có thể trả 2 `web_search_call` (tìm + mở trang); code ném lỗi sau khi các lượt này đã tính tiền → mất câu trả lời đã trả phí. **Sửa:** giữ câu trả lời, tính đủ mọi lượt vào ước phí, vẫn bỏ web_search khỏi các vòng sau. Test cũ "fail closed" đổi thành test giữ câu trả lời + đếm đủ chi phí. 159/159 PASS. [Release 43786038302](https://github.com/hvnm1206/TikTak-Service/actions/runs/43786038302) SUCCESS; version **`e0411fbe-de8b-4755-b7ac-90d26a0cdd88`**, rollback **`97ff413d-5ae2-4fb4-b8c2-8052cecc9def`**.
