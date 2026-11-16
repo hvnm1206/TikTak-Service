@@ -1,5 +1,9 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — TomTom từ chối khóa: cắt khoảng trắng + báo chi tiết
+- Ảnh màn hình 00:16: TomTom 401/403. Worker trim TOMTOM_KEY (khoảng trắng/xuống dòng/ngoặc); lỗi ghi bước Search/Routing, HTTP và thông điệp TomTom (che khóa). Test 174/174.
+- Production 6944be49-4dfc-4831-9892-eed639596f62; rollback 8f03f784-aead-480c-9668-12279f90219f.
+
 ## 17/11/2026 — Tra đường: hiện đúng lý do lỗi
 - Ngố chỉ nói "công cụ chỉ đường đang lỗi". Thêm result.routeError (che khóa), banner đỏ trên màn hình khi bật tra đường, và yêu cầu model nói đúng lý do. Test 174/174.
 - Production 8f03f784-aead-480c-9668-12279f90219f; rollback 92493af4-53bc-477c-b48e-4fa4cfe4cab9.
