@@ -154,7 +154,10 @@ async function chatTurn(request,env,ctx,body,key,signal,onEvent){
  if(personalization.contextError)return {error:personalization.contextError};
  const actionRuntime=buildActionRuntime({request,env,utterance:question,requestId:body.requestId,signal});
  const perfAgentStart=performance.now();
- const result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal,actionRuntime,onEvent});
+ // 16/11/2026: optional Google driving routes. Off unless the user switched it on in SETUP; env NGO_ROUTES=off disables for everyone.
+ const rq=body?.route,rkey=env.GOOGLE_MAPS_KEY||env.GOOGLE_TTS_KEY;
+ const routeContext=rq&&rq.enabled===true&&rkey&&env.NGO_ROUTES!=="off"?{apiKey:rkey,origin:(Number.isFinite(rq.origin?.lat)&&Number.isFinite(rq.origin?.lng)&&Math.abs(rq.origin.lat)<=90&&Math.abs(rq.origin.lng)<=180)?{lat:+rq.origin.lat,lng:+rq.origin.lng}:null}:null;
+ const result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal,actionRuntime,onEvent,routeContext});
  const latency={memoryMs:Math.round(perfMemory-perfStart),agentMs:Math.round(performance.now()-perfAgentStart),serverMs:Math.round(performance.now()-perfStart)};
  // Verified tool actions are completed synchronously and are not reinterpreted by the background memory observer.
  if(result.actionStatus&&!personalMemoryEnabled(env))return {...result,latency};

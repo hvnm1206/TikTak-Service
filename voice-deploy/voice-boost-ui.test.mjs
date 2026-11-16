@@ -12,6 +12,8 @@ const MINI='<h3 style="margin:0 0 12px">TÙY CHỈNH GIỌNG NÓI</h3><script>'+
  'function closeRec(){if(rec){const r=rec;rec=null;r.onresult=r.onerror=r.onend=null;try{r.abort()}catch{}}}'+
  ' const labels={idle:1};'+
  'function listen(){closeRec();heard="";const g=gen;let r;r=new SR();rec=r;r.onresult=e=>{heard=e.text;if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110)};r.onend=()=>{if(rec!==r)return;rec=null;asked.push(heard)};r.start()}'+
+ 'async function apiCall(path,k,body){const c={};let controller=null;try{const r=await fetch(path,{method:"POST",body:JSON.stringify({...body,apiKey:k})});const d=await r.json();'+
+ 'if(!r.ok)throw Error(d.error||"HTTP "+r.status);return d}finally{if(controller===c)controller=null}}'+
  'function setVoiceSource(){}function speakDone(){setVoiceSource("OpenAI Marin — đã phát hoàn tất");listen();return}'+
  'async function playAudioBuffer(b){if(!audioCtx)throw Error("AUDIO_NOT_UNLOCKED");return 1}'+
  '$("gain").oninput=()=>{};'+
@@ -98,4 +100,24 @@ test('microphone reopens only after output latency + margin, and not if the turn
  ctx.api.rec().onend?.();
  ctx.speakDone();ctx.bump();timers.at(-1).fn();
  assert.equal(ctx.api.rec(),null,'stale delayed listen ignored after the turn changed');
+});
+test('route switch: OFF by default sends nothing and reads no location; ON sends location and shows only Google Maps links',async()=>{
+ function boot(storage,geo){
+  const html=enhanceVoiceBoost(MINI);const code=html.match(/<script>([\s\S]*)<\/script>/)[1].replace('const store={};','const store='+JSON.stringify(storage)+';');
+  const sent=[],watch=[],dom={};
+  const document={getElementById:id=>dom[id]||null,createElement:()=>({style:{},remove(){delete dom.ngoMapsLink}}),body:{appendChild:el=>{dom.ngoMapsLink=el}}};
+  const navigator={geolocation:{watchPosition:(ok)=>{watch.push(1);if(geo)ok({coords:geo});return 7},clearWatch:()=>watch.push('clear')}};
+  class SR{start(){}stop(){}abort(){}}
+  const ctx={navigator,document,SR,setTimeout:()=>0,clearTimeout:()=>{},Date,fetch:async(path,opt)=>{sent.push(JSON.parse(opt.body));return {ok:true,json:async()=>({answer:'x',mapsUrl:'https://www.google.com/maps/dir/?api=1&destination=M%E1%BB%B9%20%C4%90%C3%ACnh&travelmode=driving'})}},globalThis:null};
+  ctx.globalThis=ctx;vm.runInNewContext(code+';globalThis.apiFn=apiCall;',ctx);return {ctx,sent,watch,dom};
+ }
+ const off=boot({},{latitude:21.0,longitude:105.8});
+ await off.ctx.apiFn('/api/chat','sk',{messages:[]});
+ assert.equal(off.sent[0].route,undefined);assert.equal(off.watch.length,0,'no location access when off');
+ assert.equal(off.dom.ngoMapsLink,undefined);
+ const on=boot({ngo_routes_v1:'1'},{latitude:21.03,longitude:105.78});
+ await on.ctx.apiFn('/api/chat','sk',{messages:[]});
+ assert.deepEqual(JSON.parse(JSON.stringify(on.sent[0].route)),{enabled:true,origin:{lat:21.03,lng:105.78}});
+ assert.match(on.dom.ngoMapsLink.href,/^https:\/\/www\.google\.com\/maps\/dir\//);
+ on.ctx.ngoShowMapsLink('javascript:alert(1)');assert.equal(on.dom.ngoMapsLink,undefined,'non-Google links refused');
 });

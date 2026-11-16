@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runAgent, MODEL, cleanVoiceAnswer } from './agent-v2.js';
+import { runAgent, MODEL, cleanVoiceAnswer, drivingRoute } from './agent-v2.js';
 
 const key='sk-'+ 'a'.repeat(40);
 const msg=[{role:'user',content:'Tra thông tin cho tôi'}];
@@ -337,4 +337,39 @@ test('markdown symbols are never left for TTS to read as "sao"; lists and headin
   assert.equal(cleanVoiceAnswer('Tỷ lệ 5*3=15'),'Tỷ lệ 5 nhân 3=15');
   assert.equal(cleanVoiceAnswer('Ngày 1,5 độ.\n\nThứ hai trời đẹp.'),'Ngày 1,5 độ. Thứ hai trời đẹp.');
   for(const t of ['**a** *b* `c` # d','| x | y |','__z__ ~~w~~'])assert.ok(!/[*#_`~|]/.test(cleanVoiceAnswer(t)),t);
+});
+test('driving route tool: offered only when the user switch is on; car + live traffic; one Google call; maps link',async()=>{
+  let req;
+  await runAgent({apiKey:key,messages:msg,fetchImpl:async(u,o)=>{req=JSON.parse(o.body);return response([{type:'message',content:[{type:'output_text',text:'Ừ.'}]}])}});
+  assert.ok(!req.tools.some(t=>t.name==='get_driving_route'),'off by default');
+  assert.ok(!/get_driving_route/.test(req.instructions));
+  const calls=[];
+  const g=async(u,o)=>{calls.push({u:String(u),h:o.headers,b:JSON.parse(o.body)});return new Response(JSON.stringify({routes:[
+    {duration:'1560s',staticDuration:'1080s',distanceMeters:9800,description:'Phạm Hùng',routeLabels:['DEFAULT_ROUTE'],travelAdvisory:{speedReadingIntervals:[{speed:'NORMAL'},{speed:'TRAFFIC_JAM'}]}},
+    {duration:'1680s',staticDuration:'1500s',distanceMeters:11200,description:'Trần Duy Hưng',travelAdvisory:{speedReadingIntervals:[{speed:'NORMAL'}]}}]}),{headers:{'content-type':'application/json'}})};
+  const r=await drivingRoute({destination:'Mỹ Đình, Hà Nội',origin:''},{routeContext:{apiKey:'gk',origin:{lat:21.03,lng:105.78}},fetchImpl:g});
+  assert.equal(calls.length,1);
+  assert.match(calls[0].u,/routes\.googleapis\.com\/directions\/v2:computeRoutes/);
+  assert.equal(calls[0].h['X-Goog-Api-Key'],'gk');
+  assert.equal(calls[0].b.travelMode,'DRIVE');assert.equal(calls[0].b.routingPreference,'TRAFFIC_AWARE');assert.equal(calls[0].b.computeAlternativeRoutes,true);
+  assert.deepEqual(calls[0].b.origin,{location:{latLng:{latitude:21.03,longitude:105.78}}});
+  assert.equal(r.ok,true);
+  assert.equal(r.data.routes[0].duration_now,'26 phút');assert.equal(r.data.routes[0].delay_minutes,8);assert.equal(r.data.routes[0].status,'có đoạn tắc');
+  assert.equal(r.data.routes[1].status,'thông thoáng');
+  assert.match(r.mapsUrl,/^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&origin=21\.03000,105\.78000&destination=M/);
+  const no=await drivingRoute({destination:'Mỹ Đình',origin:''},{routeContext:{apiKey:'gk',origin:null},fetchImpl:g});
+  assert.equal(no.ok,false);assert.match(no.data.error,/điểm xuất phát/);assert.equal(calls.length,1,'no Google call without an origin');
+  const denied=await drivingRoute({destination:'Mỹ Đình',origin:'Cầu Giấy'},{routeContext:{apiKey:'gk'},fetchImpl:async()=>new Response('{}',{status:403})});
+  assert.equal(denied.ok,false);assert.match(denied.data.error,/chưa bật Routes API/);
+});
+test('agent offers the route tool and returns mapsUrl when route context is present',async()=>{
+  let n=0,first;
+  const r=await runAgent({apiKey:key,messages:msg,routeContext:{apiKey:'gk',origin:{lat:21,lng:105.8}},
+    toolFetchImpl:async()=>new Response(JSON.stringify({routes:[{duration:'600s',staticDuration:'600s',distanceMeters:3000,description:'Láng'}]})),
+    fetchImpl:async(u,o)=>{const b=JSON.parse(o.body);if(!n++){first=b;return response([{type:'function_call',name:'get_driving_route',call_id:'c1',arguments:JSON.stringify({destination:'Láng',origin:''})}])}
+      return response([{type:'message',content:[{type:'output_text',text:'Mất 10 phút, đường thoáng.'}]}])}});
+  assert.ok(first.tools.some(t=>t.name==='get_driving_route'));
+  assert.match(first.instructions,/get_driving_route/);
+  assert.equal(r.answer,'Mất 10 phút, đường thoáng.');
+  assert.match(r.mapsUrl,/^https:\/\/www\.google\.com\/maps\/dir\//);
 });
