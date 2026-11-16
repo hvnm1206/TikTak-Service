@@ -14,7 +14,15 @@ const HELPERS=String.raw`
  function ngoListenAfterPlayback(){const g0=gen,lat=(audioCtx&&(audioCtx.outputLatency||0)+(audioCtx.baseLatency||0))||0,ms=Math.round(Math.min(.7,lat+.3)*1000);setTimeout(()=>{if(active&&gen===g0&&!rec)listen()},ms)}
  // 16/11/2026: optional driving routes (Google Maps). OFF by default; location is read only while the switch is on.
  let ngoRoutesOn=load("ngo_routes_v1","0")==="1",ngoGeo=null,ngoGeoWatch=null;
- function ngoGeoStart(){try{if(!navigator.geolocation||ngoGeoWatch!==null)return;ngoGeoWatch=navigator.geolocation.watchPosition(p=>{ngoGeo={lat:p.coords.latitude,lng:p.coords.longitude,at:Date.now()}},()=>{},{enableHighAccuracy:false,maximumAge:60000,timeout:15000})}catch{}}
+ let ngoGeoErr="";
+ function ngoGeoShow(){try{const el=document.getElementById("ngoGeoStatus");if(!el)return;el.textContent=!ngoRoutesOn?"":ngoGeo?"📍 Đã có vị trí iPhone ("+Math.round((Date.now()-ngoGeo.at)/1000)+" giây trước)":ngoGeoErr==="denied"?"⚠️ iPhone đang CHẶN vị trí cho Safari: Cài đặt → Quyền riêng tư & Bảo mật → Dịch vụ định vị → Trang web Safari → Khi dùng ứng dụng; rồi tải lại Ngố.":ngoGeoErr?"⚠️ Chưa lấy được vị trí ("+ngoGeoErr+").":"⏳ Đang lấy vị trí…"}catch{}}
+ function ngoGeoOk(p){ngoGeo={lat:p.coords.latitude,lng:p.coords.longitude,at:Date.now()};ngoGeoErr="";ngoGeoShow()}
+ function ngoGeoFail(e){ngoGeoErr=e&&e.code===1?"denied":e&&e.code===3?"hết thời gian chờ":"không xác định";ngoGeoShow()}
+ function ngoGeoStart(){try{if(!navigator.geolocation){ngoGeoErr="trình duyệt không hỗ trợ";ngoGeoShow();return}if(ngoGeoWatch!==null)return;ngoGeoWatch=navigator.geolocation.watchPosition(ngoGeoOk,ngoGeoFail,{enableHighAccuracy:false,maximumAge:60000,timeout:15000});ngoGeoShow()}catch{}}
+ // Before a question is sent: use a fix < 10 min old, otherwise ask the iPhone once and wait up to 6 s.
+ globalThis.ngoRouteContextAsync=async()=>{if(!ngoRoutesOn)return {};if(!(ngoGeo&&Date.now()-ngoGeo.at<10*60000)&&navigator.geolocation){
+  await new Promise(res=>{let done=false;const end=()=>{if(!done){done=true;res()}};setTimeout(end,6000);try{navigator.geolocation.getCurrentPosition(p=>{ngoGeoOk(p);end()},e=>{ngoGeoFail(e);end()},{enableHighAccuracy:false,maximumAge:120000,timeout:6000})}catch{end()}})}
+  return globalThis.ngoRouteContext()};
  function ngoGeoStop(){try{if(ngoGeoWatch!==null)navigator.geolocation.clearWatch(ngoGeoWatch)}catch{}ngoGeoWatch=null;ngoGeo=null}
  globalThis.ngoRouteContext=()=>ngoRoutesOn?{route:{enabled:true,origin:ngoGeo&&Date.now()-ngoGeo.at<10*60000?{lat:ngoGeo.lat,lng:ngoGeo.lng}:null}}:{};
  globalThis.ngoShowMapsLink=url=>{try{let b=document.getElementById("ngoMapsLink");if(!ngoRoutesOn||!url||!/^https:\/\/www\.google\.com\/maps\/dir\//.test(url)){b?.remove();return}
@@ -28,12 +36,13 @@ const SETUP_HTML='<div style="margin:0 0 16px;padding-bottom:12px;border-bottom:
  '<label><input id="ngoFastEndpoint" type="checkbox" style="width:auto"> Chốt câu nhanh ('+(ENDPOINT_MS/1000).toFixed(1)+' giây im lặng)</label>'+
  '<label><input id="ngoStreamVoice" type="checkbox" style="width:auto"> Phát giọng ngay khi đang tải (nhanh hơn ~3 giây)</label>'+
  '<label><input id="ngoRoutes" type="checkbox" style="width:auto"> Tra đường &amp; giao thông (ô tô, dữ liệu TomTom) — dùng vị trí iPhone</label>'+
+ '<p class="hint" id="ngoGeoStatus"></p>'+
  '<p class="hint">Tắt "chốt câu nhanh" nếu Ngố hay cắt ngang khi anh ngập ngừng. Tắt "loa ngoài" nếu micro không nhận sau khi Ngố nói. Tắt "phát ngay" để so với cách cũ (chậm hơn) nếu thấy tiếng không mượt.</p></div>';
 const SETUP_JS=String.raw`
  $("ngoLoudSpeaker").checked=ngoLoudSpeaker;$("ngoFastEndpoint").checked=ngoFastEndpoint;
  $("ngoLoudSpeaker").onchange=()=>{ngoLoudSpeaker=$("ngoLoudSpeaker").checked;persist("ngo_loud_speaker_v1",ngoLoudSpeaker?"1":"0");ngoAudioSession("auto")};
  $("ngoStreamVoice").checked=ngoStreamVoice;$("ngoStreamVoice").onchange=()=>{ngoStreamVoice=$("ngoStreamVoice").checked;persist("ngo_stream_voice_v1",ngoStreamVoice?"1":"0")};
- $("ngoRoutes").checked=ngoRoutesOn;$("ngoRoutes").onchange=()=>{ngoRoutesOn=$("ngoRoutes").checked;persist("ngo_routes_v1",ngoRoutesOn?"1":"0");if(ngoRoutesOn)ngoGeoStart();else{ngoGeoStop();globalThis.ngoShowMapsLink(null)}};
+ $("ngoRoutes").checked=ngoRoutesOn;$("ngoRoutes").onchange=()=>{ngoRoutesOn=$("ngoRoutes").checked;persist("ngo_routes_v1",ngoRoutesOn?"1":"0");if(ngoRoutesOn)ngoGeoStart();else{ngoGeoStop();globalThis.ngoShowMapsLink(null)}ngoGeoShow()};ngoGeoShow();try{setInterval(ngoGeoShow,15000)}catch{}
  $("ngoFastEndpoint").onchange=()=>{ngoFastEndpoint=$("ngoFastEndpoint").checked;persist("ngo_fast_endpoint_v1",ngoFastEndpoint?"1":"0")};
 `;
 function once(text,from,to){
@@ -49,10 +58,10 @@ export function enhanceVoiceBoost(page){
  p=once(p,'closeRec();heard="";','closeRec();ngoAudioSession("auto");heard="";');
  // Fast endpoint, scoped to this recognizer instance.
  p=once(p,'const g=gen;let r;','const g=gen;let r,ngoEndTimer=null;');
- p=once(p,'body:JSON.stringify({...body,apiKey:k})','body:JSON.stringify({...body,apiKey:k,...(path==="/api/chat"?globalThis.ngoRouteContext?.()||{}:{})})');
+ p=once(p,'body:JSON.stringify({...body,apiKey:k})','body:JSON.stringify({...body,apiKey:k,...(path==="/api/chat"?await (globalThis.ngoRouteContextAsync?.()||{}):{})})');
  p=once(p,'if(!r.ok)throw Error(d.error||"HTTP "+r.status);return d}finally{if(controller===c)controller=null}}','if(!r.ok)throw Error(d.error||"HTTP "+r.status);if(path==="/api/chat")globalThis.ngoShowMapsLink?.(d.mapsUrl);return d}finally{if(controller===c)controller=null}}');
  if(p.includes('body:JSON.stringify({...body,apiKey:key})')){
-  p=once(p,'body:JSON.stringify({...body,apiKey:key})','body:JSON.stringify({...body,apiKey:key,...(globalThis.ngoRouteContext?.()||{})})');
+  p=once(p,'body:JSON.stringify({...body,apiKey:key})','body:JSON.stringify({...body,apiKey:key,...(await (globalThis.ngoRouteContextAsync?.()||{}))})');
   p=once(p,'if(d.type==="done")result=d.result;','if(d.type==="done"){result=d.result;globalThis.ngoShowMapsLink?.(result?.mapsUrl)}');
  }
  p=once(p,'setVoiceSource("OpenAI Marin — đã phát hoàn tất");listen();return}','setVoiceSource((String(globalThis.ngoTtsSource||"").startsWith("google")?"Google Leda":"OpenAI Marin")+" — đã phát hoàn tất");ngoListenAfterPlayback();return}');

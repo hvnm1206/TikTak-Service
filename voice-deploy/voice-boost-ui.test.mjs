@@ -121,3 +121,21 @@ test('route switch: OFF by default sends nothing and reads no location; ON sends
  assert.match(on.dom.ngoMapsLink.href,/^https:\/\/www\.google\.com\/maps\/dir\//);
  on.ctx.ngoShowMapsLink('javascript:alert(1)');assert.equal(on.dom.ngoMapsLink,undefined,'non-Google links refused');
 });
+test('route switch ON without a fix: waits for one getCurrentPosition (max 6 s) before sending; denied shows how to enable',async()=>{
+  const html=enhanceVoiceBoost(MINI);const code=html.match(/<script>([\s\S]*)<\/script>/)[1].replace('const store={};','const store={"ngo_routes_v1":"1"};');
+  const sent=[],dom={};let asked=0;
+  const document={getElementById:id=>dom[id]||(dom[id]={textContent:"",style:{}}),createElement:()=>({style:{},remove(){}}),body:{appendChild(){}}};
+  const navigator={geolocation:{watchPosition:()=>7,clearWatch(){},getCurrentPosition:(ok)=>{asked++;setTimeout(()=>ok({coords:{latitude:21.06,longitude:105.82}}),5)}}};
+  class SR{start(){}stop(){}abort(){}}
+  const ctx={navigator,document,SR,setTimeout,clearTimeout,Date,fetch:async(p,o)=>{sent.push(JSON.parse(o.body));return {ok:true,json:async()=>({answer:'x'})}},globalThis:null};
+  ctx.globalThis=ctx;vm.runInNewContext(code+';globalThis.apiFn=apiCall;',ctx);
+  await ctx.apiFn('/api/chat','sk',{messages:[]});
+  assert.equal(asked,1);
+  assert.deepEqual(JSON.parse(JSON.stringify(sent[0].route)),{enabled:true,origin:{lat:21.06,lng:105.82}});
+  navigator.geolocation.getCurrentPosition=(ok,fail)=>fail({code:1});
+  const html2=enhanceVoiceBoost(MINI);const code2=html2.match(/<script>([\s\S]*)<\/script>/)[1].replace('const store={};','const store={"ngo_routes_v1":"1"};');
+  const ctx2={...ctx,globalThis:null};ctx2.globalThis=ctx2;vm.runInNewContext(code2+';globalThis.apiFn=apiCall;',ctx2);
+  await ctx2.apiFn('/api/chat','sk',{messages:[]});
+  assert.equal(JSON.parse(JSON.stringify(sent[1].route)).origin,null);
+  assert.match(dom.ngoGeoStatus.textContent,/Dịch vụ định vị/);
+});
