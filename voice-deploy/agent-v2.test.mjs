@@ -322,3 +322,11 @@ test('short complete first sentence still wins over comma fallback',async()=>{
  ]);
  assert.deepEqual(previews,['Có chứ, tao nhớ mày mà.']);
 });
+test('cost rules: web_search marked paid with free tools first, voice answers short by default',async()=>{
+  let req;
+  await runAgent({apiKey:key,messages:msg,fetchImpl:async(url,opt)=>{req=JSON.parse(opt.body);return response([{type:'message',content:[{type:'output_text',text:'Ừ.'}]}])}});
+  assert.match(req.instructions,/web_search là công cụ TỐN PHÍ/);
+  assert.match(req.instructions,/Ưu tiên công cụ miễn phí trước: thời tiết dùng get_weather/);
+  assert.match(req.instructions,/1–2 câu ngắn \(khoảng 15–35 từ\)/);
+  assert.ok(!/không dùng tìm kiếm cho câu hỏi kiến thức đơn giản/.test(req.instructions));
+});
