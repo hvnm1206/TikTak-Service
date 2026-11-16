@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Tra đường TomTom: sửa tham số bị từ chối
+- Triệu chứng: có vị trí iPhone nhưng Ngố vẫn báo chưa lấy được bản đồ, hỏi điểm xuất phát.
+- Nguyên nhân gốc: gửi instructionsType cùng routeRepresentation=none, TomTom không cho phép (tài liệu Guidance instructions) → mọi calculateRoute lỗi.
+- Sửa: bỏ routeRepresentation=none + language; lỗi 400 thì thử lại bản tối giản; lỗi trả về che khóa. Test 173/173.
+- Production 92493af4-53bc-477c-b48e-4fa4cfe4cab9; rollback 34de5f34-b093-458b-a4af-e74510a12860. Chờ UAT trên iPhone.
+
 ## 16/11/2026 (23:55) — NGỐ: TRA ĐƯỜNG CHỜ VỊ TRÍ IPHONE (MỚI NHẤT)
 
 **Lỗi:** hỏi đường đi Hồ Tây, Ngố báo chưa lấy được bản đồ và hỏi điểm xuất phát. **Nguyên nhân:** câu hỏi được gửi với `origin=null` khi `watchPosition` chưa có vị trí (vừa bật công tắc) hoặc Safari bị chặn vị trí. **Sửa:** trước khi gửi câu hỏi (công tắc bật), dùng vị trí < 10 phút, nếu không có thì gọi `getCurrentPosition` một lần và chờ tối đa 6 giây; SETUP hiện trạng thái vị trí, nếu bị chặn thì hướng dẫn mở Cài đặt → Quyền riêng tư & Bảo mật → Dịch vụ định vị → Trang web Safari. 172/172 test PASS. [Release 43912198219](https://github.com/hvnm1206/TikTak-Service/actions/runs/43912198219) SUCCESS; version **`34de5f34-b093-458b-a4af-e74510a12860`**, rollback **`745306dc-c8b9-41bf-9671-783ef1833619`**.
