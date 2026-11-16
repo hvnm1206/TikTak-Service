@@ -37,7 +37,7 @@ async function tomtomPlace(q,key,near,fetchImpl,signal){
   if(near){u.searchParams.set("lat",String(near.lat));u.searchParams.set("lon",String(near.lng))}
   let r=await fetchImpl(u,{signal});
   if(r.status===400){u.searchParams.delete("language");r=await fetchImpl(u,{signal})} // retry without language if a parameter is refused
-  if(!r.ok)throw Error("TOMTOM_SEARCH_"+r.status);
+  if(!r.ok){const t=(await r.text().catch(()=>"")).replace(/key=[^&\s"]+/g,"key=***").replace(/\s+/g," ").slice(0,140);const e=Error("TOMTOM_SEARCH_"+r.status);e.detail=t;throw e}
   const x=(await r.json())?.results?.[0];if(!x?.position)return null;
   return {lat:x.position.lat,lng:x.position.lon,name:str(x.poi?.name||x.address?.freeformAddress||q,120)};
 }
@@ -49,7 +49,7 @@ export async function tomtomRoute(args,{routeContext,fetchImpl,signal}){
   try{
     from=originText?await tomtomPlace(originText,key,o,fetchImpl,signal):{lat:o.lat,lng:o.lng,name:"vị trí hiện tại"};
     to=await tomtomPlace(destination,key,from||o,fetchImpl,signal);
-  }catch(e){return fnOutput(false,{error:/_40[13]$/.test(e.message)?"TomTom từ chối khóa (TOMTOM_KEY sai hoặc chưa kích hoạt).":"TomTom tìm địa điểm lỗi: "+e.message})}
+  }catch(e){return fnOutput(false,{error:/_40[13]$/.test(e.message)?"TomTom Search từ chối TOMTOM_KEY (HTTP "+e.message.slice(-3)+"): "+(e.detail||"không có chi tiết"):"TomTom tìm địa điểm lỗi: "+e.message+" "+(e.detail||"")})}
   if(!from)return fnOutput(false,{error:"Không tìm thấy điểm xuất phát '"+originText+"'."});
   if(!to)return fnOutput(false,{error:"Không tìm thấy điểm đến '"+destination+"' ở Việt Nam."});
   const u=new URL("https://api.tomtom.com/routing/1/calculateRoute/"+from.lat+","+from.lng+":"+to.lat+","+to.lng+"/json");
@@ -59,8 +59,8 @@ export async function tomtomRoute(args,{routeContext,fetchImpl,signal}){
   for(const [k,v] of Object.entries({...base,sectionType:"traffic",instructionsType:"text"}))u.searchParams.set(k,v);
   let r=await fetchImpl(u,{signal});
   if(r.status===400){const m=new URL(u);for(const k of ["sectionType","instructionsType"])m.searchParams.delete(k);r=await fetchImpl(m,{signal})} // minimal retry
-  if(!r.ok){const t=(await r.text().catch(()=>"")).replace(/key=[^&\s"]+/g,"key=***").slice(0,160);
-    return fnOutput(false,{error:r.status===403||r.status===401?"TomTom từ chối khóa (TOMTOM_KEY sai hoặc chưa kích hoạt).":"TomTom tính đường lỗi HTTP "+r.status+" "+t})}
+  if(!r.ok){const t=(await r.text().catch(()=>"")).replace(/key=[^&\s"]+/g,"key=***").replace(/\s+/g," ").slice(0,140);
+    return fnOutput(false,{error:(r.status===403||r.status===401?"TomTom Routing từ chối TOMTOM_KEY (HTTP "+r.status+"): ":"TomTom tính đường lỗi HTTP "+r.status+": ")+(t||"không có chi tiết")})}
   const routes=((await r.json())?.routes||[]).slice(0,3);
   if(!routes.length)return fnOutput(false,{error:"TomTom không tìm được tuyến."});
   const out=routes.map((rt,i)=>{

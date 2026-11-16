@@ -422,5 +422,5 @@ test('failed route tool: exact reason returned as routeError (key masked) and th
     fetchImpl:async(u,o)=>{const b=JSON.parse(o.body);if(!n++){first=b;return response([{type:'function_call',name:'get_driving_route',call_id:'c1',arguments:JSON.stringify({destination:'Hồ Tây',origin:''})}])}
       return response([{type:'message',content:[{type:'output_text',text:'TomTom từ chối khóa.'}]}])}});
   assert.match(first.instructions,/đúng lý do trong trường error/);
-  assert.match(r.routeError,/TomTom từ chối khóa/);assert.ok(!r.routeError.includes('=tk'));assert.equal(r.mapsUrl,null);
+  assert.match(r.routeError,/TomTom Search từ chối TOMTOM_KEY \(HTTP 403\): denied key=\*\*\*/);assert.ok(!r.routeError.includes('=tk'));assert.equal(r.mapsUrl,null);
 });
