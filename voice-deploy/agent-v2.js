@@ -41,6 +41,40 @@ async function tomtomPlace(q,key,near,fetchImpl,signal){
   const x=(await r.json())?.results?.[0];if(!x?.position)return null;
   return {lat:x.position.lat,lng:x.position.lon,name:str(x.poi?.name||x.address?.freeformAddress||q,120)};
 }
+async function tomtomCalc(from,to,key,fetchImpl,signal){
+  const u=new URL("https://api.tomtom.com/routing/1/calculateRoute/"+from.lat+","+from.lng+":"+to.lat+","+to.lng+"/json");
+  // 16/11/2026: v1 sent instructionsType together with routeRepresentation=none, which TomTom rejects (HTTP 400) -> every
+  // route failed. Street names come from guidance instructions, so keep the default route representation.
+  const base={key,traffic:"true",travelMode:"car",maxAlternatives:"2",computeTravelTimeFor:"all"};
+  for(const [k,v] of Object.entries({...base,sectionType:"traffic",instructionsType:"text"}))u.searchParams.set(k,v);
+  let r=await fetchImpl(u,{signal});
+  if(r.status===400){const m=new URL(u);for(const k of ["sectionType","instructionsType"])m.searchParams.delete(k);r=await fetchImpl(m,{signal})} // minimal retry
+  if(!r.ok){const t=(await r.text().catch(()=>"")).replace(/key=[^&\s"]+/g,"key=***").replace(/\s+/g," ").slice(0,140);
+    return {error:(r.status===403||r.status===401?"TomTom Routing từ chối TOMTOM_KEY (HTTP "+r.status+"): ":"TomTom tính đường lỗi HTTP "+r.status+": ")+(t||"không có chi tiết")}}
+  const routes=((await r.json())?.routes||[]).slice(0,3);
+  if(!routes.length)return {error:"TomTom không tìm được tuyến."};
+  const out=routes.map((rt,i)=>{
+    const sm=rt.summary||{},ins=rt.guidance?.instructions||[];
+    const streetAt=idx=>{let s="";for(const x of ins){if((x.pointIndex??0)<=idx&&x.street)s=x.street}return s};
+    const len={};for(let k=0;k<ins.length;k++){const st=ins[k].street;if(!st)continue;const next=ins[k+1]?.routeOffsetInMeters??sm.lengthInMeters??0;len[st]=(len[st]||0)+Math.max(0,next-(ins[k].routeOffsetInMeters||0))}
+    const via=Object.entries(len).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]).join(", ");
+    const seq=[];for(const x of ins){const st=x.street;if(st&&seq.at(-1)!==st&&(len[st]||0)>=300)seq.push(st)} // 17/11: owner found answers too sketchy -> streets in driving order (>=300 m)
+    const path=seq.slice(0,6).join(" → ");
+    const jams=(rt.sections||[]).filter(x=>x.sectionType==="TRAFFIC"&&(x.delayInSeconds||0)>=60).sort((a,b)=>(b.delayInSeconds||0)-(a.delayInSeconds||0)).slice(0,3)
+      .map(x=>({street:streetAt(x.startPointIndex||0)||"chưa rõ tên đường",kind:x.simpleCategory==="ROAD_CLOSURE"?"đóng đường":x.simpleCategory==="ROAD_WORK"?"công trình":"ùn tắc",delay_minutes:Math.round((x.delayInSeconds||0)/60)}));
+    const now=sm.travelTimeInSeconds||0,free=sm.noTrafficTravelTimeInSeconds||Math.max(0,now-(sm.trafficDelayInSeconds||0));
+    return {option:i+1,via,path,seconds_now:now,arrive_at:new Date(Date.now()+now*1000).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Ho_Chi_Minh"}),duration_now:fmtMin(now),duration_free_flow:fmtMin(free),delay_minutes:Math.max(0,Math.round((sm.trafficDelayInSeconds??(now-free))/60)),distance_km:Math.round((sm.lengthInMeters||0)/100)/10,
+      status:jams.some(j=>j.kind!=="ùn tắc")?"có sự cố trên đường":jams.length?"có đoạn tắc":"thông thoáng",slow_points:jams};
+  });
+  return {routes:out};
+}
+// 17/11/2026 trip monitor: one TomTom call from the current position to a known destination (no search, no GPT).
+export async function tomtomCheck({from,to,key,fetchImpl=fetch,signal}){
+  const ok=p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)&&Math.abs(p.lat)<=90&&Math.abs(p.lng)<=180;
+  if(!ok(from)||!ok(to))return {error:"Tọa độ không hợp lệ."};
+  if(!key)return {error:"Chưa cấu hình TOMTOM_KEY."};
+  try{return await tomtomCalc(from,to,key,fetchImpl,signal)}catch(e){return {error:"TomTom lỗi: "+String(e?.message||e).slice(0,100)}}
+}
 export async function tomtomRoute(args,{routeContext,fetchImpl,signal}){
   const key=routeContext.apiKey,destination=str(args.destination,160),originText=str(args.origin,160),o=routeContext.origin;
   if(destination.length<2)return fnOutput(false,{error:"Chưa rõ điểm đến."});
@@ -52,32 +86,11 @@ export async function tomtomRoute(args,{routeContext,fetchImpl,signal}){
   }catch(e){return fnOutput(false,{error:/_40[13]$/.test(e.message)?"TomTom Search từ chối TOMTOM_KEY (HTTP "+e.message.slice(-3)+"): "+(e.detail||"không có chi tiết"):"TomTom tìm địa điểm lỗi: "+e.message+" "+(e.detail||"")})}
   if(!from)return fnOutput(false,{error:"Không tìm thấy điểm xuất phát '"+originText+"'."});
   if(!to)return fnOutput(false,{error:"Không tìm thấy điểm đến '"+destination+"' ở Việt Nam."});
-  const u=new URL("https://api.tomtom.com/routing/1/calculateRoute/"+from.lat+","+from.lng+":"+to.lat+","+to.lng+"/json");
-  // 16/11/2026: v1 sent instructionsType together with routeRepresentation=none, which TomTom rejects (HTTP 400) -> every
-  // route failed. Street names come from guidance instructions, so keep the default route representation.
-  const base={key,traffic:"true",travelMode:"car",maxAlternatives:"2",computeTravelTimeFor:"all"};
-  for(const [k,v] of Object.entries({...base,sectionType:"traffic",instructionsType:"text"}))u.searchParams.set(k,v);
-  let r=await fetchImpl(u,{signal});
-  if(r.status===400){const m=new URL(u);for(const k of ["sectionType","instructionsType"])m.searchParams.delete(k);r=await fetchImpl(m,{signal})} // minimal retry
-  if(!r.ok){const t=(await r.text().catch(()=>"")).replace(/key=[^&\s"]+/g,"key=***").replace(/\s+/g," ").slice(0,140);
-    return fnOutput(false,{error:(r.status===403||r.status===401?"TomTom Routing từ chối TOMTOM_KEY (HTTP "+r.status+"): ":"TomTom tính đường lỗi HTTP "+r.status+": ")+(t||"không có chi tiết")})}
-  const routes=((await r.json())?.routes||[]).slice(0,3);
-  if(!routes.length)return fnOutput(false,{error:"TomTom không tìm được tuyến."});
-  const out=routes.map((rt,i)=>{
-    const sm=rt.summary||{},ins=rt.guidance?.instructions||[];
-    const streetAt=idx=>{let s="";for(const x of ins){if((x.pointIndex??0)<=idx&&x.street)s=x.street}return s};
-    const len={};for(let k=0;k<ins.length;k++){const st=ins[k].street;if(!st)continue;const next=ins[k+1]?.routeOffsetInMeters??sm.lengthInMeters??0;len[st]=(len[st]||0)+Math.max(0,next-(ins[k].routeOffsetInMeters||0))}
-    const via=Object.entries(len).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]).join(", ");
-    const seq=[];for(const x of ins){const st=x.street;if(st&&seq.at(-1)!==st&&(len[st]||0)>=300)seq.push(st)} // 17/11: owner found answers too sketchy -> streets in driving order (>=300 m)
-    const path=seq.slice(0,6).join(" → ");
-    const jams=(rt.sections||[]).filter(x=>x.sectionType==="TRAFFIC"&&(x.delayInSeconds||0)>=60).sort((a,b)=>(b.delayInSeconds||0)-(a.delayInSeconds||0)).slice(0,3)
-      .map(x=>({street:streetAt(x.startPointIndex||0)||"chưa rõ tên đường",kind:x.simpleCategory==="ROAD_CLOSURE"?"đóng đường":x.simpleCategory==="ROAD_WORK"?"công trình":"ùn tắc",delay_minutes:Math.round((x.delayInSeconds||0)/60)}));
-    const now=sm.travelTimeInSeconds||0,free=sm.noTrafficTravelTimeInSeconds||Math.max(0,now-(sm.trafficDelayInSeconds||0));
-    return {option:i+1,via,path,arrive_at:new Date(Date.now()+now*1000).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Ho_Chi_Minh"}),duration_now:fmtMin(now),duration_free_flow:fmtMin(free),delay_minutes:Math.max(0,Math.round((sm.trafficDelayInSeconds??(now-free))/60)),distance_km:Math.round((sm.lengthInMeters||0)/100)/10,
-      status:jams.some(j=>j.kind!=="ùn tắc")?"có sự cố trên đường":jams.length?"có đoạn tắc":"thông thoáng",slow_points:jams};
-  });
+  const calc=await tomtomCalc(from,to,key,fetchImpl,signal);
+  if(calc.error)return fnOutput(false,{error:calc.error});
+  const out=calc.routes;
   const mapsUrl="https://www.google.com/maps/dir/?api=1&origin="+from.lat.toFixed(5)+","+from.lng.toFixed(5)+"&destination="+to.lat.toFixed(5)+","+to.lng.toFixed(5)+"&travelmode=driving";
-  return {...fnOutput(true,{provider:"TomTom",from:from.name,to:to.name,routes:out,note:"Giao thông thời gian thực của TomTom tại lúc hỏi; có thể khác Google Maps."}),mapsUrl};
+  return {...fnOutput(true,{provider:"TomTom",from:from.name,to:to.name,routes:out,note:"Giao thông thời gian thực của TomTom tại lúc hỏi; có thể khác Google Maps. Ngố sẽ tự canh giao thông dọc đường và báo khi có tắc mới hoặc đường nhanh hơn."}),mapsUrl,trip:{to:{lat:to.lat,lng:to.lng,name:to.name},seconds:out[0].seconds_now,path:out[0].path}};
 }
 export async function drivingRoute(args,{routeContext,fetchImpl,signal}){
   if(routeContext?.provider==="tomtom")return tomtomRoute(args,{routeContext,fetchImpl,signal});
@@ -274,7 +287,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
   ].join("\n");
   const input=messages.slice(-16).map(m=>({role:m.role,content:str(m.content,1500)}));
   const enabledActions=Array.isArray(actionRuntime?.tools)?actionRuntime.tools:[];
-  const routeTools=routeContext?.apiKey?[ROUTE_TOOL]:[];let mapsUrl=null,routeError=null;
+  const routeTools=routeContext?.apiKey?[ROUTE_TOOL]:[];let mapsUrl=null,routeError=null,trip=null;
   const allSources=[];const toolCalls=[];let lastActionFailure=null;let webSearchCalls=0;let usage={input_tokens:0,output_tokens:0,cached_input_tokens:0,api_calls:0};let response=null;
   for(let round=0;round<3;round++){
     const controller=new AbortController();
@@ -317,7 +330,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
       const answer=cleanVoiceAnswer(extractText(response.output));
       if(!answer)throw Error("AI trả câu rỗng");
       const known=new Set(),sources=allSources.filter(x=>{if(!x?.url||known.has(x.url))return false;known.add(x.url);return true}).slice(0,8);
-      return {answer,mapsUrl,routeError,sources,documentReferences:relatedDocs.map(x=>({name:x.name,segment:x.segment})),tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedWebSearchUsd:webSearchCalls*WEB_SEARCH_CALL_USD,estimatedModelUsd:Math.round(((usage.input_tokens-usage.cached_input_tokens)*0.10+usage.cached_input_tokens*0.01+usage.output_tokens*0.50)/1e6*1e8)/1e8,estimateBasis:"standard_short_context_excludes_other_fees",searchProvider:webSearchCalls?"openai_web_search":"public_sources_only"};
+      return {answer,mapsUrl,routeError,trip,sources,documentReferences:relatedDocs.map(x=>({name:x.name,segment:x.segment})),tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedWebSearchUsd:webSearchCalls*WEB_SEARCH_CALL_USD,estimatedModelUsd:Math.round(((usage.input_tokens-usage.cached_input_tokens)*0.10+usage.cached_input_tokens*0.01+usage.output_tokens*0.50)/1e6*1e8)/1e8,estimateBasis:"standard_short_context_excludes_other_fees",searchProvider:webSearchCalls?"openai_web_search":"public_sources_only"};
     }
     input.push(...response.output);
     for(const c of calls.slice(0,3)){
@@ -346,7 +359,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
           estimateBasis:'standard_short_context_excludes_other_fees',searchProvider:webSearchCalls?'openai_web_search':'public_sources_only'};
       }
       let data;
-      try{const args=JSON.parse(c.arguments||"{}");data=await callTool(c.name,args,{fetchImpl:toolFetchImpl,signal,routeContext});if(data?.mapsUrl)mapsUrl=data.mapsUrl;}
+      try{const args=JSON.parse(c.arguments||"{}");data=await callTool(c.name,args,{fetchImpl:toolFetchImpl,signal,routeContext});if(data?.mapsUrl)mapsUrl=data.mapsUrl;if(data?.trip)trip=data.trip;}
       catch(e){data=fnOutput(false,{error:"Nguồn hiện không truy cập được: "+String(e?.message||"unknown").slice(0,100)})}
       if(c.name==="get_driving_route")routeError=data?.ok?null:String(data?.data?.error||"lỗi không rõ").replace(/key=[^&\s"]+/g,"key=***").slice(0,200); // shown on screen so a failing route is diagnosable
       toolCalls.push(c.name);

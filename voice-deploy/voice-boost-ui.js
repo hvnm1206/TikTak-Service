@@ -6,6 +6,28 @@
 // 2) Fast end-of-speech: Safari's own endpoint waits for a long silence before final result.
 //    When interim text stops changing for ENDPOINT_MS, stop recognition so the turn starts sooner.
 export const ENDPOINT_MS=1000;
+export const TRIP_LOGIC=String.raw`
+ // 17/11/2026 trip monitor (owner: "Hướng 2" - Google Maps does turn-by-turn, Ngố watches traffic while it stays open).
+ // Pure decision: compare a fresh TomTom check from the current position with the trip baseline; speak only on real change.
+ function ngoTripDecide(trip,check,now){
+  const routes=(check&&Array.isArray(check.routes))?check.routes:[];if(!routes.length)return {say:null,trip};
+  const streets=x=>String(x||"").split(" → ").filter(Boolean),own=streets(trip.path);
+  const score=r=>streets(r.path).filter(x=>own.includes(x)).length;
+  const best=routes[0];let cur=routes.reduce((a,r)=>score(r)>score(a)?r:a,routes[0]);if(!score(cur))cur=best;
+  const t={...trip,alerted:[...(trip.alerted||[])]},msgs=[],seen=k=>t.alerted.includes(k),mark=k=>t.alerted.push(k);
+  const hhmm=ms=>new Date(ms).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Ho_Chi_Minh"});
+  for(const j of (cur.slow_points||[]))if(j.kind!=="ùn tắc"&&!seen("inc:"+j.street+j.kind)){mark("inc:"+j.street+j.kind);msgs.push("Phía trước có "+j.kind+" ở "+j.street+", chậm khoảng "+j.delay_minutes+" phút.")}
+  const end=now+(Number(cur.seconds_now)||0)*1000,worse=Math.round((end-t.expectEnd)/60000);
+  const quiet=now-(t.lastAlertAt||0)>=6*60000;
+  if(worse>=5&&quiet){const jam=(cur.slow_points||[]).find(j=>j.kind==="ùn tắc");msgs.push("Đường phía trước chậm thêm khoảng "+worse+" phút"+(jam?", tắc ở "+jam.street:"")+". Dự kiến tới lúc "+hhmm(end)+".");t.expectEnd=end}
+  else if(worse<=-5)t.expectEnd=end; // got faster: move the baseline quietly
+  const gain=Math.round(((Number(cur.seconds_now)||0)-(Number(best.seconds_now)||0))/60);
+  if(cur!==best&&gain>=4&&quiet&&!seen("alt:"+best.path)){mark("alt:"+best.path);msgs.push("Có đường nhanh hơn khoảng "+gain+" phút"+(best.path?", đi qua "+best.path:"")+". Bấm nút Google Maps để đổi đường.");t.altUrl=true}
+  if(msgs.length)t.lastAlertAt=now;
+  return {say:msgs.length?msgs.slice(0,2).join(" "):null,trip:t};
+ }
+ function ngoDistM(a,b){const R=6371000,r=x=>x*Math.PI/180,dl=r(b.lat-a.lat),dg=r(b.lng-a.lng),h=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+`;
 const HELPERS=String.raw`
  let ngoLoudSpeaker=load("ngo_loud_speaker_v1","1")!=="0",ngoFastEndpoint=load("ngo_fast_endpoint_v1","1")!=="0";
  var ngoStreamVoice=load("ngo_stream_voice_v1","1")!=="0";
@@ -30,6 +52,32 @@ const HELPERS=String.raw`
   if(!b){b=document.createElement("a");b.id="ngoMapsLink";b.target="_blank";b.rel="noopener";b.textContent="🗺️ Mở Google Maps dẫn đường";b.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));z-index:50;background:#2563eb;color:#fff;padding:12px 18px;border-radius:999px;font-weight:800;text-decoration:none;box-shadow:0 6px 20px #0008";document.body.appendChild(b)}
   b.href=url;clearTimeout(b._t);b._t=setTimeout(()=>b.remove(),5*60000)}catch{}};
  if(ngoRoutesOn)ngoGeoStart();
+${TRIP_LOGIC}
+ let ngoTrip=null,ngoTripSayQ=null,ngoTripBusy=false;const NGO_TRIP_EVERY=4*60000;
+ function ngoTripChip(){try{let c=document.getElementById("ngoTripChip");if(!ngoTrip){c?.remove();return}
+  if(!c){c=document.createElement("button");c.id="ngoTripChip";c.type="button";c.style.cssText="position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 6px);z-index:51;background:#065f46;color:#fff;border:0;padding:6px 12px;border-radius:999px;font:700 12px/1.2 system-ui;box-shadow:0 4px 14px #0008;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis";c.onclick=()=>ngoTripEnd();document.body.appendChild(c)}
+  c.textContent="🚗 Đang canh đường → "+String(ngoTrip.to.name||"điểm đến").slice(0,40)+" · chạm để dừng"}catch{}}
+ function ngoTripEnd(){ngoTrip=null;ngoTripSayQ=null;ngoTripChip()}
+ globalThis.ngoTripStart=trip=>{try{if(!ngoRoutesOn||!trip||!trip.to||!Number.isFinite(trip.to.lat)||!Number.isFinite(trip.to.lng))return;const now=Date.now();
+  ngoTrip={to:trip.to,path:String(trip.path||""),expectEnd:now+(Number(trip.seconds)||0)*1000,started:now,lastCheck:now,lastAlertAt:0,alerted:[]};ngoTripChip()}catch{}};
+ function ngoTripSay(text){if(!active)return false;if(step!=="listening"||heard)return false;gen++;closeRec();const g=gen;history.push({role:"assistant",content:text});render();speak(text,g);return true}
+ async function ngoTripTick(){try{
+  if(!ngoTrip)return;if(!ngoRoutesOn||Date.now()-ngoTrip.started>3*3600000){ngoTripEnd();return}
+  if(ngoTripSayQ&&ngoTripSay(ngoTripSayQ))ngoTripSayQ=null;
+  if(ngoTripBusy||!active||document.hidden||Date.now()-ngoTrip.lastCheck<NGO_TRIP_EVERY)return;
+  if(!(ngoGeo&&Date.now()-ngoGeo.at<2*60000)&&navigator.geolocation)await new Promise(res=>{let done=false;const end=()=>{if(!done){done=true;res()}};setTimeout(end,8000);try{navigator.geolocation.getCurrentPosition(p=>{ngoGeoOk(p);end()},e=>{ngoGeoFail(e);end()},{enableHighAccuracy:false,maximumAge:30000,timeout:8000})}catch{end()}}); // a parked/slow car may not trigger watchPosition updates
+  if(!ngoTrip||!(ngoGeo&&Date.now()-ngoGeo.at<2*60000))return;
+  const here={lat:ngoGeo.lat,lng:ngoGeo.lng};
+  if(ngoDistM(here,ngoTrip.to)<400){const n=ngoTrip.to.name;ngoTripEnd();ngoTripSayQ="Sắp tới "+(n||"nơi")+" rồi, Ngố dừng canh đường.";return}
+  ngoTripBusy=true;ngoTrip.lastCheck=Date.now();
+  const r=await fetch("/api/route-check",{method:"POST",headers:{"Content-Type":"application/json"},cache:"no-store",body:JSON.stringify({apiKey:key,from:here,to:ngoTrip.to})});
+  const d=await r.json().catch(()=>({}));if(!ngoTrip)return;
+  if(!r.ok||d.error){globalThis.ngoShowRouteError?.("canh đường: "+(d.error||"HTTP "+r.status));return}
+  const out=ngoTripDecide(ngoTrip,d,Date.now());ngoTrip=out.trip;
+  if(out.trip.altUrl){delete ngoTrip.altUrl;globalThis.ngoShowMapsLink?.("https://www.google.com/maps/dir/?api=1&origin="+here.lat.toFixed(5)+","+here.lng.toFixed(5)+"&destination="+ngoTrip.to.lat.toFixed(5)+","+ngoTrip.to.lng.toFixed(5)+"&travelmode=driving")}
+  if(out.say)ngoTripSayQ=out.say,ngoTripSay(ngoTripSayQ)&&(ngoTripSayQ=null);
+ }catch{}finally{ngoTripBusy=false}}
+ try{setInterval(ngoTripTick,20000)}catch{}
  function ngoAudioSession(type){try{const s=navigator.audioSession;if(!s)return;const want=ngoLoudSpeaker?type:"auto";if(s.type!==want)s.type=want}catch{}}
 `;
 const SETUP_HTML='<div style="margin:0 0 16px;padding-bottom:12px;border-bottom:1px solid #334155"><strong>TĂNG TỐC &amp; LOA</strong>'+
@@ -43,7 +91,7 @@ const SETUP_JS=String.raw`
  $("ngoLoudSpeaker").checked=ngoLoudSpeaker;$("ngoFastEndpoint").checked=ngoFastEndpoint;
  $("ngoLoudSpeaker").onchange=()=>{ngoLoudSpeaker=$("ngoLoudSpeaker").checked;persist("ngo_loud_speaker_v1",ngoLoudSpeaker?"1":"0");ngoAudioSession("auto")};
  $("ngoStreamVoice").checked=ngoStreamVoice;$("ngoStreamVoice").onchange=()=>{ngoStreamVoice=$("ngoStreamVoice").checked;persist("ngo_stream_voice_v1",ngoStreamVoice?"1":"0")};
- $("ngoRoutes").checked=ngoRoutesOn;$("ngoRoutes").onchange=()=>{ngoRoutesOn=$("ngoRoutes").checked;persist("ngo_routes_v1",ngoRoutesOn?"1":"0");if(ngoRoutesOn)ngoGeoStart();else{ngoGeoStop();globalThis.ngoShowMapsLink(null)}ngoGeoShow()};ngoGeoShow();try{setInterval(ngoGeoShow,15000)}catch{}
+ $("ngoRoutes").checked=ngoRoutesOn;$("ngoRoutes").onchange=()=>{ngoRoutesOn=$("ngoRoutes").checked;persist("ngo_routes_v1",ngoRoutesOn?"1":"0");if(ngoRoutesOn)ngoGeoStart();else{ngoGeoStop();globalThis.ngoShowMapsLink(null);ngoTripEnd()}ngoGeoShow()};ngoGeoShow();try{setInterval(ngoGeoShow,15000)}catch{}
  $("ngoFastEndpoint").onchange=()=>{ngoFastEndpoint=$("ngoFastEndpoint").checked;persist("ngo_fast_endpoint_v1",ngoFastEndpoint?"1":"0")};
 `;
 function once(text,from,to){
@@ -60,10 +108,10 @@ export function enhanceVoiceBoost(page){
  // Fast endpoint, scoped to this recognizer instance.
  p=once(p,'const g=gen;let r;','const g=gen;let r,ngoEndTimer=null;');
  p=once(p,'body:JSON.stringify({...body,apiKey:k})','body:JSON.stringify({...body,apiKey:k,...(path==="/api/chat"?await (globalThis.ngoRouteContextAsync?.()||{}):{})})');
- p=once(p,'if(!r.ok)throw Error(d.error||"HTTP "+r.status);return d}finally{if(controller===c)controller=null}}','if(!r.ok)throw Error(d.error||"HTTP "+r.status);if(path==="/api/chat"){globalThis.ngoShowMapsLink?.(d.mapsUrl);globalThis.ngoShowRouteError?.(d.routeError)}return d}finally{if(controller===c)controller=null}}');
+ p=once(p,'if(!r.ok)throw Error(d.error||"HTTP "+r.status);return d}finally{if(controller===c)controller=null}}','if(!r.ok)throw Error(d.error||"HTTP "+r.status);if(path==="/api/chat"){globalThis.ngoShowMapsLink?.(d.mapsUrl);globalThis.ngoShowRouteError?.(d.routeError);if(d.trip)globalThis.ngoTripStart?.(d.trip)}return d}finally{if(controller===c)controller=null}}');
  if(p.includes('body:JSON.stringify({...body,apiKey:key})')){
   p=once(p,'body:JSON.stringify({...body,apiKey:key})','body:JSON.stringify({...body,apiKey:key,...(await (globalThis.ngoRouteContextAsync?.()||{}))})');
-  p=once(p,'if(d.type==="done")result=d.result;','if(d.type==="done"){result=d.result;globalThis.ngoShowMapsLink?.(result?.mapsUrl);globalThis.ngoShowRouteError?.(result?.routeError)}');
+  p=once(p,'if(d.type==="done")result=d.result;','if(d.type==="done"){result=d.result;globalThis.ngoShowMapsLink?.(result?.mapsUrl);globalThis.ngoShowRouteError?.(result?.routeError);if(result?.trip)globalThis.ngoTripStart?.(result.trip)}');
  }
  p=once(p,'setVoiceSource("OpenAI Marin — đã phát hoàn tất");listen();return}','setVoiceSource((String(globalThis.ngoTtsSource||"").startsWith("google")?"Google Leda":"OpenAI Marin")+" — đã phát hoàn tất");ngoListenAfterPlayback();return}');
  p=once(p,'if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110)};',

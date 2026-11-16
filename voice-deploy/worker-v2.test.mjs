@@ -343,3 +343,21 @@ test('GitHub 403 fallback accepts updated Markdown headings without hardcoded hi
   assert.equal(r.headers.get('x-nmh-doc-source'),'github-raw-fallback-freshness-unverified');
  }finally{globalThis.fetch=original}
 });
+
+test('/api/route-check: TomTom only (no OpenAI), trimmed key, origin + key-format guard, off without key or with NGO_ROUTES=off',async()=>{
+  const old=globalThis.fetch,seen=[];
+  globalThis.fetch=async(u)=>{u=String(u);seen.push(u);if(!u.includes('api.tomtom.com/routing'))throw Error('unexpected '+u);
+    return Response.json({routes:[{summary:{lengthInMeters:4000,travelTimeInSeconds:600,trafficDelayInSeconds:60,noTrafficTravelTimeInSeconds:540},guidance:{instructions:[{routeOffsetInMeters:0,pointIndex:0,street:'Láng'}]}}]})};
+  try{
+    const body={apiKey:key,from:{lat:21.02,lng:105.81},to:{lat:21.05,lng:105.82}};
+    const ok=await worker.fetch(request('/api/route-check',body),{TOMTOM_KEY:' tk1 \n'});
+    assert.equal(ok.status,200);const j=await ok.json();assert.equal(j.routes[0].seconds_now,600);assert.equal(j.routes[0].path,'Láng');
+    assert.equal(seen.length,1);assert.equal(new URL(seen[0]).searchParams.get('key'),'tk1');
+    assert.equal((await worker.fetch(request('/api/route-check',body,'https://evil.test'),{TOMTOM_KEY:'tk1'})).status,403);
+    assert.equal((await worker.fetch(request('/api/route-check',{...body,apiKey:'x'}),{TOMTOM_KEY:'tk1'})).status,400);
+    assert.equal((await worker.fetch(request('/api/route-check',body),{})).status,404);
+    assert.equal((await worker.fetch(request('/api/route-check',body),{TOMTOM_KEY:'tk1',NGO_ROUTES:'off'})).status,404);
+    assert.equal((await worker.fetch(request('/api/route-check',{...body,to:{lat:'x'}}),{TOMTOM_KEY:'tk1'})).status,502);
+    assert.equal(seen.length,1,'no upstream call when blocked');
+  }finally{globalThis.fetch=old}
+});

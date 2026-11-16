@@ -1,7 +1,7 @@
 import {observePersonalMemory,personalMemoryEnabled} from './personal-memory.js';
 import {previewRealtimeSpeech} from './realtime-speech.js';
 import {enhanceFastVoice} from './fast-voice-ui.js';
-import { runAgent } from './agent-v2.js';
+import { runAgent, tomtomCheck } from './agent-v2.js';
 import { enhanceVoicePage } from './presence-ui.js';
 import { enhanceV3Page } from './v3-ui.js';
 import { handleV3, loadV3Context, memoryV2Subject } from './v3-backend.js';
@@ -74,7 +74,7 @@ try{
  return new Response(data,{headers:{...headers,"x-nmh-doc-source":source}});
 }catch{return respond({error:"Không kết nối được GitHub"},502)}
 }
-if(!["/api/test","/api/chat","/api/tts","/api/chat-stream","/api/realtime-speech-preview"].includes(u.pathname))return respond({error:"Not found"},404);
+if(!["/api/test","/api/chat","/api/tts","/api/chat-stream","/api/realtime-speech-preview","/api/route-check"].includes(u.pathname))return respond({error:"Not found"},404);
 if(request.method!=="POST")return respond({error:"POST only"},405);
 if((u.pathname==="/api/chat-stream"||u.pathname==="/api/realtime-speech-preview")&&env.NMH_FAST_VOICE!=="active")return respond({error:"Not found"},404);
 const origin=request.headers.get("origin");
@@ -90,6 +90,12 @@ if(u.pathname==="/api/realtime-speech-preview"){
   const result=await previewRealtimeSpeech({key,text,signal:request.signal});
   return new Response(result.wave,{headers:{...h,'content-type':'audio/wav','x-nmh-first-byte-ms':String(result.firstByteMs),'x-nmh-voice-usage':JSON.stringify(result.usage)}});
  }catch(e){return respond({error:String(e?.message||'Lỗi Realtime').slice(0,150)},502)}
+}
+if(u.pathname==="/api/route-check"){ // 17/11/2026 trip monitor: TomTom only, no OpenAI call; same origin + key-format guard as other APIs
+ const tk=String(env.TOMTOM_KEY||"").trim().replace(/^["']+|["']+$/g,"").trim();
+ if(env.NGO_ROUTES==="off"||!tk)return respond({error:"Tra đường đang tắt"},404);
+ const r=await tomtomCheck({from:body?.from,to:body?.to,key:tk,signal:request.signal});
+ return respond(r,r.error?502:200);
 }
 if(u.pathname==="/api/tts"){
  const text=String(body?.text||"").replace(/(\d)\s*[*×]\s*(\d)/g,"$1 nhân $2").replace(/[*#_~`|]+/g," ").replace(/\s+/g," ").trim(),style=body?.style,pcm=body?.format==="pcm"; // never read markdown symbols aloud ("sao")

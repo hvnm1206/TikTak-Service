@@ -142,3 +142,52 @@ test('route switch ON without a fix: waits for one getCurrentPosition (max 6 s) 
   assert.equal(JSON.parse(JSON.stringify(sent[1].route)).origin,null);
   assert.match(dom.ngoGeoStatus.textContent,/Dịch vụ định vị/);
 });
+
+import {TRIP_LOGIC} from './voice-boost-ui.js';
+function decideFn(){const c={};vm.runInNewContext(TRIP_LOGIC+';globalThis.d=ngoTripDecide;globalThis.dist=ngoDistM;',c);return c}
+const R=(path,min,slow=[])=>({path,seconds_now:min*60,slow_points:slow});
+test('trip monitor decision: silent when nothing changed; speaks on +5 min, on a closure, on a faster alternative; no repeats',()=>{
+  const {d,dist}=decideFn();const T0=Date.UTC(2026,10,17,1,0);
+  const trip={path:'Láng → Phạm Hùng',expectEnd:T0+20*60000,lastAlertAt:0,alerted:[]};
+  // 4 min later, 16 min left on the same road -> on schedule
+  let o=d(trip,{routes:[R('Láng → Phạm Hùng',16)]},T0+4*60000);assert.equal(o.say,null);
+  // jam: 22 min left -> 6 min later than baseline, street named, ETA given
+  o=d(trip,{routes:[R('Láng → Phạm Hùng',22,[{street:'Phạm Hùng',kind:'ùn tắc',delay_minutes:6}])]},T0+4*60000);
+  assert.match(o.say,/chậm thêm khoảng 6 phút, tắc ở Phạm Hùng\. Dự kiến tới lúc 08:26/);
+  // same state again right after -> silent (baseline moved, quiet period)
+  assert.equal(d(o.trip,{routes:[R('Láng → Phạm Hùng',21)]},T0+8*60000).say,null);
+  // closure always reported once
+  const c=d(trip,{routes:[R('Láng → Phạm Hùng',16,[{street:'Láng',kind:'đóng đường',delay_minutes:3}])]},T0+4*60000);
+  assert.match(c.say,/Phía trước có đóng đường ở Láng/);assert.equal(d(c.trip,{routes:[R('Láng → Phạm Hùng',16,[{street:'Láng',kind:'đóng đường',delay_minutes:3}])]},T0+5*60000).say,null);
+  // faster alternative (TomTom best first) while user is on the old road
+  const a=d(trip,{routes:[R('Trần Duy Hưng → Khuất Duy Tiến',12),R('Láng → Phạm Hùng',17)]},T0+4*60000);
+  assert.match(a.say,/Có đường nhanh hơn khoảng 5 phút, đi qua Trần Duy Hưng → Khuất Duy Tiến\. Bấm nút Google Maps/);assert.equal(a.trip.altUrl,true);
+  // under 4 min gain -> silent
+  assert.equal(d(trip,{routes:[R('Trần Duy Hưng',14),R('Láng → Phạm Hùng',16)]},T0+4*60000).say,null);
+  // empty/invalid check -> silent, trip untouched
+  assert.equal(d(trip,{},T0).say,null);
+  assert.ok(Math.abs(dist({lat:21.0285,lng:105.8542},{lat:21.0285,lng:105.8642})-1037)<15,'haversine ~1 km');
+});
+test('trip monitor on page: starts from a route answer, checks TomTom every 4 min (no GPT), speaks only while listening, chip stops it, switch off stops it',async()=>{
+  const html=enhanceVoiceBoost(MINI);let T=Date.UTC(2026,10,17,1,0);
+  class D extends Date{constructor(...a){super(...(a.length?a:[T]))}static now(){return T}}
+  const code=html.match(/<script>([\s\S]*)<\/script>/)[1].replace('const store={};','const store={"ngo_routes_v1":"1"};let step="listening",history=[],key="sk-test";const render=()=>{};function speak(t,g){globalThis.spoken.push(t)}');
+  const dom={},ticks=[],calls=[];
+  const document={hidden:false,getElementById:id=>dom[id]||null,createElement:()=>({style:{},remove(){delete dom[this.id]}}),body:{appendChild:el=>{dom[el.id]=el}}};
+  const navigator={geolocation:{watchPosition:ok=>{ok({coords:{latitude:21.03,longitude:105.78}});return 1},clearWatch(){},getCurrentPosition(ok){ok({coords:{latitude:21.03,longitude:105.78}})}}};
+  let reply={routes:[R('Láng → Phạm Hùng',16)]};
+  const ctx={navigator,document,Date:D,Math,JSON,Number,String,Array,setTimeout:()=>0,clearTimeout(){},setInterval:(f,ms)=>{if(ms===20000)ticks.push(f)},spoken:[],
+    fetch:async(p,o)=>{calls.push([p,JSON.parse(o.body)]);if(p==='/api/route-check')return {ok:true,status:200,json:async()=>reply};return {ok:true,json:async()=>({answer:'x',trip:{to:{lat:21.05,lng:105.82,name:'Hồ Tây'},seconds:20*60,path:'Láng → Phạm Hùng'}})}}};
+  ctx.globalThis=ctx;vm.runInNewContext(code+';globalThis.apiFn=apiCall;globalThis.peek=()=>({step,history,gen});globalThis.setStep=s=>{step=s};',ctx);
+  await ctx.apiFn('/api/chat','sk',{messages:[]});
+  assert.match(dom.ngoTripChip.textContent,/Đang canh đường → Hồ Tây/);
+  const tick=ticks[0];await tick();assert.equal(calls.filter(c=>c[0]==='/api/route-check').length,0,'nothing before 4 min');
+  T+=4*60000;await tick();const rc=calls.filter(c=>c[0]==='/api/route-check');
+  assert.equal(rc.length,1);assert.deepEqual(rc[0][1].to,{lat:21.05,lng:105.82,name:'Hồ Tây'});assert.equal(rc[0][1].apiKey,'sk-test');assert.equal(ctx.spoken.length,0,'on schedule -> silent');
+  // jam while Ngố is busy answering: queued, spoken once it is listening again
+  reply={routes:[R('Láng → Phạm Hùng',22,[{street:'Phạm Hùng',kind:'ùn tắc',delay_minutes:6}])]};ctx.setStep('speaking');
+  T+=4*60000;await tick();assert.equal(ctx.spoken.length,0);
+  ctx.setStep('listening');T+=20000;await tick();assert.equal(ctx.spoken.length,1);assert.match(ctx.spoken[0],/chậm thêm khoảng/);
+  assert.equal(ctx.peek().history.at(-1).content,ctx.spoken[0],'alert kept in conversation for follow-up questions');
+  dom.ngoTripChip.onclick();assert.equal(dom.ngoTripChip,undefined);T+=5*60000;await tick();assert.equal(calls.filter(c=>c[0]==='/api/route-check').length,2,'stopped');
+});
