@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## 16/11/2026 (23:46) — NGỐ: ĐÃ CÓ TOMTOM_KEY (MỚI NHẤT)
+
+Người dùng tạo key TomTom (MyTomTom, gói Evaluation, chọn Navigation/Places/Traffic) và thêm secret `TOMTOM_KEY` trên dashboard → version mới **`745306dc-c8b9-41bf-9671-783ef1833619`**. [Probe](https://github.com/hvnm1206/TikTak-Service/actions) xác nhận secret `GOOGLE_TTS_KEY`, `TOMTOM_KEY` có mặt, giọng Google vẫn chạy. Đã cập nhật mốc release/verify. **Chưa kiểm chứng được cuộc gọi TomTom thật** (cần một câu hỏi thật từ iPhone với công tắc tra đường bật).
+
+---
+
 ## 16/11/2026 (23:15) — NGỐ: TRA ĐƯỜNG CHUYỂN SANG TOMTOM (MỚI NHẤT)
 
 **Lý do:** bật Routes API trên Google Cloud báo "Maps Platform unavailable in this region" — tài khoản thanh toán của người dùng không được dùng Google Maps Platform. Người dùng từ chối phương án chỉ mở Google Maps (không đọc được tình trạng). **Đã làm:** `tomtomRoute` (agent-v2): TomTom Search (countrySet VN, ưu tiên gần điểm xuất phát) + Calculate Route (car, traffic=true, 2 tuyến thay thế, sectionType=traffic, hướng dẫn vi-VN) = 2 lượt/câu, miễn phí 2.500 lượt/ngày, không cần thẻ. Mỗi tuyến: thời gian hiện tại/lúc thoáng, chậm bao nhiêu, đường chính, điểm tắc/công trình/đóng đường kèm tên đường (trễ ≥1 phút). Nút dẫn đường vẫn mở Google Maps theo tọa độ chính xác (link miễn phí). Worker ưu tiên secret `TOMTOM_KEY`; Google chỉ khi có `GOOGLE_MAPS_KEY`. Công tắc SETUP vẫn mặc định TẮT.
