@@ -1,5 +1,9 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Tra đường: hiện đúng lý do lỗi
+- Ngố chỉ nói "công cụ chỉ đường đang lỗi". Thêm result.routeError (che khóa), banner đỏ trên màn hình khi bật tra đường, và yêu cầu model nói đúng lý do. Test 174/174.
+- Production 8f03f784-aead-480c-9668-12279f90219f; rollback 92493af4-53bc-477c-b48e-4fa4cfe4cab9.
+
 ## 17/11/2026 — Tra đường TomTom: sửa tham số bị từ chối
 - Triệu chứng: có vị trí iPhone nhưng Ngố vẫn báo chưa lấy được bản đồ, hỏi điểm xuất phát.
 - Nguyên nhân gốc: gửi instructionsType cùng routeRepresentation=none, TomTom không cho phép (tài liệu Guidance instructions) → mọi calculateRoute lỗi.
