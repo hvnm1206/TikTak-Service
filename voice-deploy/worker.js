@@ -92,7 +92,7 @@ if(u.pathname==="/api/realtime-speech-preview"){
  }catch(e){return respond({error:String(e?.message||'Lỗi Realtime').slice(0,150)},502)}
 }
 if(u.pathname==="/api/tts"){
- const text=String(body?.text||"").trim(),style=body?.style,pcm=body?.format==="pcm";
+ const text=String(body?.text||"").replace(/(\d)\s*[*×]\s*(\d)/g,"$1 nhân $2").replace(/[*#_~`|]+/g," ").replace(/\s+/g," ").trim(),style=body?.style,pcm=body?.format==="pcm"; // never read markdown symbols aloud ("sao")
  if(!text||text.length>500)return respond({error:"Văn bản đọc không hợp lệ"},400);
  const speakingSpeed=style==="nghiem_tuc"?1:0.756;
  const instructions=style==="nghiem_tuc"?"Speak natural Vietnamese clearly and calmly.":"Speak lively conversational Vietnamese with a playful, youthful and expressive voice; clear Northern Vietnamese intonation.";

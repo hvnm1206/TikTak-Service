@@ -330,3 +330,11 @@ test('cost rules: web_search marked paid with free tools first, voice answers sh
   assert.match(req.instructions,/1–2 câu ngắn \(khoảng 15–35 từ\)/);
   assert.ok(!/không dùng tìm kiếm cho câu hỏi kiến thức đơn giản/.test(req.instructions));
 });
+test('markdown symbols are never left for TTS to read as "sao"; lists and headings become separate phrases',()=>{
+  assert.equal(cleanVoiceAnswer('**Hà Nội** hôm nay *khoảng* 20 độ.'),'Hà Nội hôm nay khoảng 20 độ.');
+  assert.equal(cleanVoiceAnswer('Có 3 quán:\n* **Phở Thìn** – ngon\n* Phở Bát Đàn\n1. Bún chả'),'Có 3 quán: Phở Thìn – ngon, Phở Bát Đàn, Bún chả');
+  assert.equal(cleanVoiceAnswer('## Kết quả\nGiá vàng **SJC** là 85 triệu/lượng'),'Kết quả, Giá vàng SJC là 85 triệu/lượng');
+  assert.equal(cleanVoiceAnswer('Tỷ lệ 5*3=15'),'Tỷ lệ 5 nhân 3=15');
+  assert.equal(cleanVoiceAnswer('Ngày 1,5 độ.\n\nThứ hai trời đẹp.'),'Ngày 1,5 độ. Thứ hai trời đẹp.');
+  for(const t of ['**a** *b* `c` # d','| x | y |','__z__ ~~w~~'])assert.ok(!/[*#_`~|]/.test(cleanVoiceAnswer(t)),t);
+});

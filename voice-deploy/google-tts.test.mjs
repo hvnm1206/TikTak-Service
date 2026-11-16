@@ -44,3 +44,7 @@ test('page does not charge per-second TTS cost when audio came from Google',asyn
  assert.ok(html.includes('globalThis.ngoTtsSource=r.headers.get("x-nmh-tts-source")'));
  assert.ok(html.includes('startsWith("google")&&delta&&delta.ttsSeconds'));
 });
+test('TTS endpoint strips leftover markdown symbols before synthesis',async()=>{
+ const {seen}=await tts({GOOGLE_TTS_KEY:'g'},{text:'**Phở** *ngon* # 5*3'},()=>new Response(JSON.stringify({audioContent:b64(new Uint8Array(400))})));
+ assert.equal(seen[0].body.input.text,'Phở ngon 5 nhân 3');
+});
