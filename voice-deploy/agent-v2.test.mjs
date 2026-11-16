@@ -387,7 +387,8 @@ test('TomTom provider: 2 calls (place + route with live traffic), car, 3 options
   assert.equal(calls.length,2,'one place search + one route');
   assert.equal(calls[0].searchParams.get('countrySet'),'VN');assert.equal(calls[0].searchParams.get('key'),'tk');
   assert.match(calls[1].pathname,/calculateRoute\/21\.02,105\.81:21\.0285,105\.7782\/json/);
-  for(const [k,v] of [['traffic','true'],['travelMode','car'],['maxAlternatives','2'],['sectionType','traffic']])assert.equal(calls[1].searchParams.get(k),v);
+  for(const [k,v] of [['traffic','true'],['travelMode','car'],['maxAlternatives','2'],['sectionType','traffic'],['instructionsType','text']])assert.equal(calls[1].searchParams.get(k),v);
+  assert.equal(calls[1].searchParams.get('routeRepresentation'),null,'TomTom rejects instructionsType with routeRepresentation=none');
   assert.equal(r.ok,true);assert.equal(r.data.to,'SVĐ Mỹ Đình');
   assert.equal(r.data.routes[0].duration_now,'26 phút');assert.equal(r.data.routes[0].delay_minutes,8);
   assert.equal(r.data.routes[0].status,'có đoạn tắc');
@@ -399,4 +400,17 @@ test('TomTom provider: 2 calls (place + route with live traffic), car, 3 options
   assert.equal(bad.ok,false);assert.match(bad.data.error,/TOMTOM_KEY/);
   const none=await tomtomRoute({destination:'Hồ Gươm',origin:''},{routeContext:{provider:'tomtom',apiKey:'tk',origin:null},fetchImpl:async()=>{throw Error('should not call')}});
   assert.match(none.data.error,/điểm xuất phát/);
+});
+
+test('TomTom 400 on a parameter: one minimal retry instead of failing the whole question; error text never leaks the key',async()=>{
+  const seen=[];
+  const f=async(u)=>{u=new URL(String(u));seen.push(u);
+    if(u.pathname.startsWith('/search/'))return new Response(JSON.stringify({results:[{position:{lat:21.05,lon:105.82},poi:{name:'Hồ Tây'}}]}));
+    if(u.searchParams.get('instructionsType'))return new Response('{"error":"bad param"}',{status:400});
+    return new Response(JSON.stringify({routes:[{summary:{lengthInMeters:5000,travelTimeInSeconds:900,trafficDelayInSeconds:0,noTrafficTravelTimeInSeconds:900}}]}));};
+  const r=await tomtomRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'tomtom',apiKey:'secret123',origin:{lat:21.0,lng:105.8}},fetchImpl:f});
+  assert.equal(r.ok,true);assert.equal(r.data.routes[0].duration_now,'15 phút');assert.equal(r.data.routes[0].status,'thông thoáng');
+  assert.equal(seen.filter(x=>x.pathname.includes('calculateRoute')).length,2);
+  const bad=await tomtomRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'tomtom',apiKey:'secret123',origin:{lat:21,lng:105.8}},fetchImpl:async(u)=>String(u).includes('/search/')?new Response(JSON.stringify({results:[{position:{lat:21.05,lon:105.82}}]})):new Response('bad key=secret123 x',{status:500})});
+  assert.equal(bad.ok,false);assert.ok(!bad.data.error.includes('secret123'));
 });

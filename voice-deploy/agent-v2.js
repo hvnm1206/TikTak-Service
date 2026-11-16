@@ -35,7 +35,9 @@ async function tomtomPlace(q,key,near,fetchImpl,signal){
   const u=new URL("https://api.tomtom.com/search/2/search/"+encodeURIComponent(q)+".json");
   u.searchParams.set("key",key);u.searchParams.set("countrySet","VN");u.searchParams.set("limit","1");u.searchParams.set("language","vi-VN");
   if(near){u.searchParams.set("lat",String(near.lat));u.searchParams.set("lon",String(near.lng))}
-  const r=await fetchImpl(u,{signal});if(!r.ok)throw Error("TOMTOM_SEARCH_"+r.status);
+  let r=await fetchImpl(u,{signal});
+  if(r.status===400){u.searchParams.delete("language");r=await fetchImpl(u,{signal})} // retry without language if a parameter is refused
+  if(!r.ok)throw Error("TOMTOM_SEARCH_"+r.status);
   const x=(await r.json())?.results?.[0];if(!x?.position)return null;
   return {lat:x.position.lat,lng:x.position.lon,name:str(x.poi?.name||x.address?.freeformAddress||q,120)};
 }
@@ -51,9 +53,14 @@ export async function tomtomRoute(args,{routeContext,fetchImpl,signal}){
   if(!from)return fnOutput(false,{error:"Không tìm thấy điểm xuất phát '"+originText+"'."});
   if(!to)return fnOutput(false,{error:"Không tìm thấy điểm đến '"+destination+"' ở Việt Nam."});
   const u=new URL("https://api.tomtom.com/routing/1/calculateRoute/"+from.lat+","+from.lng+":"+to.lat+","+to.lng+"/json");
-  for(const [k,v] of Object.entries({key,traffic:"true",travelMode:"car",maxAlternatives:"2",computeTravelTimeFor:"all",sectionType:"traffic",instructionsType:"text",language:"vi-VN",routeRepresentation:"none"}))u.searchParams.set(k,v);
-  const r=await fetchImpl(u,{signal});
-  if(!r.ok)return fnOutput(false,{error:r.status===403||r.status===401?"TomTom từ chối khóa (TOMTOM_KEY sai hoặc chưa kích hoạt).":"TomTom tính đường lỗi HTTP "+r.status});
+  // 16/11/2026: v1 sent instructionsType together with routeRepresentation=none, which TomTom rejects (HTTP 400) -> every
+  // route failed. Street names come from guidance instructions, so keep the default route representation.
+  const base={key,traffic:"true",travelMode:"car",maxAlternatives:"2",computeTravelTimeFor:"all"};
+  for(const [k,v] of Object.entries({...base,sectionType:"traffic",instructionsType:"text"}))u.searchParams.set(k,v);
+  let r=await fetchImpl(u,{signal});
+  if(r.status===400){const m=new URL(u);for(const k of ["sectionType","instructionsType"])m.searchParams.delete(k);r=await fetchImpl(m,{signal})} // minimal retry
+  if(!r.ok){const t=(await r.text().catch(()=>"")).replace(/key=[^&\s"]+/g,"key=***").slice(0,160);
+    return fnOutput(false,{error:r.status===403||r.status===401?"TomTom từ chối khóa (TOMTOM_KEY sai hoặc chưa kích hoạt).":"TomTom tính đường lỗi HTTP "+r.status+" "+t})}
   const routes=((await r.json())?.routes||[]).slice(0,3);
   if(!routes.length)return fnOutput(false,{error:"TomTom không tìm được tuyến."});
   const out=routes.map((rt,i)=>{
