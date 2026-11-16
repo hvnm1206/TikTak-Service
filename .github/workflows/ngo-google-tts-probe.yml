@@ -1,0 +1,36 @@
+name: NGỐ — read-only Google voice probe
+on:
+  push:
+    branches: [nmh-voice-actions-reminders-p0-20261114]
+jobs:
+  probe:
+    if: startsWith(github.event.head_commit.message, 'probe(ngo): google voice')
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+    steps:
+      - name: Active version and secret names (no values)
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request
+          a='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']
+          def cf(p):
+            req=urllib.request.Request(a+p,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN'],'User-Agent':'NMH-NGO-PROBE'})
+            with urllib.request.urlopen(req,timeout=35) as r:return json.load(r)['result']
+          v=cf('/workers/scripts/nmh-voice-gpt-test/deployments')['deployments'][0]['versions']
+          print('NGO_ACTIVE_VERSIONS='+json.dumps([(x['version_id'],x['percentage']) for x in v]))
+          try:print('NGO_SECRET_NAMES='+json.dumps(sorted(s['name'] for s in cf('/workers/scripts/nmh-voice-gpt-test/secrets'))))
+          except Exception as e:print('NGO_SECRET_NAMES_UNAVAILABLE',e)
+          PY
+      - name: Probe /api/tts (dummy OpenAI key; Google path only costs a few characters)
+        run: |
+          U=https://nmh-voice-gpt-test.magical-budget.workers.dev
+          for fmt in pcm mp3; do
+            code=$(curl -sS -o out.bin -D h.txt -w '%{http_code}' -X POST "$U/api/tts" -H "origin: $U" -H 'content-type: application/json' \
+              -d "{\"apiKey\":\"sk-probe$(printf 'x%.0s' $(seq 1 40))\",\"text\":\"Xin chào, đây là giọng thử.\",\"style\":\"danh_da\",\"format\":\"$fmt\"}")
+            src=$(grep -i '^x-nmh-tts-source' h.txt | tr -d '\r' | cut -d' ' -f2)
+            ct=$(grep -i '^content-type' h.txt | tr -d '\r' | cut -d' ' -f2-)
+            echo "NGO_PROBE_$fmt status=$code source=${src:-none} type=$ct bytes=$(stat -c%s out.bin)"
+            [ "$code" = 200 ] || head -c 300 out.bin; echo
+          done
