@@ -12,6 +12,7 @@ const MINI='<h3 style="margin:0 0 12px">TÙY CHỈNH GIỌNG NÓI</h3><script>'+
  'function closeRec(){if(rec){const r=rec;rec=null;r.onresult=r.onerror=r.onend=null;try{r.abort()}catch{}}}'+
  ' const labels={idle:1};'+
  'function listen(){closeRec();heard="";const g=gen;let r;r=new SR();rec=r;r.onresult=e=>{heard=e.text;if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110)};r.onend=()=>{if(rec!==r)return;rec=null;asked.push(heard)};r.start()}'+
+ 'function setVoiceSource(){}function speakDone(){setVoiceSource("OpenAI Marin — đã phát hoàn tất");listen();return}'+
  'async function playAudioBuffer(b){if(!audioCtx)throw Error("AUDIO_NOT_UNLOCKED");return 1}'+
  '$("gain").oninput=()=>{};'+
  'globalThis.api={listen,playAudioBuffer,asked:()=>asked,rec:()=>rec,$};'+
@@ -83,4 +84,18 @@ test('real Worker page (basic and fast voice) carries both switches, compiles, a
   const off=await (await worker.fetch(new Request('https://voice.example/'),{...env,NMH_VOICE_BOOST:'off'},{})).text();
   assert.ok(!off.includes('let ngoLoudSpeaker')&&!off.includes('ngoEndTimer'));
  }
+});
+test('microphone reopens only after output latency + margin, and not if the turn changed',async()=>{
+ const html=enhanceVoiceBoost(MINI.replace(',audioCtx=null',',audioCtx={outputLatency:.1,baseLatency:.02}'));
+ const code=html.match(/<script>([\s\S]*)<\/script>/)[1];
+ const timers=[];class SR{start(){}stop(){}abort(){}}
+ const ctx={navigator:{},SR,setTimeout:(fn,ms)=>{timers.push({fn,ms})},clearTimeout(){},globalThis:null};ctx.globalThis=ctx;
+ vm.runInNewContext(code+';globalThis.speakDone=speakDone;globalThis.bump=()=>{gen++};',ctx);
+ ctx.speakDone();
+ assert.equal(ctx.api.rec(),null,'mic not opened immediately');
+ assert.equal(timers.length,1);assert.equal(timers[0].ms,420);
+ timers[0].fn();assert.ok(ctx.api.rec(),'mic opens after the delay');
+ ctx.api.rec().onend?.();
+ ctx.speakDone();ctx.bump();timers.at(-1).fn();
+ assert.equal(ctx.api.rec(),null,'stale delayed listen ignored after the turn changed');
 });

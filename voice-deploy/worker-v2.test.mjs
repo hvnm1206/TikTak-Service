@@ -207,7 +207,7 @@ test('Marin prefetch requests next segment DURING current playback and preserves
   const build=new Function('deps',`
     let active=true,gen=1,ttsRequestId=0,ttsCtl=null,ttsPrefetchCtl=null,style="nghiem_tuc",rate=1,voiceLastError="";
     const fetchSpeechAudio=deps.fetchAudio,playAudioBuffer=deps.play,recordCost=deps.cost;
-    const setState=()=>{},setVoiceSource=()=>{},listen=deps.listen,showError=deps.error;
+    const setState=()=>{},setVoiceSource=()=>{},listen=deps.listen,showError=deps.error,ngoListenAfterPlayback=()=>deps.listen(); // delay covered in voice-boost-ui.test.mjs
     function closeVoice(){ttsRequestId++;ttsCtl?.abort();ttsPrefetchCtl?.abort();ttsCtl=null;ttsPrefetchCtl=null}
     ${source}
     return {speak,interrupt:()=>{gen++;closeVoice()},getState:()=>({ttsPrefetchCtl,ttsRequestId})};
@@ -243,7 +243,7 @@ test('Marin prefetched audio cannot play after interruption',async()=>{
   const make=new Function('deps',`
     let active=true,gen=2,ttsRequestId=0,ttsCtl=null,ttsPrefetchCtl=null,style="nghiem_tuc",rate=1,voiceLastError="";
     const fetchSpeechAudio=deps.fetchAudio,playAudioBuffer=deps.play,recordCost=()=>{};
-    const setState=()=>{},setVoiceSource=()=>{},listen=deps.listen,showError=deps.error;
+    const setState=()=>{},setVoiceSource=()=>{},listen=deps.listen,showError=deps.error,ngoListenAfterPlayback=()=>deps.listen(); // delay covered in voice-boost-ui.test.mjs
     function closeVoice(){ttsRequestId++;ttsCtl?.abort();ttsPrefetchCtl?.abort();ttsCtl=null;ttsPrefetchCtl=null}
     ${source}
     return {speak,interrupt:()=>{gen++;closeVoice()}};

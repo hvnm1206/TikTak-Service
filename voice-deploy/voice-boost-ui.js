@@ -9,6 +9,9 @@ export const ENDPOINT_MS=1000;
 const HELPERS=String.raw`
  let ngoLoudSpeaker=load("ngo_loud_speaker_v1","1")!=="0",ngoFastEndpoint=load("ngo_fast_endpoint_v1","1")!=="0";
  var ngoStreamVoice=load("ngo_stream_voice_v1","1")!=="0";
+ // 16/11/2026: the last ~0.1-0.2 s of speech still sits in the iPhone output buffer when the final source ends;
+ // opening the microphone at once switches the audio session and clips the last word. Wait for output latency + margin.
+ function ngoListenAfterPlayback(){const g0=gen,lat=(audioCtx&&(audioCtx.outputLatency||0)+(audioCtx.baseLatency||0))||0,ms=Math.round(Math.min(.7,lat+.3)*1000);setTimeout(()=>{if(active&&gen===g0&&!rec)listen()},ms)}
  function ngoAudioSession(type){try{const s=navigator.audioSession;if(!s)return;const want=ngoLoudSpeaker?type:"auto";if(s.type!==want)s.type=want}catch{}}
 `;
 const SETUP_HTML='<div style="margin:0 0 16px;padding-bottom:12px;border-bottom:1px solid #334155"><strong>TĂNG TỐC &amp; LOA</strong>'+
@@ -35,6 +38,7 @@ export function enhanceVoiceBoost(page){
  p=once(p,'closeRec();heard="";','closeRec();ngoAudioSession("auto");heard="";');
  // Fast endpoint, scoped to this recognizer instance.
  p=once(p,'const g=gen;let r;','const g=gen;let r,ngoEndTimer=null;');
+ p=once(p,'setVoiceSource("OpenAI Marin — đã phát hoàn tất");listen();return}','setVoiceSource((String(globalThis.ngoTtsSource||"").startsWith("google")?"Google Leda":"OpenAI Marin")+" — đã phát hoàn tất");ngoListenAfterPlayback();return}');
  p=once(p,'if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110)};',
   'if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110);clearTimeout(ngoEndTimer);if(ngoFastEndpoint&&heard)ngoEndTimer=setTimeout(()=>{if(rec===r){try{r.stop()}catch{}}},'+ENDPOINT_MS+')};');
  p=once(p,'r.onend=()=>{if(rec!==r)return;','r.onend=()=>{clearTimeout(ngoEndTimer);if(rec!==r)return;');

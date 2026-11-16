@@ -42,7 +42,7 @@ test('v2: 0.5 s jitter buffer, then sample-exact back-to-back blocks with no gap
   assert.equal(h.started[i].playbackRate.value,1,'speed is resampled, not node playbackRate');
  }
  const out=h.started.reduce((s,x)=>s+x.buffer.length,0);
- const expected=Math.round(24000*3/(24000*1.455/48000))+Math.round(48000*.006); // + limiter tail flush
+ const expected=Math.round(24000*3/(24000*1.455/48000))+Math.round(48000*.25); // + limiter flush and silent tail
  assert.ok(Math.abs(out-expected)<=2,`output samples ${out} vs ${expected}`);
  assert.ok(h.started.every(x=>x.buffer.getChannelData(0).every(v=>Math.abs(v)<=.98)),'limited');
  // continuity across block joins: no jump larger than the signal's own max step

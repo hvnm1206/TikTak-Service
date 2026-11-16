@@ -110,7 +110,7 @@ const client=String.raw`
      const {value,done}=await reader.read();
      if(!valid()){await reader.cancel().catch(()=>{});throw Error("AUDIO_CANCELLED")}
      if(value&&value.length){if(!firstByte){firstByte=true;onFirstByte?.()}push(resample(decode(value),false))}
-     if(done){push(resample(new Float32Array(0),true));push(new Float32Array(Math.round(outRate*.006)));flushQueue(true);break}
+     if(done){push(resample(new Float32Array(0),true));push(new Float32Array(Math.round(outRate*.25)));flushQueue(true);break} // flush limiter + 0.25 s silent tail so the last word is fully out before onended
     }
     if(!started)throw Error("TTS_STREAM_EMPTY");
     recordCost({ttsSeconds:total,ttsChunks:1});
@@ -200,7 +200,7 @@ const client=String.raw`
    await Promise.race([audioFinished,new Promise(resolve=>fetchControl.signal.addEventListener("abort",resolve,{once:true}))]);
    if(!valid())return;
    if(remainder){ttsPrefetchCtl=null;speak(remainder,g,next,true,styleAtStart)}
-   else{closeVoice();setVoiceSource((String(globalThis.ngoTtsSource||"").startsWith("google")?"Google Leda":"OpenAI Marin")+" — đã phát hoàn tất");listen()}
+   else{closeVoice();setVoiceSource((String(globalThis.ngoTtsSource||"").startsWith("google")?"Google Leda":"OpenAI Marin")+" — đã phát hoàn tất");if(typeof ngoListenAfterPlayback==="function")ngoListenAfterPlayback();else listen()}
   }catch(e){
    if(!valid())return;
    previewNode?.remove();
