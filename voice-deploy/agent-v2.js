@@ -202,7 +202,9 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     usage.api_calls++;
     const webCalls=response.output.filter(x=>x?.type==="web_search_call");
     webSearchCalls+=webCalls.length;
-    if(webSearchCalls>1)throw Error("Web Search vượt giới hạn một lượt gọi mỗi câu hỏi");
+    // 16/11/2026: OpenAI may return >1 web_search_call (search + open_page) despite max_tool_calls:1.
+    // Those calls are already billed; throwing discarded a paid answer. Keep the answer, count every call
+    // in the cost estimate, and never offer web_search again in this question (see tools above).
     if(webCalls.length)toolCalls.push("web_search");
     for(const message of response.output.filter(x=>x?.type==="message")){
       for(const part of message.content||[]){

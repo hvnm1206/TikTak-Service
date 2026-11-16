@@ -152,12 +152,15 @@ test('OpenAI web search incompatibility does not silently fall back or invent re
   await assert.rejects(()=>runAgent({apiKey:key,messages:msg,fetchImpl:async()=>({ok:false,status:400})}),/quyền hỗ trợ web_search/);
 });
 
-test('multiple hosted searches fail closed before claiming cost control',async()=>{
-  await assert.rejects(()=>runAgent({apiKey:key,messages:msg,fetchImpl:async()=>response([
+test('extra hosted search calls returned by OpenAI keep the paid answer and are all counted in cost',async()=>{
+  const r=await runAgent({apiKey:key,messages:msg,fetchImpl:async()=>response([
     {type:'web_search_call',id:'1',status:'completed'},
     {type:'web_search_call',id:'2',status:'completed'},
     {type:'message',content:[{type:'output_text',text:'Found'}]}
-  ])}),/vượt giới hạn/);
+  ])});
+  assert.equal(r.answer,'Found');
+  assert.equal(r.webSearchCalls,2);
+  assert.ok(r.estimatedWebSearchUsd>0);
 });
 
 test('speech text omits URLs and citation lists while keeping source links separate',()=>{
