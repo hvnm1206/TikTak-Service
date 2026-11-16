@@ -1,5 +1,17 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## 16/11/2026 (08:00) — NGỐ: GIỌNG PHÁT LUỒNG MƯỢT LẠI (MỚI NHẤT)
+
+**Phản hồi người dùng:** tiếng nghẹt, không trơn mượt (sau bản phát luồng f2d3967d).
+
+**Nguyên nhân (đọc lại code `ngoStreamSpeech` v1):** khối sau chờ đủ 1 s âm thanh → hụt tiếng giữa khối; mỗi node tự resample 24 kHz + playbackRate → lụp bụp chỗ nối; limiter khởi động lại mỗi khối. Bản thử soft-knee làm bão hòa 3–6% mẫu trên giọng thật.
+
+**Đã sửa (`fast-voice-ui.js`):** resampler Catmull-Rom liên tục (giữ pha qua các khúc mạng, độ dài chính xác); đệm 0,5 s rồi xếp khối nối tiếp chính xác tới từng mẫu, chỉ fade-in khi hụt dữ liệu; limiter nhìn trước 5 ms giữ trạng thái liên tục (0 mẫu cắt cứng trên giọng thật). Công tắc SETUP "Phát giọng ngay khi đang tải" (`ngo_stream_voice_v1`) để so với đường MP3 cũ.
+
+**Bằng chứng:** 159/159 test PASS (có test chỗ nối không nhảy, mỗi mẫu phát 1 lần, tắt công tắc → đường MP3). [Release 43783512960](https://github.com/hvnm1206/TikTak-Service/actions/runs/43783512960) SUCCESS; version **`97ff413d-5ae2-4fb4-b8c2-8052cecc9def`**, rollback **`6b3a2675-2889-4305-a332-f2584cdf4515`**. Lưu ý: workflow release chỉ nhận thông điệp có `20261115`. Chưa nghe nghiệm thu trên iPhone.
+
+---
+
 ## 15/11/2026 (23:39) — NGỐ: THÊM GIAO DIỆN "CORGI — CẢ KHUÔN MẶT" VÀO THƯ VIỆN (MỚI NHẤT)
 
 **Yêu cầu:** người dùng chê các giao diện mắt cũ không thể hiện được đôi mắt lanh lợi; duyệt bản thử mặt corgi (artifact riêng) và yêu cầu "đưa thêm vào thư viện".
