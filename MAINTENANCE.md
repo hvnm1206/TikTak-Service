@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 16/11/2026 (22:05) — NGỐ: KHÔNG ĐỌC KÝ HIỆU MARKDOWN THÀNH "SAO" (MỚI NHẤT)
+
+**Phản hồi:** câu trả lời hay lẫn "sao sao", nhất là sau tra mạng. **Nguyên nhân:** `cleanVoiceAnswer` chỉ bỏ trích dẫn/URL, không bỏ markdown (**đậm**, *nghiêng*, gạch đầu dòng, tiêu đề, bảng) → giọng đọc đọc `*` là "sao". **Sửa:** `cleanVoiceAnswer` bỏ đậm/nghiêng/code/tiêu đề/trích dẫn/gạch đầu dòng/dấu bảng, đọc `số*số` là "nhân", nối các dòng danh sách thành cụm có dấu phẩy; `/api/tts` lọc mọi `* # _ ~ \` |` còn sót trước khi gửi Google/Marin. 167/167 test PASS. [Release 43891894113](https://github.com/hvnm1206/TikTak-Service/actions/runs/43891894113) SUCCESS; version **`1fbb518c-566a-4f47-a052-be4c263e63f9`**, rollback **`4d11d5db-17a1-4fbf-bc4d-91c836f77390`**.
+
+---
+
 ## 16/11/2026 (14:10) — NGỐ: SỬA CỤT TỪ CUỐI CÂU (MỚI NHẤT)
 
 **Phản hồi:** câu trả lời hơi cụt ở từ cuối (rõ hơn từ khi dùng Google Leda, giọng kết thúc gọn, không có đuôi im lặng dài như Marin). **Nguyên nhân:** `listen()` chạy ngay khi nguồn âm thanh cuối báo kết thúc; bộ đệm loa iPhone còn ~0,1–0,2 s, mở SpeechRecognition chuyển phiên âm thanh và cắt mất. **Sửa:** `ngoListenAfterPlayback()` (voice-boost) chờ outputLatency + baseLatency + 0,3 s (tối đa 0,7 s), bỏ qua nếu lượt đã đổi; áp dụng cho cả đường MP3 (`speak`) và đường phát luồng; luồng phát thêm 0,25 s im lặng ở cuối. 165/165 test PASS. [Release 43821469091](https://github.com/hvnm1206/TikTak-Service/actions/runs/43821469091) SUCCESS; version **`4d11d5db-17a1-4fbf-bc4d-91c836f77390`**, rollback **`ee4219a1-2675-4bd5-bc41-21d7e4363f41`**. Đã cập nhật mốc release/verify.
