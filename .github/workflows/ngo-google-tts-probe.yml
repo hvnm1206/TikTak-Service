@@ -4,7 +4,7 @@ on:
     branches: [nmh-voice-actions-reminders-p0-20261114]
 jobs:
   probe:
-    if: startsWith(github.event.head_commit.message, 'probe(ngo): google voice')
+    if: "${{ startsWith(github.event.head_commit.message, 'probe(ngo): google voice') }}"
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
