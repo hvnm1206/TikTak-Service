@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Canh giao thông dọc đường (hướng 2)
+- Google Maps dẫn đường/nhắc rẽ; Ngố (đang mở) mỗi 4 phút gọi /api/route-check (1 lần TomTom, không GPT) từ vị trí hiện tại.
+- Chỉ nói khi: chậm thêm ≥5 phút (tên đường + giờ đến mới), đóng đường/công trình, đường khác nhanh hơn ≥4 phút (cập nhật nút Google Maps). Im lặng 6 phút giữa 2 lần báo, không lặp.
+- Kết thúc: chạm chip xanh, tắt công tắc tra đường, cách đích <400 m, quá 3 giờ. Test 177/177.
+- Production efea5d4d-4b70-437c-90bc-8a0b07526aad; rollback 35b2a264-916f-4634-879e-7e22b42c5646.
+
 ## 17/11/2026 — Tra đường chạy được; trả lời chi tiết hơn
 - 01:07 chủ app thay TOMTOM_KEY đúng (lần trước dán nhầm ID khóa → 401). Bản e9896c86 do Cloudflare tạo.
 - 01:10 phản hồi: chạy nhưng quá sơ lược/không chính xác. Thêm path (đường theo thứ tự), arrive_at, cho phép 3–5 câu với câu hỏi đường; nói điểm đến đã hiểu để phát hiện tìm nhầm. Test 174/174.
