@@ -122,6 +122,8 @@ test('route switch: OFF by default sends nothing and reads no location; ON sends
  on.ctx.ngoShowMapsLink('javascript:alert(1)');assert.equal(on.dom.ngoMapsLink,undefined,'non-Google links refused');
  on.ctx.ngoShowRouteError('TomTom từ chối khóa');assert.match(on.dom.ngoRouteErr.textContent,/Tra đường: TomTom từ chối khóa/);
  on.ctx.ngoShowRouteError(null);assert.equal(on.dom.ngoRouteErr,undefined);
+ on.ctx.ngoShowRouteCompare('So sánh — TomTom: 22 phút | Vietmap: 25 phút');assert.match(on.dom.ngoRouteCmp.textContent,/Vietmap: 25 phút/);on.ctx.ngoShowRouteCompare(null);assert.equal(on.dom.ngoRouteCmp,undefined);
+ off.ctx.ngoShowRouteCompare('x');assert.equal(off.dom.ngoRouteCmp,undefined);
  off.ctx.ngoShowRouteError('x');assert.equal(off.dom.ngoRouteErr,undefined,'no route banner when switch off');
 });
 test('route switch ON without a fix: waits for one getCurrentPosition (max 6 s) before sending; denied shows how to enable',async()=>{

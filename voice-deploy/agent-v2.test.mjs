@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runAgent, MODEL, cleanVoiceAnswer, drivingRoute, tomtomRoute } from './agent-v2.js';
+import { runAgent, MODEL, cleanVoiceAnswer, drivingRoute, tomtomRoute, vietmapRoute, vietmapCalc } from './agent-v2.js';
 
 const key='sk-'+ 'a'.repeat(40);
 const msg=[{role:'user',content:'Tra thông tin cho tôi'}];
@@ -424,4 +424,36 @@ test('failed route tool: exact reason returned as routeError (key masked) and th
       return response([{type:'message',content:[{type:'output_text',text:'TomTom từ chối khóa.'}]}])}});
   assert.match(first.instructions,/đúng lý do trong trường error/);
   assert.match(r.routeError,/TomTom Search từ chối TOMTOM_KEY \(HTTP 403\): denied key=\*\*\*/);assert.ok(!r.routeError.includes('=tk'));assert.equal(r.mapsUrl,null);
+});
+
+const vmPath=(min,km,streets,heavy=[])=>({distance:km*1000,time:min*60000,instructions:streets.map(([n,d])=>({street_name:n,distance:d})),congestion_distance:heavy});
+test('Vietmap route: search v4 -> place v4 (refid) -> route v4 car + alternatives + congestion; heavy km and path in order',async()=>{
+  const seen=[];
+  const f=async(u)=>{u=new URL(String(u));seen.push(u);
+    if(u.pathname==='/api/search/v4')return Response.json([{ref_id:'geocode:ABC',name:'Hồ Tây',address:'Tây Hồ, Hà Nội'}]);
+    if(u.pathname==='/api/place/v4')return Response.json({lat:21.055,lng:105.818});
+    if(u.pathname==='/api/route/v4')return Response.json({code:'OK',paths:[vmPath(24,7.2,[['Láng',2500],['Bưởi',1800],['ngõ 1',100]],[800,700]),vmPath(27,8,[['Kim Mã',3000]])]});
+    throw Error('unexpected '+u)};
+  const r=await vietmapRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'vietmap',apiKey:'vk',origin:{lat:21.0,lng:105.8}},fetchImpl:f});
+  assert.equal(r.ok,true);assert.equal(r.data.provider,'Vietmap');assert.equal(r.data.to,'Hồ Tây, Tây Hồ, Hà Nội');
+  assert.equal(seen[0].searchParams.get('focus'),'21,105.8');assert.equal(seen[1].searchParams.get('refid'),'geocode:ABC');
+  const rt=seen[2];assert.deepEqual(rt.searchParams.getAll('point'),['21,105.8','21.055,105.818']);
+  for(const [k,v] of [['vehicle','car'],['alternative','true'],['annotations','congestion,congestion_distance']])assert.equal(rt.searchParams.get(k),v);
+  const a=r.data.routes[0];assert.equal(a.path,'Láng → Bưởi');assert.equal(a.duration_now,'24 phút');assert.equal(a.heavy_km,1.5);assert.equal(a.status,'có đoạn tắc');
+  assert.equal(r.data.routes[1].status,'thông thoáng');assert.equal(r.trip.to.lat,21.055);assert.match(r.mapsUrl,/destination=21\.05500,105\.81800/);
+  const bad=await vietmapCalc({lat:21,lng:105.8},{lat:21.05,lng:105.82},'vk',async()=>new Response('denied apikey=vk',{status:401}));
+  assert.match(bad.error,/HTTP 401/);assert.ok(!bad.error.includes('=vk'));
+});
+test('TomTom primary with Vietmap compare key: same coordinates sent to Vietmap, one comparison line returned',async()=>{
+  const seen=[];
+  const f=async(u)=>{u=new URL(String(u));seen.push(u.host+u.pathname);
+    if(u.pathname.startsWith('/search/'))return Response.json({results:[{position:{lat:21.05,lon:105.82},poi:{name:'Hồ Tây'}}]});
+    if(u.pathname.includes('calculateRoute'))return Response.json({routes:[{summary:{lengthInMeters:6000,travelTimeInSeconds:1320,trafficDelayInSeconds:120,noTrafficTravelTimeInSeconds:1200},guidance:{instructions:[{routeOffsetInMeters:0,pointIndex:0,street:'Láng'}]}}]});
+    if(u.pathname==='/api/route/v4'){assert.deepEqual(u.searchParams.getAll('point'),['21,105.8','21.05,105.82']);return Response.json({code:'OK',paths:[vmPath(25,6.5,[['Bưởi',3000]],[1200])]})}
+    throw Error('unexpected '+u)};
+  const r=await tomtomRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'tomtom',apiKey:'tk',compareKey:'vk',origin:{lat:21,lng:105.8}},fetchImpl:f});
+  assert.equal(r.ok,true);assert.match(r.routeCompare,/^So sánh — TomTom: 22 phút qua Láng.* \| Vietmap: 25 phút qua Bưởi, đông 1,2 km$/);
+  assert.equal(seen.filter(x=>x.includes('vietmap')).length,1,'compare costs exactly one Vietmap transaction (no Vietmap search)');
+  const off=await tomtomRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'tomtom',apiKey:'tk',origin:{lat:21,lng:105.8}},fetchImpl:f});
+  assert.equal(off.routeCompare,null);
 });

@@ -75,6 +75,54 @@ export async function tomtomCheck({from,to,key,fetchImpl=fetch,signal}){
   if(!key)return {error:"Chưa cấu hình TOMTOM_KEY."};
   try{return await tomtomCalc(from,to,key,fetchImpl,signal)}catch(e){return {error:"TomTom lỗi: "+String(e?.message||e).slice(0,100)}}
 }
+// 17/11/2026 Vietmap (owner registering a key): Vietnamese road data (one-way, bans). Used side by side with TomTom so the
+// owner can compare on his usual trips; becomes the primary provider only when it is the sole key or NGO_ROUTE_PROVIDER=vietmap.
+const VM="https://maps.vietmap.vn/api/";
+const vmMask=t=>String(t||"").replace(/apikey=[^&\s"]+/g,"apikey=***").replace(/\s+/g," ").slice(0,140);
+async function vietmapPlace(q,key,near,fetchImpl,signal){
+  const u=new URL(VM+"search/v4");u.searchParams.set("apikey",key);u.searchParams.set("text",q);u.searchParams.set("display_type","6");
+  if(near&&Number.isFinite(near.lat))u.searchParams.set("focus",near.lat+","+near.lng);
+  const r=await fetchImpl(u,{signal});if(!r.ok){const e=Error("VIETMAP_SEARCH_"+r.status);e.detail=vmMask(await r.text().catch(()=>""));throw e}
+  const a=await r.json();const hit=Array.isArray(a)?a[0]:null;if(!hit?.ref_id)return null;
+  const p=new URL(VM+"place/v4");p.searchParams.set("apikey",key);p.searchParams.set("refid",hit.ref_id);
+  const r2=await fetchImpl(p,{signal});if(!r2.ok){const e=Error("VIETMAP_PLACE_"+r2.status);e.detail=vmMask(await r2.text().catch(()=>""));throw e}
+  const d=await r2.json();if(!Number.isFinite(d?.lat)||!Number.isFinite(d?.lng))return null;
+  return {lat:d.lat,lng:d.lng,name:[hit.name,hit.address].filter(Boolean).join(", ")};
+}
+export async function vietmapCalc(from,to,key,fetchImpl=fetch,signal){
+  const u=new URL(VM+"route/v4");u.searchParams.set("apikey",key);u.searchParams.append("point",from.lat+","+from.lng);u.searchParams.append("point",to.lat+","+to.lng);
+  for(const [k,v] of Object.entries({vehicle:"car",alternative:"true",annotations:"congestion,congestion_distance",points_encoded:"true"}))u.searchParams.set(k,v);
+  let r;try{r=await fetchImpl(u,{signal})}catch(e){return {error:"Vietmap không phản hồi: "+String(e?.message||e).slice(0,80)}}
+  if(!r.ok)return {error:"Vietmap tính đường lỗi HTTP "+r.status+": "+(vmMask(await r.text().catch(()=>""))||"không có chi tiết")};
+  const j=await r.json().catch(()=>null);const paths=(j?.paths||[]).slice(0,3);
+  if(j?.code&&j.code!=="OK"||!paths.length)return {error:"Vietmap không tìm được tuyến"+(j?.code&&j.code!=="OK"?" ("+j.code+")":"")+"."};
+  return {routes:paths.map((pt,i)=>{
+    const ins=pt.instructions||[],len={};for(const x of ins){const st=x.street_name;if(st)len[st]=(len[st]||0)+(x.distance||0)}
+    const seq=[];for(const x of ins){const st=x.street_name;if(st&&seq.at(-1)!==st&&(len[st]||0)>=300)seq.push(st)}
+    const sec=Math.round((pt.time||0)/1000),heavy=Array.isArray(pt.congestion_distance)?pt.congestion_distance.reduce((a,b)=>a+(Number(b)||0),0):0;
+    return {option:i+1,path:seq.slice(0,6).join(" → "),via:Object.entries(len).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]).join(", "),seconds_now:sec,duration_now:fmtMin(sec),
+      distance_km:Math.round((pt.distance||0)/100)/10,arrive_at:new Date(Date.now()+sec*1000).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Ho_Chi_Minh"}),
+      heavy_km:Math.round(heavy/100)/10,status:heavy>=1000?"có đoạn tắc":heavy>0?"có đoạn đông":"thông thoáng",slow_points:[]};
+  })};
+}
+export async function vietmapRoute(args,{routeContext,fetchImpl,signal}){
+  const key=routeContext.apiKey,destination=str(args.destination,160),originText=str(args.origin,160),o=routeContext.origin;
+  if(destination.length<2)return fnOutput(false,{error:"Chưa rõ điểm đến."});
+  if(!originText&&!(o&&Number.isFinite(o.lat)&&Number.isFinite(o.lng)))return fnOutput(false,{error:"Chưa có vị trí hiện tại (iPhone chưa cho phép định vị). Hỏi người dùng điểm xuất phát."});
+  let from,to;
+  try{from=originText?await vietmapPlace(originText,key,o,fetchImpl,signal):{lat:o.lat,lng:o.lng,name:"vị trí hiện tại"};to=await vietmapPlace(destination,key,from||o,fetchImpl,signal)}
+  catch(e){return fnOutput(false,{error:"Vietmap tìm địa điểm lỗi ("+e.message+"): "+(e.detail||"không có chi tiết")})}
+  if(!from)return fnOutput(false,{error:"Không tìm thấy điểm xuất phát '"+originText+"'."});
+  if(!to)return fnOutput(false,{error:"Không tìm thấy điểm đến '"+destination+"'."});
+  const calc=await vietmapCalc(from,to,key,fetchImpl,signal);if(calc.error)return fnOutput(false,{error:calc.error});
+  const mapsUrl="https://www.google.com/maps/dir/?api=1&origin="+from.lat.toFixed(5)+","+from.lng.toFixed(5)+"&destination="+to.lat.toFixed(5)+","+to.lng.toFixed(5)+"&travelmode=driving";
+  return {...fnOutput(true,{provider:"Vietmap",from:from.name,to:to.name,routes:calc.routes,note:"Dữ liệu Vietmap; mức đông/tắc theo đoạn, có thể khác Google Maps."}),mapsUrl,trip:{to:{lat:to.lat,lng:to.lng,name:to.name},seconds:calc.routes[0].seconds_now,path:calc.routes[0].path}};
+}
+// one line for the screen: same origin/destination, both providers (owner compares against what he actually drives)
+export function compareLine(tt,vm){
+  const f=(n,r)=>n+": "+(r?r.duration_now+(r.path?" qua "+r.path:"")+(r.heavy_km?", đông "+String(r.heavy_km).replace(".",",")+" km":r.delay_minutes?", chậm "+r.delay_minutes+"'":""):"lỗi");
+  return "So sánh — "+f("TomTom",tt)+" | "+f("Vietmap",vm);
+}
 export async function tomtomRoute(args,{routeContext,fetchImpl,signal}){
   const key=routeContext.apiKey,destination=str(args.destination,160),originText=str(args.origin,160),o=routeContext.origin;
   if(destination.length<2)return fnOutput(false,{error:"Chưa rõ điểm đến."});
@@ -89,11 +137,14 @@ export async function tomtomRoute(args,{routeContext,fetchImpl,signal}){
   const calc=await tomtomCalc(from,to,key,fetchImpl,signal);
   if(calc.error)return fnOutput(false,{error:calc.error});
   const out=calc.routes;
+  let routeCompare=null;
+  if(routeContext.compareKey){const v=await vietmapCalc(from,to,routeContext.compareKey,fetchImpl,signal);routeCompare=v.error?"So sánh — Vietmap lỗi: "+v.error:compareLine(out[0],v.routes[0])}
   const mapsUrl="https://www.google.com/maps/dir/?api=1&origin="+from.lat.toFixed(5)+","+from.lng.toFixed(5)+"&destination="+to.lat.toFixed(5)+","+to.lng.toFixed(5)+"&travelmode=driving";
-  return {...fnOutput(true,{provider:"TomTom",from:from.name,to:to.name,routes:out,note:"Giao thông thời gian thực của TomTom tại lúc hỏi; có thể khác Google Maps. Ngố sẽ tự canh giao thông dọc đường và báo khi có tắc mới hoặc đường nhanh hơn."}),mapsUrl,trip:{to:{lat:to.lat,lng:to.lng,name:to.name},seconds:out[0].seconds_now,path:out[0].path}};
+  return {...fnOutput(true,{provider:"TomTom",from:from.name,to:to.name,routes:out,note:"Giao thông thời gian thực của TomTom tại lúc hỏi; có thể khác Google Maps. Ngố sẽ tự canh giao thông dọc đường và báo khi có tắc mới hoặc đường nhanh hơn."}),mapsUrl,routeCompare,trip:{to:{lat:to.lat,lng:to.lng,name:to.name},seconds:out[0].seconds_now,path:out[0].path}};
 }
 export async function drivingRoute(args,{routeContext,fetchImpl,signal}){
   if(routeContext?.provider==="tomtom")return tomtomRoute(args,{routeContext,fetchImpl,signal});
+  if(routeContext?.provider==="vietmap")return vietmapRoute(args,{routeContext,fetchImpl,signal});
   const key=routeContext?.apiKey;if(!key)return fnOutput(false,{error:"Tra đường chưa được bật."});
   const destination=str(args.destination,160),originText=str(args.origin,160);
   if(destination.length<2)return fnOutput(false,{error:"Chưa rõ điểm đến."});
@@ -287,7 +338,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
   ].join("\n");
   const input=messages.slice(-16).map(m=>({role:m.role,content:str(m.content,1500)}));
   const enabledActions=Array.isArray(actionRuntime?.tools)?actionRuntime.tools:[];
-  const routeTools=routeContext?.apiKey?[ROUTE_TOOL]:[];let mapsUrl=null,routeError=null,trip=null;
+  const routeTools=routeContext?.apiKey?[ROUTE_TOOL]:[];let mapsUrl=null,routeError=null,trip=null,routeCompare=null;
   const allSources=[];const toolCalls=[];let lastActionFailure=null;let webSearchCalls=0;let usage={input_tokens:0,output_tokens:0,cached_input_tokens:0,api_calls:0};let response=null;
   for(let round=0;round<3;round++){
     const controller=new AbortController();
@@ -330,7 +381,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
       const answer=cleanVoiceAnswer(extractText(response.output));
       if(!answer)throw Error("AI trả câu rỗng");
       const known=new Set(),sources=allSources.filter(x=>{if(!x?.url||known.has(x.url))return false;known.add(x.url);return true}).slice(0,8);
-      return {answer,mapsUrl,routeError,trip,sources,documentReferences:relatedDocs.map(x=>({name:x.name,segment:x.segment})),tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedWebSearchUsd:webSearchCalls*WEB_SEARCH_CALL_USD,estimatedModelUsd:Math.round(((usage.input_tokens-usage.cached_input_tokens)*0.10+usage.cached_input_tokens*0.01+usage.output_tokens*0.50)/1e6*1e8)/1e8,estimateBasis:"standard_short_context_excludes_other_fees",searchProvider:webSearchCalls?"openai_web_search":"public_sources_only"};
+      return {answer,mapsUrl,routeError,trip,routeCompare,sources,documentReferences:relatedDocs.map(x=>({name:x.name,segment:x.segment})),tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedWebSearchUsd:webSearchCalls*WEB_SEARCH_CALL_USD,estimatedModelUsd:Math.round(((usage.input_tokens-usage.cached_input_tokens)*0.10+usage.cached_input_tokens*0.01+usage.output_tokens*0.50)/1e6*1e8)/1e8,estimateBasis:"standard_short_context_excludes_other_fees",searchProvider:webSearchCalls?"openai_web_search":"public_sources_only"};
     }
     input.push(...response.output);
     for(const c of calls.slice(0,3)){
@@ -359,7 +410,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
           estimateBasis:'standard_short_context_excludes_other_fees',searchProvider:webSearchCalls?'openai_web_search':'public_sources_only'};
       }
       let data;
-      try{const args=JSON.parse(c.arguments||"{}");data=await callTool(c.name,args,{fetchImpl:toolFetchImpl,signal,routeContext});if(data?.mapsUrl)mapsUrl=data.mapsUrl;if(data?.trip)trip=data.trip;}
+      try{const args=JSON.parse(c.arguments||"{}");data=await callTool(c.name,args,{fetchImpl:toolFetchImpl,signal,routeContext});if(data?.mapsUrl)mapsUrl=data.mapsUrl;if(data?.trip)trip=data.trip;if(data?.routeCompare)routeCompare=data.routeCompare;}
       catch(e){data=fnOutput(false,{error:"Nguồn hiện không truy cập được: "+String(e?.message||"unknown").slice(0,100)})}
       if(c.name==="get_driving_route")routeError=data?.ok?null:String(data?.data?.error||"lỗi không rõ").replace(/key=[^&\s"]+/g,"key=***").slice(0,200); // shown on screen so a failing route is diagnosable
       toolCalls.push(c.name);

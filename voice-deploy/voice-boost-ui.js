@@ -48,6 +48,7 @@ const HELPERS=String.raw`
  function ngoGeoStop(){try{if(ngoGeoWatch!==null)navigator.geolocation.clearWatch(ngoGeoWatch)}catch{}ngoGeoWatch=null;ngoGeo=null}
  globalThis.ngoRouteContext=()=>ngoRoutesOn?{route:{enabled:true,origin:ngoGeo&&Date.now()-ngoGeo.at<10*60000?{lat:ngoGeo.lat,lng:ngoGeo.lng}:null}}:{};
  globalThis.ngoShowRouteError=err=>{try{let e=document.getElementById("ngoRouteErr");if(!ngoRoutesOn||!err){e?.remove();return}if(!e){e=document.createElement("div");e.id="ngoRouteErr";e.style.cssText="position:fixed;left:12px;right:12px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:50;background:#7f1d1d;color:#fff;padding:10px 12px;border-radius:12px;font:600 13px/1.35 system-ui;box-shadow:0 6px 20px #0008";e.onclick=()=>e.remove();document.body.appendChild(e)}e.textContent="⚠️ Tra đường: "+String(err).slice(0,200)}catch{}};
+ globalThis.ngoShowRouteCompare=txt=>{try{let e=document.getElementById("ngoRouteCmp");if(!ngoRoutesOn||!txt){e?.remove();return}if(!e){e=document.createElement("div");e.id="ngoRouteCmp";e.style.cssText="position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 40px);z-index:50;background:#1e3a8a;color:#fff;padding:8px 12px;border-radius:12px;font:600 12px/1.35 system-ui;box-shadow:0 6px 20px #0008";e.onclick=()=>e.remove();document.body.appendChild(e)}e.textContent=String(txt).slice(0,260)}catch{}};
  globalThis.ngoShowMapsLink=url=>{try{let b=document.getElementById("ngoMapsLink");if(!ngoRoutesOn||!url||!/^https:\/\/www\.google\.com\/maps\/dir\//.test(url)){b?.remove();return}
   if(!b){b=document.createElement("a");b.id="ngoMapsLink";b.target="_blank";b.rel="noopener";b.textContent="🗺️ Mở Google Maps dẫn đường";b.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));z-index:50;background:#2563eb;color:#fff;padding:12px 18px;border-radius:999px;font-weight:800;text-decoration:none;box-shadow:0 6px 20px #0008";document.body.appendChild(b)}
   b.href=url;clearTimeout(b._t);b._t=setTimeout(()=>b.remove(),5*60000)}catch{}};
@@ -91,7 +92,7 @@ const SETUP_JS=String.raw`
  $("ngoLoudSpeaker").checked=ngoLoudSpeaker;$("ngoFastEndpoint").checked=ngoFastEndpoint;
  $("ngoLoudSpeaker").onchange=()=>{ngoLoudSpeaker=$("ngoLoudSpeaker").checked;persist("ngo_loud_speaker_v1",ngoLoudSpeaker?"1":"0");ngoAudioSession("auto")};
  $("ngoStreamVoice").checked=ngoStreamVoice;$("ngoStreamVoice").onchange=()=>{ngoStreamVoice=$("ngoStreamVoice").checked;persist("ngo_stream_voice_v1",ngoStreamVoice?"1":"0")};
- $("ngoRoutes").checked=ngoRoutesOn;$("ngoRoutes").onchange=()=>{ngoRoutesOn=$("ngoRoutes").checked;persist("ngo_routes_v1",ngoRoutesOn?"1":"0");if(ngoRoutesOn)ngoGeoStart();else{ngoGeoStop();globalThis.ngoShowMapsLink(null);ngoTripEnd()}ngoGeoShow()};ngoGeoShow();try{setInterval(ngoGeoShow,15000)}catch{}
+ $("ngoRoutes").checked=ngoRoutesOn;$("ngoRoutes").onchange=()=>{ngoRoutesOn=$("ngoRoutes").checked;persist("ngo_routes_v1",ngoRoutesOn?"1":"0");if(ngoRoutesOn)ngoGeoStart();else{ngoGeoStop();globalThis.ngoShowMapsLink(null);globalThis.ngoShowRouteCompare(null);ngoTripEnd()}ngoGeoShow()};ngoGeoShow();try{setInterval(ngoGeoShow,15000)}catch{}
  $("ngoFastEndpoint").onchange=()=>{ngoFastEndpoint=$("ngoFastEndpoint").checked;persist("ngo_fast_endpoint_v1",ngoFastEndpoint?"1":"0")};
 `;
 function once(text,from,to){
@@ -108,10 +109,10 @@ export function enhanceVoiceBoost(page){
  // Fast endpoint, scoped to this recognizer instance.
  p=once(p,'const g=gen;let r;','const g=gen;let r,ngoEndTimer=null;');
  p=once(p,'body:JSON.stringify({...body,apiKey:k})','body:JSON.stringify({...body,apiKey:k,...(path==="/api/chat"?await (globalThis.ngoRouteContextAsync?.()||{}):{})})');
- p=once(p,'if(!r.ok)throw Error(d.error||"HTTP "+r.status);return d}finally{if(controller===c)controller=null}}','if(!r.ok)throw Error(d.error||"HTTP "+r.status);if(path==="/api/chat"){globalThis.ngoShowMapsLink?.(d.mapsUrl);globalThis.ngoShowRouteError?.(d.routeError);if(d.trip)globalThis.ngoTripStart?.(d.trip)}return d}finally{if(controller===c)controller=null}}');
+ p=once(p,'if(!r.ok)throw Error(d.error||"HTTP "+r.status);return d}finally{if(controller===c)controller=null}}','if(!r.ok)throw Error(d.error||"HTTP "+r.status);if(path==="/api/chat"){globalThis.ngoShowMapsLink?.(d.mapsUrl);globalThis.ngoShowRouteError?.(d.routeError);globalThis.ngoShowRouteCompare?.(d.routeCompare);if(d.trip)globalThis.ngoTripStart?.(d.trip)}return d}finally{if(controller===c)controller=null}}');
  if(p.includes('body:JSON.stringify({...body,apiKey:key})')){
   p=once(p,'body:JSON.stringify({...body,apiKey:key})','body:JSON.stringify({...body,apiKey:key,...(await (globalThis.ngoRouteContextAsync?.()||{}))})');
-  p=once(p,'if(d.type==="done")result=d.result;','if(d.type==="done"){result=d.result;globalThis.ngoShowMapsLink?.(result?.mapsUrl);globalThis.ngoShowRouteError?.(result?.routeError);if(result?.trip)globalThis.ngoTripStart?.(result.trip)}');
+  p=once(p,'if(d.type==="done")result=d.result;','if(d.type==="done"){result=d.result;globalThis.ngoShowMapsLink?.(result?.mapsUrl);globalThis.ngoShowRouteError?.(result?.routeError);globalThis.ngoShowRouteCompare?.(result?.routeCompare);if(result?.trip)globalThis.ngoTripStart?.(result.trip)}');
  }
  p=once(p,'setVoiceSource("OpenAI Marin — đã phát hoàn tất");listen();return}','setVoiceSource((String(globalThis.ngoTtsSource||"").startsWith("google")?"Google Leda":"OpenAI Marin")+" — đã phát hoàn tất");ngoListenAfterPlayback();return}');
  p=once(p,'if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110)};',

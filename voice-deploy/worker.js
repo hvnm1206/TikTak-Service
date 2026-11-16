@@ -161,8 +161,9 @@ async function chatTurn(request,env,ctx,body,key,signal,onEvent){
  const actionRuntime=buildActionRuntime({request,env,utterance:question,requestId:body.requestId,signal});
  const perfAgentStart=performance.now();
  // 16/11/2026: optional Google driving routes. Off unless the user switched it on in SETUP; env NGO_ROUTES=off disables for everyone.
- const rq=body?.route,rprov=env.TOMTOM_KEY?"tomtom":"google",rkey=String(env.TOMTOM_KEY||env.GOOGLE_MAPS_KEY||"").trim().replace(/^["']+|["']+$/g,"").trim(); // 17/11: tolerate a pasted key with spaces/newline/quotes
- const routeContext=rq&&rq.enabled===true&&rkey&&env.NGO_ROUTES!=="off"?{apiKey:rkey,provider:rprov,origin:(Number.isFinite(rq.origin?.lat)&&Number.isFinite(rq.origin?.lng)&&Math.abs(rq.origin.lat)<=90&&Math.abs(rq.origin.lng)<=180)?{lat:+rq.origin.lat,lng:+rq.origin.lng}:null}:null;
+ const rq=body?.route,clean=k=>String(k||"").trim().replace(/^["']+|["']+$/g,"").trim(),tmk=clean(env.TOMTOM_KEY),vmk=clean(env.VIETMAP_KEY),gmk=clean(env.GOOGLE_MAPS_KEY); // 17/11: keys tolerate pasted spaces/quotes
+ const rprov=env.NGO_ROUTE_PROVIDER==="vietmap"&&vmk?"vietmap":tmk?"tomtom":vmk?"vietmap":"google",rkey=rprov==="tomtom"?tmk:rprov==="vietmap"?vmk:gmk,cmpKey=rprov==="tomtom"&&vmk&&env.NGO_ROUTE_COMPARE!=="off"?vmk:null;
+ const routeContext=rq&&rq.enabled===true&&rkey&&env.NGO_ROUTES!=="off"?{apiKey:rkey,provider:rprov,compareKey:cmpKey,origin:(Number.isFinite(rq.origin?.lat)&&Number.isFinite(rq.origin?.lng)&&Math.abs(rq.origin.lat)<=90&&Math.abs(rq.origin.lng)<=180)?{lat:+rq.origin.lat,lng:+rq.origin.lng}:null}:null;
  const result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal,actionRuntime,onEvent,routeContext});
  const latency={memoryMs:Math.round(perfMemory-perfStart),agentMs:Math.round(performance.now()-perfAgentStart),serverMs:Math.round(performance.now()-perfStart)};
  // Verified tool actions are completed synchronously and are not reinterpreted by the background memory observer.
