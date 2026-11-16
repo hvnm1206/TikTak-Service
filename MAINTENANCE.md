@@ -1,5 +1,13 @@
 # NMH VOICE GPT — BẢO TRÌ / NHẬT KÝ KỸ THUẬT
 
+## 16/11/2026 (22:50) — NGỐ: TRA ĐƯỜNG & GIAO THÔNG GOOGLE MAPS, BẢN 1 (MỚI NHẤT)
+
+**Yêu cầu (đã duyệt):** biết điểm xuất phát/điểm đến, đưa tuyến, báo tình trạng và gợi ý phương án; phải có nút bật/tắt. Người dùng đi ô tô. **Đã làm:** công cụ `get_driving_route` (agent-v2) gọi Google Routes `computeRoutes` 1 lần/câu: DRIVE, TRAFFIC_AWARE (SKU Pro), tối đa 3 tuyến, thời gian hiện tại vs lúc thoáng, số đoạn chậm/tắc, tuyến chính; điểm đến gửi dạng địa chỉ (không gọi Places). Xuất phát = vị trí iPhone (watchPosition, chỉ khi bật) hoặc nơi người dùng nói. Kết quả có `mapsUrl` → nút "Mở Google Maps dẫn đường" (chỉ nhận link google.com/maps/dir). Công tắc SETUP "Tra đường & giao thông" **mặc định TẮT**: tắt thì không đọc vị trí, không gửi công cụ, không hiện nút. Tắt toàn hệ thống: env `NGO_ROUTES=off`. Khóa: `GOOGLE_MAPS_KEY` hoặc dùng `GOOGLE_TTS_KEY`. **Chưa làm (bản 2):** canh đường định kỳ khi đang lái; không dẫn đường từng ngã rẽ (giao Google Maps). Đường 1 chiều/cấm phụ thuộc dữ liệu Google.
+
+**Bằng chứng:** 170/170 test PASS (+3 test: tắt mặc định không lộ vị trí, 1 lượt gọi đúng tham số, 403 báo chưa bật API, thiếu vị trí thì hỏi). [Release 43899877383](https://github.com/hvnm1206/TikTak-Service/actions/runs/43899877383) SUCCESS; version **`6ff63b3d-4a29-4ff9-b993-589e895f512b`**, rollback **`1fbb518c-566a-4f47-a052-be4c263e63f9`**. **Phụ thuộc người dùng:** bật Routes API trong project Tiktak-sb và thêm Routes API vào API restrictions của key `ngao-tts`. Chưa gọi thử Google Routes thật.
+
+---
+
 ## 16/11/2026 (22:05) — NGỐ: KHÔNG ĐỌC KÝ HIỆU MARKDOWN THÀNH "SAO" (MỚI NHẤT)
 
 **Phản hồi:** câu trả lời hay lẫn "sao sao", nhất là sau tra mạng. **Nguyên nhân:** `cleanVoiceAnswer` chỉ bỏ trích dẫn/URL, không bỏ markdown (**đậm**, *nghiêng*, gạch đầu dòng, tiêu đề, bảng) → giọng đọc đọc `*` là "sao". **Sửa:** `cleanVoiceAnswer` bỏ đậm/nghiêng/code/tiêu đề/trích dẫn/gạch đầu dòng/dấu bảng, đọc `số*số` là "nhân", nối các dòng danh sách thành cụm có dấu phẩy; `/api/tts` lọc mọi `* # _ ~ \` |` còn sót trước khi gửi Google/Marin. 167/167 test PASS. [Release 43891894113](https://github.com/hvnm1206/TikTak-Service/actions/runs/43891894113) SUCCESS; version **`1fbb518c-566a-4f47-a052-be4c263e63f9`**, rollback **`4d11d5db-17a1-4fbf-bc4d-91c836f77390`**.
