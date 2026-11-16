@@ -105,7 +105,7 @@ test('route switch: OFF by default sends nothing and reads no location; ON sends
  function boot(storage,geo){
   const html=enhanceVoiceBoost(MINI);const code=html.match(/<script>([\s\S]*)<\/script>/)[1].replace('const store={};','const store='+JSON.stringify(storage)+';');
   const sent=[],watch=[],dom={};
-  const document={getElementById:id=>dom[id]||null,createElement:()=>({style:{},remove(){delete dom.ngoMapsLink}}),body:{appendChild:el=>{dom.ngoMapsLink=el}}};
+  const document={getElementById:id=>dom[id]||null,createElement:()=>({style:{},remove(){delete dom[this.id]}}),body:{appendChild:el=>{dom[el.id]=el}}};
   const navigator={geolocation:{watchPosition:(ok)=>{watch.push(1);if(geo)ok({coords:geo});return 7},clearWatch:()=>watch.push('clear')}};
   class SR{start(){}stop(){}abort(){}}
   const ctx={navigator,document,SR,setTimeout:()=>0,clearTimeout:()=>{},Date,fetch:async(path,opt)=>{sent.push(JSON.parse(opt.body));return {ok:true,json:async()=>({answer:'x',mapsUrl:'https://www.google.com/maps/dir/?api=1&destination=M%E1%BB%B9%20%C4%90%C3%ACnh&travelmode=driving'})}},globalThis:null};
@@ -120,6 +120,9 @@ test('route switch: OFF by default sends nothing and reads no location; ON sends
  assert.deepEqual(JSON.parse(JSON.stringify(on.sent[0].route)),{enabled:true,origin:{lat:21.03,lng:105.78}});
  assert.match(on.dom.ngoMapsLink.href,/^https:\/\/www\.google\.com\/maps\/dir\//);
  on.ctx.ngoShowMapsLink('javascript:alert(1)');assert.equal(on.dom.ngoMapsLink,undefined,'non-Google links refused');
+ on.ctx.ngoShowRouteError('TomTom từ chối khóa');assert.match(on.dom.ngoRouteErr.textContent,/Tra đường: TomTom từ chối khóa/);
+ on.ctx.ngoShowRouteError(null);assert.equal(on.dom.ngoRouteErr,undefined);
+ off.ctx.ngoShowRouteError('x');assert.equal(off.dom.ngoRouteErr,undefined,'no route banner when switch off');
 });
 test('route switch ON without a fix: waits for one getCurrentPosition (max 6 s) before sending; denied shows how to enable',async()=>{
   const html=enhanceVoiceBoost(MINI);const code=html.match(/<script>([\s\S]*)<\/script>/)[1].replace('const store={};','const store={"ngo_routes_v1":"1"};');

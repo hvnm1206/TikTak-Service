@@ -414,3 +414,13 @@ test('TomTom 400 on a parameter: one minimal retry instead of failing the whole 
   const bad=await tomtomRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'tomtom',apiKey:'secret123',origin:{lat:21,lng:105.8}},fetchImpl:async(u)=>String(u).includes('/search/')?new Response(JSON.stringify({results:[{position:{lat:21.05,lon:105.82}}]})):new Response('bad key=secret123 x',{status:500})});
   assert.equal(bad.ok,false);assert.ok(!bad.data.error.includes('secret123'));
 });
+
+test('failed route tool: exact reason returned as routeError (key masked) and the model is told to say it',async()=>{
+  let n=0,first;
+  const r=await runAgent({apiKey:key,messages:msg,routeContext:{apiKey:'tk',provider:'tomtom',origin:{lat:21,lng:105.8}},
+    toolFetchImpl:async()=>new Response('denied key=tk',{status:403}),
+    fetchImpl:async(u,o)=>{const b=JSON.parse(o.body);if(!n++){first=b;return response([{type:'function_call',name:'get_driving_route',call_id:'c1',arguments:JSON.stringify({destination:'Hồ Tây',origin:''})}])}
+      return response([{type:'message',content:[{type:'output_text',text:'TomTom từ chối khóa.'}]}])}});
+  assert.match(first.instructions,/đúng lý do trong trường error/);
+  assert.match(r.routeError,/TomTom từ chối khóa/);assert.ok(!r.routeError.includes('=tk'));assert.equal(r.mapsUrl,null);
+});
