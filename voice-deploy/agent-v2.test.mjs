@@ -60,13 +60,13 @@ test('Wikipedia search result provides grounded source',async()=>{
   const r=await runAgent({apiKey:key,messages:msg,fetchImpl,toolFetchImpl});
   assert.match(r.sources[0].url,/wikipedia.org/);
 });
-test('Google News RSS sources are parsed and HTTPS-only',async()=>{
+test('owner 17/11 "nó nói 503": search_news (Google News RSS, 503 from datacenter IPs) is gone; free sources identify the app',async()=>{
+  let first;const seen=[];
+  await runAgent({apiKey:key,messages:[{role:'user',content:'Tin mới về triển lãm ở Hà Nội?'}],fetchImpl:async(u,o)=>{first??=JSON.parse(o.body);return response([{type:'message',content:[{type:'output_text',text:'ok'}]}])}});
+  assert.ok(!first.tools.some(t=>t.name==='search_news'));assert.ok(first.tools.some(t=>t.type==='web_search'));
   let n=0;
-  const fetchImpl=async()=>++n===1?tool('search_news',{query:'kinh tế'}):say('Tin ngắn.');
-  const toolFetchImpl=async()=>({ok:true,text:async()=>'<rss><item><title>Tin A</title><link>https://news.google.com/a</link><pubDate>Fri, 13 Nov 2026</pubDate></item><item><title>Tin B</title><link>http://invalid.example</link></item></rss>'});
-  const r=await runAgent({apiKey:key,messages:msg,fetchImpl,toolFetchImpl});
-  assert.equal(r.sources.length,1);
-  assert.equal(r.sources[0].url,'https://news.google.com/a');
+  await runAgent({apiKey:key,messages:msg,fetchImpl:async()=>++n===1?tool('search_encyclopedia',{query:'Hà Nội'}):say('Ok.'),toolFetchImpl:async(u,o)=>{seen.push(o.headers);return {ok:true,json:async()=>({query:{pages:{}}})}}});
+  assert.match(seen[0]['User-Agent'],/^NMH-Voice\/1\.0/);
 });
 test('upstream invalid key returns clear error',async()=>{
   await assert.rejects(()=>runAgent({apiKey:key,messages:msg,fetchImpl:async()=>({ok:false,status:401})}),/API key không hợp lệ/);

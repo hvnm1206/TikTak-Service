@@ -13,7 +13,6 @@ const TOOLS=[
   {type:"function",name:"get_current_time",description:"Trả về thời gian chính xác từ đồng hồ máy chủ tại múi giờ IANA được yêu cầu. Dùng khi cần thời gian thực.",parameters:{type:"object",properties:{timezone:{type:"string",description:"IANA timezone ví dụ Asia/Ho_Chi_Minh"}},required:["timezone"],additionalProperties:false},strict:true},
   {type:"function",name:"get_weather",description:"Lấy thời tiết hiện tại VÀ dự báo 7 ngày tới tại địa điểm người dùng yêu cầu, bao gồm ngày mai; dữ liệu Open-Meteo, có ngày địa phương và đơn vị. Không đoán vị trí.",parameters:{type:"object",properties:{place:{type:"string",description:"Tên địa điểm do người dùng nêu hoặc biết từ ngữ cảnh"}},required:["place"],additionalProperties:false},strict:true},
   {type:"function",name:"search_encyclopedia",description:"Tra cứu kiến thức bách khoa tiếng Việt trong Wikipedia, không dùng cho sự kiện mới diễn ra.",parameters:{type:"object",properties:{query:{type:"string",description:"Từ khóa kiến thức"}} ,required:["query"],additionalProperties:false},strict:true},
-  {type:"function",name:"search_news",description:"Tìm các tin mới trên nguồn RSS công khai; thông tin có thể không đầy đủ, cần dẫn URL nguồn.",parameters:{type:"object",properties:{query:{type:"string",description:"Nội dung muốn tìm tin tức"}} ,required:["query"],additionalProperties:false},strict:true}
 ];
 // 17/11/2026 owner: "Hỏi vị trí hiện tại nó không biết" - the GPS fix was only used for routes; nothing turned it into an address.
 const LOCATION_TOOL={type:"function",name:"get_current_location",description:"Địa chỉ nơi người dùng đang đứng, lấy từ GPS iPhone (kèm sai số mét). Dùng khi người dùng hỏi đang ở đâu, đây là đâu, gần đây là đường/phường nào.",parameters:{type:"object",properties:{},required:[],additionalProperties:false},strict:true};
@@ -25,7 +24,9 @@ const clean=(s)=>String(s||"").replace(/<[^>]*>/g," ").replace(/&amp;/g,"&").rep
 const safeURL=(x)=>{try{const u=new URL(x);if(u.protocol!=="https:"||u.username||u.password)return null;return u.href}catch{return null}};
 const nowVN=()=>new Intl.DateTimeFormat("vi-VN",{timeZone:"Asia/Ho_Chi_Minh",dateStyle:"full",timeStyle:"medium"}).format(new Date());
 async function retrieve(url,fetchImpl,signal){
-  const r=await fetchImpl(url,{headers:{Accept:"application/json, application/xml, text/xml;q=0.8"},signal});
+  // 17/11: identify the app (Wikipedia API policy). search_news (Google News RSS) was removed: Google answers datacenter
+  // traffic with 503 and Ngố read "503" aloud; news now goes through web_search.
+  const r=await fetchImpl(url,{headers:{Accept:"application/json, application/xml, text/xml;q=0.8","User-Agent":"NMH-Voice/1.0 (https://nomahubvn.com)"},signal});
   if(!r.ok)throw Error("Nguồn dữ liệu trả HTTP "+r.status);
   return r;
 }
@@ -267,17 +268,6 @@ async function callTool(name,args,{fetchImpl,signal,routeContext}){
     const data=await (await retrieve(u,fetchImpl,signal)).json();
     const pages=Object.values(data?.query?.pages||{}).slice(0,3).map(p=>({title:str(p.title,120),summary:clean(p.extract).slice(0,700),url:"https://vi.wikipedia.org/wiki/"+encodeURIComponent(String(p.title||"").replace(/ /g,"_"))}));
     return fnOutput(true,{query,results:pages,scope:"encyclopedia_not_live_news"},pages.map(p=>({title:p.title,url:p.url})));
-  }
-  if(name==="search_news"){
-    const query=str(args.query,180);if(query.length<2)return fnOutput(false,{error:"Truy vấn quá ngắn"});
-    const url="https://news.google.com/rss/search?q="+encodeURIComponent(query)+"&hl=vi&gl=VN&ceid=VN:vi";
-    const xml=await (await retrieve(url,fetchImpl,signal)).text();
-    const items=[...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0,5).map(m=>{
-      const x=m[1],find=(tag)=>{const z=x.match(new RegExp("<"+tag+"(?:\\s[^>]*)?>([\\s\\S]*?)<\\/"+tag+">"));return clean(z?.[1]?.replace(/^<!\[CDATA\[|\]\]>$/g,"")||"")};
-      const title=find("title"), link=safeURL(find("link"));
-      return {title,url:link,published:find("pubDate")};
-    }).filter(x=>x.url&&x.title);
-    return fnOutput(true,{query,results:items,scope:"public_news_rss_limited"},items.map(x=>({title:x.title,url:x.url})));
   }
   return fnOutput(false,{error:"Unsupported tool"});
 }

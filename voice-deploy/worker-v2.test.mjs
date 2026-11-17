@@ -391,6 +391,6 @@ test('production page shows a per-answer tool/web-search line on both answer pat
   assert.ok(html.includes('diag:ngoDiag(d)'),'baseline path');
   assert.ok(html.includes('if(m.role==="assistant"&&m.diag)'),'rendered under the bubble');
   const fn=html.match(/function ngoDiag\(d\)\{[\s\S]*?\n/)[0];const c={};vm.runInNewContext(fn+';globalThis.f=ngoDiag;',c);
-  assert.equal(c.f({tools:['search_news'],webSearchCalls:1,model:'gpt-x'}),'🔧 search_news · đã tìm web ×1 · gpt-x');
+  assert.equal(c.f({tools:['get_weather'],webSearchCalls:1,model:'gpt-x'}),'🔧 get_weather · đã tìm web ×1 · gpt-x');
   assert.equal(c.f({tools:[],webSearchCalls:0}),'🔧 không gọi công cụ · không tìm web');
 });
