@@ -1,0 +1,68 @@
+name: Bản tin NMH — pipeline hằng ngày (lấy tin, GPT tóm tắt, ghi D1)
+on:
+  push:
+    branches: [nmh-news-app]
+  schedule:
+    - cron: '7 23 * * *'   # 06:07 giờ Việt Nam. Lưu ý: GitHub chỉ chạy lịch từ nhánh mặc định (main).
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nmh-news-pipeline
+  cancel-in-progress: false
+jobs:
+  pipeline:
+    # Khi push: chỉ chạy nếu commit message bắt đầu bằng "run(news-pipeline)"; lịch/dispatch luôn chạy.
+    if: github.event_name != 'push' || startsWith(github.event.head_commit.message, 'run(news-pipeline)')
+    runs-on: ubuntu-latest
+    env:
+      CF_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: nmh-news-app }
+      - name: Tìm D1 nmh-news
+        id: d1
+        env: { T: '${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}' }
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request
+          r=urllib.request.urlopen(urllib.request.Request('https://api.cloudflare.com/client/v4/accounts/'+os.environ['CF_ACCOUNT_ID']+'/d1/database?name=nmh-news',headers={'Authorization':'Bearer '+os.environ['T']}),timeout=30)
+          db=next(x for x in json.load(r)['result'] if x['name']=='nmh-news')
+          open(os.environ['GITHUB_OUTPUT'],'a').write('id='+(db.get('uuid') or db['id'])+'\n')
+          PY
+      - name: Chạy pipeline
+        env:
+          CF_API_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+          D1_ID: ${{ steps.d1.outputs.id }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RUN_SUMMARY_FILE: /tmp/run.json
+        run: |
+          set -o pipefail
+          python3 news-app/pipeline/daily.py 2>&1 | tee /tmp/pipeline.log
+      - name: Báo cáo nội dung D1 sau lượt chạy (chỉ đọc)
+        if: always()
+        env:
+          T: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+          D1_ID: ${{ steps.d1.outputs.id }}
+        run: |
+          python3 - <<'PY' > /tmp/d1report.txt
+          import os,json,urllib.request
+          u='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CF_ACCOUNT_ID']+'/d1/database/'+os.environ['D1_ID']+'/query'
+          def q(s):
+            r=urllib.request.urlopen(urllib.request.Request(u,data=json.dumps({'sql':s}).encode(),method='POST',headers={'Authorization':'Bearer '+os.environ['T'],'Content-Type':'application/json'}),timeout=30)
+            return json.load(r)['result'][0]['results']
+          print('RUNS',json.dumps(q('SELECT * FROM runs ORDER BY started_at DESC LIMIT 5'),ensure_ascii=False))
+          print('SOURCES',json.dumps(q('SELECT id,last_ok_at,last_error FROM sources'),ensure_ascii=False))
+          print('BY_SOURCE',json.dumps(q('SELECT source_id,COUNT(*) n,SUM(dup_of IS NOT NULL) dups,AVG(importance) imp FROM articles GROUP BY source_id'),ensure_ascii=False))
+          print('SEEN',json.dumps(q('SELECT source_id,COUNT(*) n FROM seen_urls GROUP BY source_id')))
+          print('TOP',json.dumps(q('SELECT a.importance,a.category,s.name,a.title_vi FROM articles a JOIN sources s ON s.id=a.source_id WHERE dup_of IS NULL ORDER BY a.fetched_at DESC,a.importance DESC LIMIT 15'),ensure_ascii=False))
+          PY
+          cat /tmp/d1report.txt
+      - name: Lưu báo cáo
+        if: always()
+        run: |
+          mkdir -p /tmp/rep && cd /tmp/rep
+          git init -q && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git fetch -q --depth=1 origin nmh-news-reports && git checkout -q FETCH_HEAD -b r || git checkout -q --orphan r
+          cp /tmp/pipeline.log pipeline-latest.log 2>/dev/null || true; cp /tmp/d1report.txt d1-latest.txt 2>/dev/null || true
+          git add -A && git -c user.name=nmh-news -c user.email=actions@users.noreply.github.com commit -qm "pipeline ${{ github.run_id }} ${{ job.status }}" && git push -q origin HEAD:nmh-news-reports

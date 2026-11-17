@@ -1,0 +1,122 @@
+name: Bản tin NMH — kiểm thử, tạo D1, phát hành Worker nmh-news (rollback tự động)
+on:
+  push:
+    branches: [nmh-news-app]
+    paths: ['news-app/**', '.github/workflows/news-app-release.yml']
+permissions:
+  contents: write
+concurrency:
+  group: nmh-news-release
+  cancel-in-progress: false
+env:
+  CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+  WORKER: nmh-news
+  WRANGLER: wrangler@4.102.0
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Kiểm thử Worker (SQLite thật)
+        run: cd news-app/worker && node --test --no-warnings
+      - name: Kiểm thử pipeline
+        run: python3 -m unittest news-app/pipeline/test_daily.py -v
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: D1 nmh-news (tạo nếu chưa có) + áp migration
+        id: d1
+        env:
+          D1_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os,json,re,urllib.request,urllib.error
+          a='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']
+          def api(m,p,b=None):
+            req=urllib.request.Request(a+p,data=json.dumps(b).encode() if b is not None else None,method=m,headers={'Authorization':'Bearer '+os.environ['D1_TOKEN'],'Content-Type':'application/json'})
+            try:
+              with urllib.request.urlopen(req,timeout=30) as r:return json.load(r)['result']
+            except urllib.error.HTTPError as e:raise SystemExit(p+' HTTP '+str(e.code)+' '+e.read()[:300].decode())
+          dbs=api('GET','/d1/database?name=nmh-news')
+          db=next((x for x in dbs if x.get('name')=='nmh-news'),None)
+          if not db:
+            db=api('POST','/d1/database',{'name':'nmh-news'});print('NEWS_D1=CREATED')
+          else:print('NEWS_D1=EXISTS')
+          i=db.get('uuid') or db.get('id');assert re.fullmatch('[0-9a-f-]{36}',i)
+          open(os.environ['GITHUB_OUTPUT'],'a').write('id='+i+'\n')
+          PY
+      - name: Tạo cấu hình phát hành (điền D1 id, Google Client ID)
+        env:
+          GCID: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
+        run: |
+          python3 - <<'PY'
+          import os,re,json
+          t=open('news-app/worker/wrangler.jsonc').read()
+          t=re.sub(r'^\s*//.*$','',t,flags=re.M)
+          c=json.loads(t)
+          c['d1_databases'][0]['database_id']='${{ steps.d1.outputs.id }}'
+          c['vars']['GOOGLE_CLIENT_ID']=os.environ['GCID']
+          json.dump(c,open('news-app/worker/wrangler.generated.json','w'),indent=1)
+          print('CONFIG_OK vars=',sorted(c['vars']))
+          PY
+      - name: Áp migration D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+        run: npx --yes $WRANGLER d1 execute nmh-news --remote --config news-app/worker/wrangler.generated.json --file news-app/migrations/0001_init.sql
+      - name: Ghi phiên bản đang chạy (để rollback)
+        id: prev
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.error
+          a='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']
+          try:
+            r=urllib.request.urlopen(urllib.request.Request(a+'/workers/scripts/'+os.environ['WORKER']+'/deployments',headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN']}),timeout=30)
+            v=json.load(r)['result']['deployments'][0]['versions'][0]['version_id']
+          except urllib.error.HTTPError as e:
+            v='';print('NO_PREVIOUS_VERSION',e.code)
+          print('PREV_VERSION='+v);open(os.environ['GITHUB_OUTPUT'],'a').write('version='+v+'\n')
+          PY
+      - name: Deploy Worker nmh-news
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+        run: cd news-app/worker && npx --yes $WRANGLER deploy --config wrangler.generated.json 2>&1 | tee ../deploy.log
+      - name: Kiểm tra sau phát hành (smoke test)
+        id: smoke
+        env:
+          GCID: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
+        run: |
+          U=$(grep -oE 'https://nmh-news\.[a-z0-9-]+\.workers\.dev' news-app/deploy.log | head -1)
+          echo "url=$U" >> "$GITHUB_OUTPUT"; echo "URL=$U"
+          for i in 1 2 3 4 5 6; do code=$(curl -s -o /tmp/h -w '%{http_code}' "$U/"); [ "$code" = 200 ] && break; sleep 5; done
+          test "$code" = 200
+          grep -q "$GCID" /tmp/h || { echo "thiếu Google Client ID"; exit 1; }
+          grep -q 'webkitSpeechRecognition' /tmp/h
+          curl -sf "$U/api/health" | tee /tmp/health; echo
+          python3 -c "import json;d=json.load(open('/tmp/health'));assert d['ok'] and d['d1'] and d['google'] and d['allowlist']>=1,d"
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$U/api/today")" = 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "origin: $U" -H 'content-type: application/json' -d '{"messages":[{"role":"user","content":"x"}]}' "$U/api/ask")" = 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'origin: https://evil.example' -d '{}' "$U/api/prefs")" = 403
+          echo SMOKE_PASS
+      - name: Rollback nếu kiểm tra hỏng
+        if: failure() && steps.prev.outputs.version != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+        run: cd news-app/worker && npx --yes $WRANGLER rollback "${{ steps.prev.outputs.version }}" --name $WORKER --message "nmh-news auto rollback"
+      - name: Lưu báo cáo phát hành
+        if: always()
+        run: |
+          mkdir -p /tmp/rep && cd /tmp/rep
+          git init -q && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git fetch -q --depth=1 origin nmh-news-reports && git checkout -q FETCH_HEAD -b r || git checkout -q --orphan r
+          { echo "run=${{ github.run_id }} sha=${{ github.sha }} job=${{ job.status }}"; echo "url=${{ steps.smoke.outputs.url }}"; echo "prev_version=${{ steps.prev.outputs.version }}";
+            echo "health=$(cat /tmp/health 2>/dev/null)"; grep -E "Current Version ID|Deployed|Uploaded" $GITHUB_WORKSPACE/news-app/deploy.log 2>/dev/null; } > release-latest.txt
+          git add release-latest.txt && git -c user.name=nmh-news -c user.email=actions@users.noreply.github.com commit -qm "release ${{ github.run_id }}" && git push -q origin HEAD:nmh-news-reports

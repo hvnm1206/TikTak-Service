@@ -1,5 +1,5 @@
 {
-  "_note": "Danh sách nguồn RSS của bản tin. Thêm/bớt nguồn tại đây, không sửa code. enabled=false để tạm tắt.",
+  "_note": "Danh mục nguồn MẶC ĐỊNH. Pipeline đồng bộ file này vào D1 mỗi lượt chạy. Thêm/bớt nguồn tại đây; enabled=false để tắt. Khách tự thêm nguồn riêng trong app.",
   "sources": [
     {
       "id": "vnexpress-sohoa",
@@ -7,9 +7,9 @@
       "lang": "vi",
       "enabled": true,
       "urls": [
-        "https://vnexpress.net/rss/so-hoa.rss",
-        "https://vnexpress.net/rss/khoa-hoc-cong-nghe.rss"
-      ]
+        "https://vnexpress.net/rss/so-hoa.rss"
+      ],
+      "type": "rss"
     },
     {
       "id": "genk",
@@ -21,7 +21,8 @@
         "https://genk.vn/rss/ai.rss"
       ],
       "wallclock_tz": "+07:00",
-      "_tz_note": "Genk ghi múi giờ sai (+00:07 thay vì +07:00): lấy giờ ghi trong feed, coi là giờ VN."
+      "_tz_note": "Genk ghi múi giờ sai (+00:07 thay vì +07:00): lấy giờ ghi trong feed, coi là giờ VN.",
+      "type": "rss"
     },
     {
       "id": "techcrunch",
@@ -31,7 +32,8 @@
       "urls": [
         "https://techcrunch.com/feed/",
         "https://techcrunch.com/category/artificial-intelligence/feed/"
-      ]
+      ],
+      "type": "rss"
     },
     {
       "id": "theverge",
@@ -41,7 +43,8 @@
       "urls": [
         "https://www.theverge.com/rss/index.xml",
         "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
-      ]
+      ],
+      "type": "rss"
     },
     {
       "id": "openai",
@@ -49,9 +52,9 @@
       "lang": "en",
       "enabled": true,
       "urls": [
-        "https://openai.com/news/rss.xml",
-        "https://openai.com/blog/rss.xml"
-      ]
+        "https://openai.com/news/rss.xml"
+      ],
+      "type": "rss"
     },
     {
       "id": "anthropic",
@@ -61,9 +64,8 @@
       "urls": [
         "https://www.anthropic.com/sitemap.xml"
       ],
-      "_note": "Không có RSS chính thức. Đọc toàn bộ sitemap chính thức (bài ra mắt mô hình nằm ngoài /news/, ví dụ /claude-fable-and-mythos-5-2, /research/...). Trang có lastmod trong N ngày được đọc thẻ meta; chỉ giữ trang có ngày đăng (article:published_time). Bản chạy thật sẽ dò URL mới chưa gặp thay vì dựa vào lastmod.",
-      "type": "sitemap",
-      "enrich_recent_days": 14
+      "_note": "Không có RSS chính thức. Đọc sitemap chính thức; URL chưa từng gặp = bài mới (lần chạy đầu chỉ ghi nhận, không đưa vào bản tin). Đọc thẻ meta của trang để lấy tiêu đề, mô tả, ngày đăng nếu có.",
+      "type": "sitemap"
     },
     {
       "id": "google-ai",
@@ -74,7 +76,8 @@
         "https://blog.google/technology/ai/rss/",
         "https://research.google/blog/rss/",
         "https://deepmind.google/blog/rss.xml"
-      ]
+      ],
+      "type": "rss"
     }
   ],
   "categories": [
@@ -87,11 +90,9 @@
     "Khác"
   ],
   "digest": {
-    "window_hours": 24,
-    "fallback_window_hours": 48,
-    "min_items": 20,
-    "max_items": 50,
-    "max_per_source": 12,
+    "window_hours": 48,
+    "max_new_per_run": 200,
+    "batch_size": 40,
     "model": "gpt-6-luna",
     "reasoning": "low"
   }

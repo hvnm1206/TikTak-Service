@@ -1,0 +1,16 @@
+{
+  // Worker riêng của Bản tin NMH — không dùng chung với Ngố (nmh-voice-gpt-test).
+  // database_id và GOOGLE_CLIENT_ID được workflow phát hành điền vào lúc deploy.
+  "name": "nmh-news",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "rules": [{ "type": "Text", "globs": ["**/*.html"], "fallthrough": true }],
+  "d1_databases": [{ "binding": "DB", "database_name": "nmh-news", "database_id": "__D1_ID__" }],
+  "vars": {
+    "ALLOWED_EMAILS": "ai.nomahub@gmail.com",
+    "DAILY_USD_LIMIT": "0.3",
+    "MAX_CUSTOM_SOURCES": "10"
+  },
+  "observability": { "enabled": true }
+}
