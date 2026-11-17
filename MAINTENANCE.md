@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Lỗi 503 khi hỏi
+- 19:07 chủ app báo 503. 503 duy nhất của /api/chat: loadV3Context (đọc kho cá nhân D1) lỗi → bỏ cả lượt, nuốt lý do.
+- Probe chỉ đọc (người dùng giả): D1 khỏe, 13 bảng, 4 truy vấn 0,1–0,2 s. Token CF không có quyền đọc Workers logs (403).
+- Sửa: thử lại 1 lần; lỗi kéo dài thì thông báo kèm lý do D1; ghi console.warn. Test 194/194.
+- Production 452716d0-92cb-4c9e-9beb-583504e7cb6b; rollback 9794f832-49b4-41b3-8b58-e27f34ed9c1d.
+
 ## 17/11/2026 — Chẩn đoán 'không tra web được'
 - 18:54 chủ app: vẫn không tra web. Không có nhật ký nên chưa có bằng chứng; không đoán.
 - Thêm: dòng '🔧 công cụ · tìm web ×n · model' dưới mỗi câu trả lời (cả đường nhanh và thường); log máy chủ mỗi lượt (tên công cụ, số lần tìm, model, lỗi đã che khóa; không nội dung); bật Workers observability. Test 194/194.
