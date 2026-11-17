@@ -59,12 +59,12 @@
       "lang": "en",
       "enabled": true,
       "urls": [
-        "https://www.anthropic.com/sitemap.xml",
-        "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml",
-        "https://raw.githubusercontent.com/taobojlen/anthropic-rss-feed/main/anthropic_news_rss.xml"
+        "https://www.anthropic.com/sitemap.xml"
       ],
-      "_note": "Anthropic không có RSS chính thức (đã thử /rss.xml, /news/rss.xml, /feed.xml đều 404). Đang thử sitemap chính thức và feed cộng đồng trên GitHub.",
-      "sitemap_prefix": "https://www.anthropic.com/news/"
+      "_note": "Không có RSS chính thức. Đọc sitemap chính thức, lấy các trang /news/ có lastmod trong N ngày, rồi đọc thẻ meta chuẩn (og:title, description, ngày đăng) của từng trang. lastmod chỉ là ngày sửa, ngày đăng thật lấy từ trang.",
+      "sitemap_prefix": "https://www.anthropic.com/news/",
+      "type": "sitemap",
+      "enrich_recent_days": 7
     },
     {
       "id": "google-ai",

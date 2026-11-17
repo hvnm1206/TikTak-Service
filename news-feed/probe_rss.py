@@ -65,6 +65,58 @@ def parse_feed(raw, wallclock_tz=None, sitemap_prefix=None):
     return items
 
 
+META_KEYS = {
+    "title": ["og:title", "twitter:title"],
+    "summary": ["og:description", "description", "twitter:description"],
+    "date": ["article:published_time", "datePublished", "publish_date", "date"],
+}
+
+
+def page_meta(url):
+    """Đọc thẻ meta chuẩn của một trang: tiêu đề, mô tả, ngày đăng (meta hoặc JSON-LD)."""
+    _, body, _, _ = fetch(url)
+    h = body[:400000].decode("utf-8", "replace")
+    tags = {}
+    for m in re.finditer(r"<meta\s+[^>]*>", h, re.I):
+        t = m.group(0)
+        k = re.search(r'(?:property|name|itemprop)\s*=\s*["\']([^"\']+)', t, re.I)
+        v = re.search(r'content\s*=\s*["\']([^"\']*)', t, re.I)
+        if k and v:
+            tags.setdefault(k.group(1).strip(), html.unescape(v.group(1)).strip())
+    for m in re.finditer(r'"datePublished"\s*:\s*"([^"]+)"', h):
+        tags.setdefault("datePublished", m.group(1))
+    out = {}
+    for field, keys in META_KEYS.items():
+        for k in keys:
+            if tags.get(k):
+                out[field] = tags[k]
+                out[field + "_from"] = k
+                break
+    if "title" not in out:
+        m = re.search(r"<title[^>]*>(.*?)</title>", h, re.I | re.S)
+        if m:
+            out["title"], out["title_from"] = strip_html(m.group(1)), "<title>"
+    return out
+
+
+def enrich_sitemap(items, days):
+    """Với nguồn sitemap: chỉ đọc trang có lastmod trong `days` ngày; thay ngày bằng ngày đăng thật nếu trang có."""
+    res = []
+    for i in items:
+        if not i["date"] or (NOW - i["date"]).total_seconds() > days * 86400:
+            continue
+        try:
+            m = page_meta(i["link"])
+        except Exception as e:
+            print("META_FAIL", i["link"], e)
+            continue
+        pub = parse_date(m.get("date"))
+        res.append({**i, "title": m.get("title") or i["title"], "summary": m.get("summary", ""),
+                    "date": pub or i["date"], "lastmod": i["date"].isoformat(), "date_is_published": bool(pub),
+                    "meta_from": {k: v for k, v in m.items() if k.endswith("_from")}})
+    return res
+
+
 def fetch(url):
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.5"})
     t = time.time()
@@ -73,12 +125,17 @@ def fetch(url):
         return r.status, body, round((time.time() - t) * 1000), r.headers.get("content-type", "")
 
 
-def probe(url, wallclock_tz=None, sitemap_prefix=None):
+def probe(url, wallclock_tz=None, sitemap_prefix=None, enrich_days=None):
     out = {"url": url}
     try:
         status, body, ms, ctype = fetch(url)
         out.update(http=status, ms=ms, bytes=len(body), content_type=ctype)
         items = parse_feed(body, wallclock_tz, sitemap_prefix)
+        if enrich_days:
+            out["sitemap_urls"] = len(items)
+            items = enrich_sitemap(items, enrich_days)
+            out["published_date_found"] = sum(1 for i in items if i.get("date_is_published"))
+            out["meta_sources"] = sorted({json.dumps(i["meta_from"], sort_keys=True) for i in items})[:5]
         dates = sorted([i["date"] for i in items if i["date"]], reverse=True)
         out["items"] = len(items)
         out["with_date"] = len(dates)
@@ -89,7 +146,7 @@ def probe(url, wallclock_tz=None, sitemap_prefix=None):
             out["age_newest_h"] = round((NOW - dates[0]).total_seconds() / 3600, 1)
             out["last_24h"] = sum(1 for d in dates if (NOW - d).total_seconds() <= 86400)
             out["last_7d"] = sum(1 for d in dates if (NOW - d).total_seconds() <= 7 * 86400)
-        out["sample"] = [{"title": i["title"][:120], "date": i["date"].isoformat() if i["date"] else None} for i in items[:3]]
+        out["sample"] = [{"title": i["title"][:120], "date": i["date"].isoformat() if i["date"] else None, "summary": i["summary"][:160], "lastmod": i.get("lastmod")} for i in sorted(items, key=lambda x: x["date"] or NOW, reverse=True)[:8]]
         out["ok"] = bool(items) and bool(dates)
     except urllib.error.HTTPError as e:
         out.update(http=e.code, ok=False, error=str(e)[:200])
@@ -115,7 +172,7 @@ def main(cfg_path, out_dir):
     res = []
     for s in cfg["sources"]:
         for u in s["urls"]:
-            r = probe(u, s.get("wallclock_tz"), s.get("sitemap_prefix"))
+            r = probe(u, s.get("wallclock_tz"), s.get("sitemap_prefix"), s.get("enrich_recent_days"))
             r["source"] = s["id"]
             r["verdict"] = verdict(r)
             res.append(r)

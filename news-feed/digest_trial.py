@@ -3,7 +3,7 @@
 Khóa OpenAI lấy từ biến môi trường OPENAI_API_KEY (GitHub secret), không in ra log."""
 import json, os, sys, urllib.request, datetime as dt
 sys.path.insert(0, os.path.dirname(__file__))
-from probe_rss import fetch, parse_feed
+from probe_rss import fetch, parse_feed, enrich_sitemap
 
 NOW = dt.datetime.now(dt.timezone.utc)
 VN = dt.timezone(dt.timedelta(hours=7))
@@ -19,6 +19,7 @@ def collect(cfg, probe):
     names = {s["id"]: s["name"] for s in cfg["sources"] if s.get("enabled", True)}
     tzs = {s["id"]: s.get("wallclock_tz") for s in cfg["sources"]}
     smp = {s["id"]: s.get("sitemap_prefix") for s in cfg["sources"]}
+    enr = {s["id"]: s.get("enrich_recent_days") for s in cfg["sources"]}
     pool, seen = [], set()
     for sid, urls in usable.items():
         if sid not in names:
@@ -27,6 +28,8 @@ def collect(cfg, probe):
             try:
                 _, body, _, _ = fetch(u)
                 items = parse_feed(body, tzs.get(sid), smp.get(sid))
+                if enr.get(sid):
+                    items = enrich_sitemap(items, enr[sid])
             except Exception as e:
                 print("FETCH_FAIL", u, e)
                 continue
