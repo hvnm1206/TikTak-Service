@@ -99,9 +99,13 @@ def page_meta(url):
     return out
 
 
+DROPPED = []
+
+
 def enrich_sitemap(items, days):
     """Với nguồn sitemap: chỉ đọc trang có lastmod trong `days` ngày; chỉ giữ trang có khai báo ngày đăng, dùng ngày đăng thật."""
     res = []
+    DROPPED.clear()
     for i in items:
         if not i["date"] or (NOW - i["date"]).total_seconds() > days * 86400:
             continue
@@ -112,6 +116,7 @@ def enrich_sitemap(items, days):
             continue
         pub = parse_date(m.get("date"))
         if not pub:
+            DROPPED.append({"url": i["link"], "lastmod": i["date"].isoformat(), "title": m.get("title", ""), "meta_keys": sorted(k for k in m if not k.endswith("_from"))})
             continue  # trang không khai báo ngày đăng (tuyển dụng, giới thiệu...) thì không phải bài viết
         res.append({**i, "title": m.get("title") or i["title"], "summary": m.get("summary", ""),
                     "date": pub or i["date"], "lastmod": i["date"].isoformat(), "date_is_published": bool(pub),
@@ -137,6 +142,7 @@ def probe(url, wallclock_tz=None, sitemap_prefix=None, enrich_days=None):
             out["sitemap_urls"] = len(items)
             items = enrich_sitemap(items, enrich_days)
             out["published_date_found"] = sum(1 for i in items if i.get("date_is_published"))
+            out["dropped_no_pubdate"] = list(DROPPED)
             out["meta_sources"] = sorted({json.dumps(i["meta_from"], sort_keys=True) for i in items})[:5]
         dates = sorted([i["date"] for i in items if i["date"]], reverse=True)
         out["items"] = len(items)
