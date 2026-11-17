@@ -4,6 +4,7 @@ on:
     branches: [nmh-voice-actions-reminders-p0-20261114]
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: nmh-voice-gpt-production-deploy
   cancel-in-progress: false
@@ -32,9 +33,10 @@ jobs:
           set -euo pipefail
           for f in worker.js agent-v2.js v3-backend.js v3-ui.js memory-v2.js personal-memory.js action-registry.js reminders.js reminders-client.js qr-ui.js;do node --check "voice-deploy/$f";done
           node --experimental-sqlite --test voice-deploy/*.test.mjs
-          python3 - <<'PY'
-          import json,urllib.request
-          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43627457536',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-PROD-GATE'})
+          GH_TOKEN="${{ github.token }}" python3 - <<'PY'
+          import json,os,urllib.request
+          # authenticated read: the anonymous limit (60/h per shared runner IP) failed this gate on 17/11 with 'rate limit exceeded'
+          req=urllib.request.Request('https://api.github.com/repos/hvnm1206/TikTak-Service/actions/runs/43627457536',headers={'Accept':'application/vnd.github+json','User-Agent':'NMH-NGO-PROD-GATE','Authorization':'Bearer '+os.environ['GH_TOKEN']})
           with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
           assert j['conclusion']=='success' and j['name']=='NGỐ — personal memory sandbox and iPhone pilot'
           print('NGO_PERSONAL_MEMORY_PILOT_GATE=PASS')
