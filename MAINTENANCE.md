@@ -1,5 +1,10 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Vietmap thành nguồn chính
+- 07:03 chủ app thêm VIETMAP_KEY (bản Cloudflare 8e4057ca). 07:14 yêu cầu Ngố đọc theo Vietmap.
+- Ngố đọc Vietmap; TomTom thành dòng so sánh (1 lần gọi cùng tọa độ); canh đường dọc đường dùng Vietmap. NGO_ROUTE_PROVIDER=tomtom để quay lại. Test 181/181.
+- Production 5197e1e8-b933-4774-93c3-9f746ff4931a; rollback 8e4057ca-6525-481f-999f-ff1512dbed68.
+
 ## 17/11/2026 — Vietmap chạy song song TomTom để so sánh
 - Chủ app duyệt thử Vietmap (miễn phí 60.000 transactions, 1.500/ngày cho routing). Secret mới: VIETMAP_KEY.
 - TomTom vẫn chính; thêm 1 lần gọi Vietmap route v4 cùng tọa độ → dòng xanh 'So sánh' trên màn hình. Vietmap thành nguồn chính khi là khóa duy nhất hoặc NGO_ROUTE_PROVIDER=vietmap; NGO_ROUTE_COMPARE=off tắt so sánh. Test 179/179.
