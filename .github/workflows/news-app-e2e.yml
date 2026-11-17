@@ -17,6 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Hỏi đáp + giọng đọc thật bằng phiên tạm
         run: |
+          set -o pipefail
           python3 - <<'PY' 2>&1 | tee /tmp/e2e.txt
           import os,json,time,secrets,hashlib,base64,re,urllib.request,urllib.error
           A='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CF_ACCOUNT_ID']
@@ -26,12 +27,13 @@ jobs:
           dbid=next(x for x in cf('/d1/database?name=nmh-news',os.environ['D1T']) if x['name']=='nmh-news')['uuid']
           q=lambda s,p=[]:cf('/d1/database/'+dbid+'/query',os.environ['D1T'],{'sql':s,'params':p})[0]['results']
           U=os.environ['U']
-          health=json.load(urllib.request.urlopen(U+'/api/health'));print('HEALTH',health)
+          UA={'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) NMH-E2E'}
+          health=json.load(urllib.request.urlopen(urllib.request.Request(U+'/api/health',headers=UA)));print('HEALTH',health)
           email=re.search(r'"ALLOWED_EMAILS":\s*"([^",\s]+)',open('news-app/worker/wrangler.jsonc').read()).group(1)
           uid='ci-e2e-'+secrets.token_hex(4);tok=secrets.token_urlsafe(32)[:43]
           q('INSERT INTO users (id,email,name,created_at) VALUES (?,?,?,?)',[uid,email,'CI E2E',int(time.time()*1000)])
           q('INSERT INTO sessions (token_hash,user_id,expires_at,created_at) VALUES (?,?,?,?)',[hashlib.sha256(tok.encode()).hexdigest(),uid,int(time.time()*1000)+3600e3,int(time.time()*1000)])
-          H={'cookie':'__Host-nmhnews='+tok,'origin':U,'content-type':'application/json'}
+          H={'cookie':'__Host-nmhnews='+tok,'origin':U,'content-type':'application/json',**UA}
           def call(path,body=None):
             t=time.time();req=urllib.request.Request(U+path,data=json.dumps(body).encode() if body is not None else None,method='POST' if body is not None else 'GET',headers=H)
             try:
