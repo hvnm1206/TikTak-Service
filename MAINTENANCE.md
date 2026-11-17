@@ -1,5 +1,9 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Công cụ vị trí hiện tại
+- get_current_location (Vietmap reverse v4, TomTom dự phòng), chỉ có khi bật tra đường. Chủ app làm rõ 07:51: chỉ cần vị trí để xác định tuyến. Test 185/185.
+- Production b4e937fd-69e9-4cd8-a4db-7150230167c4; rollback 9e86251e-b045-4fe3-aa65-521ca615db5a.
+
 ## 17/11/2026 — Vị trí sai: bật GPS, chỉ dùng vị trí mới và chính xác
 - 07:39 chủ app: 'nhận vị trí linh tinh'. Nguyên nhân gốc: enableHighAccuracy:false (đoán theo trạm/wifi, lệch tới km) + chấp nhận vị trí cũ tới 10 phút.
 - Sửa: GPS bật (maximumAge 5 s); câu hỏi đường chờ ≤8 s lấy vị trí <30 s, sai số ≤150 m; sai số >500 m không gửi (Ngố hỏi điểm xuất phát); SETUP hiện ±m. Canh đường dùng cùng quy tắc. Test 184/184.
