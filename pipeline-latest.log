@@ -1,10 +1,9 @@
-SOURCE vnexpress-sohoa items=29 kept=29 errors=0 
+SOURCE vnexpress-sohoa items=30 kept=30 errors=0 
 SOURCE genk items=66 kept=62 errors=0 
-SOURCE techcrunch items=40 kept=31 errors=0 
-SOURCE theverge items=20 kept=20 errors=0 
-SOURCE openai items=14 kept=14 errors=0 
-SITEMAP_SEED anthropic ghi nhận 592 URL, không đưa vào bản tin
-SOURCE anthropic items=0 kept=0 errors=0 
-SOURCE google-ai items=1 kept=1 errors=0 
-NEW_ARTICLES 157 of pool 157
-RUN_SUMMARY {"run_id": "20261117-1541-880a6b", "new_written": 157, "model": "gpt-6-luna", "tokens": {"in": 16800, "cached": 0, "out": 17065}, "est_usd": 0.010212, "d1_calls": 221}
+SOURCE techcrunch items=40 kept=24 errors=0 
+SOURCE theverge items=20 kept=18 errors=0 
+SOURCE openai items=15 kept=15 errors=0 
+SOURCE anthropic items=1 kept=1 errors=0 
+SOURCE google-ai items=2 kept=2 errors=0 
+NEW_ARTICLES 38 of pool 152
+RUN_SUMMARY {"run_id": "20261117-2347-a6065c", "new_written": 38, "model": "gpt-6-luna", "tokens": {"in": 3784, "cached": 0, "out": 3975}, "est_usd": 0.002366, "d1_calls": 70}
