@@ -10,6 +10,15 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
     steps:
+      - name: Free search sources reachable from a datacenter IP (read-only)
+        continue-on-error: true
+        run: |
+          for u in 'https://news.google.com/rss/search?q=tri%E1%BB%83n%20l%C3%A3m%20H%C3%A0%20N%E1%BB%99i&hl=vi&gl=VN&ceid=VN:vi' 'https://vi.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=H%C3%A0%20N%E1%BB%99i&gsrlimit=1&format=json'; do
+            for ua in '' 'NMH-Voice/1.0 (ai.nomahub; contact via nomahubvn.com)'; do
+              code=$(curl -sS -o /tmp/o -w '%{http_code}' ${ua:+-A "$ua"} -H 'Accept: application/json, application/xml, text/xml;q=0.8' "$u" || echo ERR)
+              echo "NGO_SRC code=$code ua=${ua:+custom}${ua:-none} bytes=$(wc -c </tmp/o) url=${u:0:40}"
+            done
+          done
       - name: Worker invocation analytics (status, CPU time) read-only
         continue-on-error: true
         run: |
