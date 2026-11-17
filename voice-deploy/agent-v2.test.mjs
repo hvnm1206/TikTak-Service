@@ -549,3 +549,13 @@ test('Vietmap turn list for the feasibility test: turn instructions with km from
   assert.deepEqual(r.routeTurns,[{km:0.4,text:'Rẽ phải vào Hoàng Hoa Thám'},{km:2.1,text:'Rẽ trái vào Thụy Khuê'},{km:5,text:'Đích đến'}]);
   assert.ok(!JSON.stringify(r.data).includes('Rẽ trái vào'),'turn list not added to model input');
 });
+
+test('owner 17/11 13:53 "ngày mai ở Hà Nội có triển lãm gì": upcoming events and dated questions must use web_search; web_search offered',async()=>{
+  let first;
+  await runAgent({apiKey:key,messages:[{role:'user',content:'Ngày mai ở Hà Nội có triển lãm gì?'}],fetchImpl:async(u,o)=>{first??=JSON.parse(o.body);return response([{type:'message',content:[{type:'output_text',text:'ok'}]}])}});
+  assert.ok(first.tools.some(t=>t.type==='web_search'),'web_search offered on the first round');
+  assert.match(first.instructions,/BẮT BUỘC dùng web_search[^.]*triển lãm/);
+  assert.match(first.instructions,/ngày mai/);assert.match(first.instructions,/không trả kết quả đúng câu hỏi thì dùng web_search/);
+  assert.match(first.instructions,/Giờ Việt Nam hiện tại: /);
+  assert.doesNotMatch(first.instructions,/chỉ tìm web khi người dùng muốn kiểm tra/,'the 16/11 rule that blocked searches is gone');
+});
