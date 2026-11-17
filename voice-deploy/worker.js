@@ -1,7 +1,7 @@
 import {observePersonalMemory,personalMemoryEnabled} from './personal-memory.js';
 import {previewRealtimeSpeech} from './realtime-speech.js';
 import {enhanceFastVoice} from './fast-voice-ui.js';
-import { runAgent, tomtomCheck } from './agent-v2.js';
+import { runAgent, tomtomCheck, vietmapCheck } from './agent-v2.js';
 import { enhanceVoicePage } from './presence-ui.js';
 import { enhanceV3Page } from './v3-ui.js';
 import { handleV3, loadV3Context, memoryV2Subject } from './v3-backend.js';
@@ -92,9 +92,9 @@ if(u.pathname==="/api/realtime-speech-preview"){
  }catch(e){return respond({error:String(e?.message||'Lỗi Realtime').slice(0,150)},502)}
 }
 if(u.pathname==="/api/route-check"){ // 17/11/2026 trip monitor: TomTom only, no OpenAI call; same origin + key-format guard as other APIs
- const tk=String(env.TOMTOM_KEY||"").trim().replace(/^["']+|["']+$/g,"").trim();
- if(env.NGO_ROUTES==="off"||!tk)return respond({error:"Tra đường đang tắt"},404);
- const r=await tomtomCheck({from:body?.from,to:body?.to,key:tk,signal:request.signal});
+ const cl=k=>String(k||"").trim().replace(/^["']+|["']+$/g,"").trim(),tk=cl(env.TOMTOM_KEY),vk=cl(env.VIETMAP_KEY),useVm=vk&&env.NGO_ROUTE_PROVIDER!=="tomtom";
+ if(env.NGO_ROUTES==="off"||!(useVm||tk))return respond({error:"Tra đường đang tắt"},404);
+ const r=useVm?await vietmapCheck({from:body?.from,to:body?.to,key:vk,signal:request.signal}):await tomtomCheck({from:body?.from,to:body?.to,key:tk,signal:request.signal});
  return respond(r,r.error?502:200);
 }
 if(u.pathname==="/api/tts"){
@@ -162,7 +162,7 @@ async function chatTurn(request,env,ctx,body,key,signal,onEvent){
  const perfAgentStart=performance.now();
  // 16/11/2026: optional Google driving routes. Off unless the user switched it on in SETUP; env NGO_ROUTES=off disables for everyone.
  const rq=body?.route,clean=k=>String(k||"").trim().replace(/^["']+|["']+$/g,"").trim(),tmk=clean(env.TOMTOM_KEY),vmk=clean(env.VIETMAP_KEY),gmk=clean(env.GOOGLE_MAPS_KEY); // 17/11: keys tolerate pasted spaces/quotes
- const rprov=env.NGO_ROUTE_PROVIDER==="vietmap"&&vmk?"vietmap":tmk?"tomtom":vmk?"vietmap":"google",rkey=rprov==="tomtom"?tmk:rprov==="vietmap"?vmk:gmk,cmpKey=rprov==="tomtom"&&vmk&&env.NGO_ROUTE_COMPARE!=="off"?vmk:null;
+ const rprov=env.NGO_ROUTE_PROVIDER==="tomtom"&&tmk?"tomtom":vmk?"vietmap":tmk?"tomtom":"google",rkey=rprov==="tomtom"?tmk:rprov==="vietmap"?vmk:gmk,cmpKey=env.NGO_ROUTE_COMPARE==="off"?null:rprov==="tomtom"?(vmk||null):rprov==="vietmap"?(tmk||null):null; // owner 17/11: Vietmap primary when its key exists; NGO_ROUTE_PROVIDER=tomtom reverts
  const routeContext=rq&&rq.enabled===true&&rkey&&env.NGO_ROUTES!=="off"?{apiKey:rkey,provider:rprov,compareKey:cmpKey,origin:(Number.isFinite(rq.origin?.lat)&&Number.isFinite(rq.origin?.lng)&&Math.abs(rq.origin.lat)<=90&&Math.abs(rq.origin.lng)<=180)?{lat:+rq.origin.lat,lng:+rq.origin.lng}:null}:null;
  const result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal,actionRuntime,onEvent,routeContext});
  const latency={memoryMs:Math.round(perfMemory-perfStart),agentMs:Math.round(performance.now()-perfAgentStart),serverMs:Math.round(performance.now()-perfStart)};

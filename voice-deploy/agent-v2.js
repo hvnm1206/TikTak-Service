@@ -69,6 +69,12 @@ async function tomtomCalc(from,to,key,fetchImpl,signal){
   return {routes:out};
 }
 // 17/11/2026 trip monitor: one TomTom call from the current position to a known destination (no search, no GPT).
+export async function vietmapCheck({from,to,key,fetchImpl=fetch,signal}){
+  const ok=p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)&&Math.abs(p.lat)<=90&&Math.abs(p.lng)<=180;
+  if(!ok(from)||!ok(to))return {error:"Tọa độ không hợp lệ."};
+  if(!key)return {error:"Chưa cấu hình VIETMAP_KEY."};
+  return vietmapCalc(from,to,key,fetchImpl,signal);
+}
 export async function tomtomCheck({from,to,key,fetchImpl=fetch,signal}){
   const ok=p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)&&Math.abs(p.lat)<=90&&Math.abs(p.lng)<=180;
   if(!ok(from)||!ok(to))return {error:"Tọa độ không hợp lệ."};
@@ -115,8 +121,10 @@ export async function vietmapRoute(args,{routeContext,fetchImpl,signal}){
   if(!from)return fnOutput(false,{error:"Không tìm thấy điểm xuất phát '"+originText+"'."});
   if(!to)return fnOutput(false,{error:"Không tìm thấy điểm đến '"+destination+"'."});
   const calc=await vietmapCalc(from,to,key,fetchImpl,signal);if(calc.error)return fnOutput(false,{error:calc.error});
+  let routeCompare=null; // owner 17/11: Vietmap primary, TomTom shown on screen for comparison (same coordinates, one call)
+  if(routeContext.compareKey){const t=await tomtomCalc(from,to,routeContext.compareKey,fetchImpl,signal).catch(e=>({error:String(e?.message||e)}));routeCompare=t.error?"So sánh — TomTom lỗi: "+t.error:compareLine(t.routes[0],calc.routes[0])}
   const mapsUrl="https://www.google.com/maps/dir/?api=1&origin="+from.lat.toFixed(5)+","+from.lng.toFixed(5)+"&destination="+to.lat.toFixed(5)+","+to.lng.toFixed(5)+"&travelmode=driving";
-  return {...fnOutput(true,{provider:"Vietmap",from:from.name,to:to.name,routes:calc.routes,note:"Dữ liệu Vietmap; mức đông/tắc theo đoạn, có thể khác Google Maps."}),mapsUrl,trip:{to:{lat:to.lat,lng:to.lng,name:to.name},seconds:calc.routes[0].seconds_now,path:calc.routes[0].path}};
+  return {...fnOutput(true,{provider:"Vietmap",from:from.name,to:to.name,routes:calc.routes,note:"Dữ liệu Vietmap; mức đông/tắc theo đoạn, có thể khác Google Maps. Ngố sẽ tự canh giao thông dọc đường và báo khi có tắc mới hoặc đường nhanh hơn."}),mapsUrl,routeCompare,trip:{to:{lat:to.lat,lng:to.lng,name:to.name},seconds:calc.routes[0].seconds_now,path:calc.routes[0].path}};
 }
 // one line for the screen: same origin/destination, both providers (owner compares against what he actually drives)
 export function compareLine(tt,vm){

@@ -457,3 +457,16 @@ test('TomTom primary with Vietmap compare key: same coordinates sent to Vietmap,
   const off=await tomtomRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'tomtom',apiKey:'tk',origin:{lat:21,lng:105.8}},fetchImpl:f});
   assert.equal(off.routeCompare,null);
 });
+test('Vietmap primary with TomTom compare key (owner 17/11): Ngố speaks Vietmap, screen line compares with one TomTom call',async()=>{
+  const seen=[];
+  const f=async(u)=>{u=new URL(String(u));seen.push(u.host+u.pathname);
+    if(u.pathname==='/api/search/v4')return Response.json([{ref_id:'r1',name:'Hồ Tây',address:'Hà Nội'}]);
+    if(u.pathname==='/api/place/v4')return Response.json({lat:21.05,lng:105.82});
+    if(u.pathname==='/api/route/v4')return Response.json({code:'OK',paths:[vmPath(25,6.5,[['Bưởi',3000]],[1200])]});
+    if(u.pathname.includes('calculateRoute')){assert.ok(u.pathname.includes('21,105.8:21.05,105.82'));return Response.json({routes:[{summary:{lengthInMeters:6000,travelTimeInSeconds:1320,trafficDelayInSeconds:120,noTrafficTravelTimeInSeconds:1200},guidance:{instructions:[{routeOffsetInMeters:0,pointIndex:0,street:'Láng'}]}}]})}
+    throw Error('unexpected '+u)};
+  const r=await drivingRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'vietmap',apiKey:'vk',compareKey:'tk',origin:{lat:21,lng:105.8}},fetchImpl:f});
+  assert.equal(r.ok,true);assert.equal(r.data.provider,'Vietmap');assert.equal(r.data.routes[0].duration_now,'25 phút');
+  assert.match(r.routeCompare,/TomTom: 22 phút qua Láng.*\| Vietmap: 25 phút qua Bưởi/);
+  assert.equal(seen.filter(x=>x.includes('tomtom')).length,1,'one TomTom call, no TomTom search');
+});
