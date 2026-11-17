@@ -1,0 +1,453 @@
+{
+ "checked_at": "2026-11-17T14:56:19.916233+00:00",
+ "results": [
+  {
+   "url": "https://vnexpress.net/rss/so-hoa.rss",
+   "http": 200,
+   "ms": 1918,
+   "bytes": 68480,
+   "content_type": "application/xml; charset=utf-8",
+   "items": 60,
+   "with_date": 60,
+   "with_summary": 60,
+   "newest": "2026-11-17T19:11:43+07:00",
+   "oldest": "2026-11-13T00:00:00+07:00",
+   "age_newest_h": 2.7,
+   "last_24h": 15,
+   "last_7d": 60,
+   "sample": [
+    {
+     "title": "'Việt Nam cần dồn lực cho chip chuyên dụng'",
+     "date": "2026-11-17T16:08:13+07:00"
+    },
+    {
+     "title": "Elon Musk tiết lộ siêu tên lửa Starship V4 sẽ lớn và mạnh hơn",
+     "date": "2026-11-17T14:35:21+07:00"
+    },
+    {
+     "title": "Sam Altman nói về Jensen Huang: 'Người hùng cũng có khuyết điểm'",
+     "date": "2026-11-17T12:00:00+07:00"
+    }
+   ],
+   "ok": true,
+   "source": "vnexpress-sohoa",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://vnexpress.net/rss/khoa-hoc-cong-nghe.rss",
+   "http": 200,
+   "ms": 980,
+   "bytes": 68480,
+   "content_type": "application/xml; charset=utf-8",
+   "items": 60,
+   "with_date": 60,
+   "with_summary": 60,
+   "newest": "2026-11-17T19:11:43+07:00",
+   "oldest": "2026-11-13T00:00:00+07:00",
+   "age_newest_h": 2.7,
+   "last_24h": 15,
+   "last_7d": 60,
+   "sample": [
+    {
+     "title": "'Việt Nam cần dồn lực cho chip chuyên dụng'",
+     "date": "2026-11-17T16:08:13+07:00"
+    },
+    {
+     "title": "Elon Musk tiết lộ siêu tên lửa Starship V4 sẽ lớn và mạnh hơn",
+     "date": "2026-11-17T14:35:21+07:00"
+    },
+    {
+     "title": "Sam Altman nói về Jensen Huang: 'Người hùng cũng có khuyết điểm'",
+     "date": "2026-11-17T12:00:00+07:00"
+    }
+   ],
+   "ok": true,
+   "source": "vnexpress-sohoa",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://genk.vn/rss/home.rss",
+   "http": 200,
+   "ms": 1207,
+   "bytes": 69889,
+   "content_type": "text/xml; charset=UTF-8",
+   "items": 61,
+   "with_date": 61,
+   "with_summary": 61,
+   "newest": "2026-11-17T21:31:00+00:07",
+   "oldest": "2026-11-16T09:26:00+00:07",
+   "age_newest_h": -6.5,
+   "last_24h": 48,
+   "last_7d": 61,
+   "sample": [
+    {
+     "title": "Đây là Xiaomi 18 Pro Max: Màu xanh quá đẹp, màn hình phụ có AI, camera Leica chụp chân dung đã ngon hơn nhiều, giá lại c",
+     "date": "2026-11-17T21:31:00+00:07"
+    },
+    {
+     "title": "Đừng xem thường 2 món đồ giá vài chục này: Quen mà lạ, có cả tá công dụng, ai không biết thì quá phí!",
+     "date": "2026-11-17T20:12:00+00:07"
+    },
+    {
+     "title": "Microsoft 365 sập hàng chục tiếng mới khôi phục được, nguyên nhân từ một lỗi tồn tại suốt 3 tháng nay",
+     "date": "2026-11-17T20:01:00+00:07"
+    }
+   ],
+   "ok": true,
+   "source": "genk",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://genk.vn/rss/ai.rss",
+   "http": 200,
+   "ms": 1123,
+   "bytes": 70457,
+   "content_type": "text/xml; charset=UTF-8",
+   "items": 61,
+   "with_date": 61,
+   "with_summary": 61,
+   "newest": "2026-11-17T16:51:00+00:07",
+   "oldest": "2026-10-24T08:22:00+00:07",
+   "age_newest_h": -1.8,
+   "last_24h": 3,
+   "last_7d": 15,
+   "sample": [
+    {
+     "title": "Từ bàn phím vẽ trên giấy đến cuộc đua AI triệu đô",
+     "date": "2026-11-17T16:51:00+00:07"
+    },
+    {
+     "title": "AMD ra mắt EPYC thế hệ 6: Tối đa 256 nhân, xung nhịp lên tới 5,3GHz, tăng tốc cho hệ thống AI",
+     "date": "2026-11-17T15:34:00+00:07"
+    },
+    {
+     "title": "KOL Trung Quốc bị chỉ trích vì dùng AI \"hồi sinh\" người ông đã khuất trên mạng",
+     "date": "2026-11-16T19:33:00+00:07"
+    }
+   ],
+   "ok": true,
+   "source": "genk",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://genk.vn/home.rss",
+   "http": 404,
+   "ok": false,
+   "error": "HTTP Error 404: Not Found",
+   "source": "genk",
+   "verdict": "HỎNG"
+  },
+  {
+   "url": "https://techcrunch.com/feed/",
+   "http": 200,
+   "ms": 39,
+   "bytes": 17749,
+   "content_type": "application/rss+xml; charset=UTF-8",
+   "items": 20,
+   "with_date": 20,
+   "with_summary": 20,
+   "newest": "2026-11-17T14:50:58+00:00",
+   "oldest": "2026-11-16T17:10:00+00:00",
+   "age_newest_h": 0.1,
+   "last_24h": 20,
+   "last_7d": 20,
+   "sample": [
+    {
+     "title": "Isomorphic Labs raises $5B as it looks to take drug candidates to clinical trials",
+     "date": "2026-11-17T14:50:58+00:00"
+    },
+    {
+     "title": "Science Corporation’s brain tech is worth $3.5 billion after new funding",
+     "date": "2026-11-17T14:26:46+00:00"
+    },
+    {
+     "title": "Nvidia’s first big move after Jensen Huang’s exit targets national security",
+     "date": "2026-11-17T14:05:30+00:00"
+    }
+   ],
+   "ok": true,
+   "source": "techcrunch",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+   "http": 200,
+   "ms": 44,
+   "bytes": 17866,
+   "content_type": "application/rss+xml; charset=UTF-8",
+   "items": 20,
+   "with_date": 20,
+   "with_summary": 20,
+   "newest": "2026-11-17T14:50:58+00:00",
+   "oldest": "2026-11-15T21:56:35+00:00",
+   "age_newest_h": 0.1,
+   "last_24h": 15,
+   "last_7d": 20,
+   "sample": [
+    {
+     "title": "Isomorphic Labs raises $5B as it looks to take drug candidates to clinical trials",
+     "date": "2026-11-17T14:50:58+00:00"
+    },
+    {
+     "title": "Science Corporation’s brain tech is worth $3.5 billion after new funding",
+     "date": "2026-11-17T14:26:46+00:00"
+    },
+    {
+     "title": "Nvidia’s first big move after Jensen Huang’s exit targets national security",
+     "date": "2026-11-17T14:05:30+00:00"
+    }
+   ],
+   "ok": true,
+   "source": "techcrunch",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://www.theverge.com/rss/index.xml",
+   "http": 200,
+   "ms": 26,
+   "bytes": 32863,
+   "content_type": "application/xml; charset=UTF-8",
+   "items": 10,
+   "with_date": 10,
+   "with_summary": 10,
+   "newest": "2026-11-17T09:49:21-05:00",
+   "oldest": "2026-11-16T15:42:51-05:00",
+   "age_newest_h": 0.1,
+   "last_24h": 10,
+   "last_7d": 10,
+   "sample": [
+    {
+     "title": "This E Ink photo frame can double as your family’s digital dashboard",
+     "date": "2026-11-17T09:49:21-05:00"
+    },
+    {
+     "title": "Get ready for a nationwide emergency alert test at 2:20PM ET today",
+     "date": "2026-11-17T09:28:24-05:00"
+    },
+    {
+     "title": "The Fire TV Stick 4K Plus is on sale for less than Amazon’s entry-level streamer",
+     "date": "2026-11-17T09:25:07-05:00"
+    }
+   ],
+   "ok": true,
+   "source": "theverge",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
+   "http": 200,
+   "ms": 26,
+   "bytes": 28574,
+   "content_type": "application/xml; charset=UTF-8",
+   "items": 10,
+   "with_date": 10,
+   "with_summary": 10,
+   "newest": "2026-11-17T09:45:26-05:00",
+   "oldest": "2026-11-16T09:06:43-05:00",
+   "age_newest_h": 0.2,
+   "last_24h": 9,
+   "last_7d": 10,
+   "sample": [
+    {
+     "title": "Tech leaders are convinced that Jensen Huang’s exit was a plot against him",
+     "date": "2026-11-16T18:20:44-05:00"
+    },
+    {
+     "title": "California sues OpenAI over rogue AI hacking incidents",
+     "date": "2026-11-16T18:04:02-05:00"
+    },
+    {
+     "title": "Sam Altman says he wants everyone ‘to have a lot of RAM’",
+     "date": "2026-11-17T09:45:26-05:00"
+    }
+   ],
+   "ok": true,
+   "source": "theverge",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://openai.com/news/rss.xml",
+   "http": 200,
+   "ms": 106,
+   "bytes": 852721,
+   "content_type": "text/xml; charset=utf-8",
+   "items": 1401,
+   "with_date": 1401,
+   "with_summary": 1275,
+   "newest": "2026-11-17T00:00:00+00:00",
+   "oldest": "2015-12-11T08:00:00+00:00",
+   "age_newest_h": 14.9,
+   "last_24h": 4,
+   "last_7d": 23,
+   "sample": [
+    {
+     "title": "Strengthening NATO and allied cyber defenses with AI",
+     "date": "2026-11-17T00:00:00+00:00"
+    },
+    {
+     "title": "Introducing OpenAI for Chile",
+     "date": "2026-11-17T00:00:00+00:00"
+    },
+    {
+     "title": "Broadening access to AI for scientists",
+     "date": "2026-11-16T17:00:00+00:00"
+    }
+   ],
+   "ok": true,
+   "source": "openai",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://openai.com/blog/rss.xml",
+   "http": 200,
+   "ms": 163,
+   "bytes": 852721,
+   "content_type": "text/xml; charset=utf-8",
+   "items": 1401,
+   "with_date": 1401,
+   "with_summary": 1275,
+   "newest": "2026-11-17T00:00:00+00:00",
+   "oldest": "2015-12-11T08:00:00+00:00",
+   "age_newest_h": 14.9,
+   "last_24h": 4,
+   "last_7d": 23,
+   "sample": [
+    {
+     "title": "Strengthening NATO and allied cyber defenses with AI",
+     "date": "2026-11-17T00:00:00+00:00"
+    },
+    {
+     "title": "Introducing OpenAI for Chile",
+     "date": "2026-11-17T00:00:00+00:00"
+    },
+    {
+     "title": "Broadening access to AI for scientists",
+     "date": "2026-11-16T17:00:00+00:00"
+    }
+   ],
+   "ok": true,
+   "source": "openai",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://www.anthropic.com/rss.xml",
+   "http": 404,
+   "ok": false,
+   "error": "HTTP Error 404: Not Found",
+   "source": "anthropic",
+   "verdict": "HỎNG"
+  },
+  {
+   "url": "https://www.anthropic.com/news/rss.xml",
+   "http": 404,
+   "ok": false,
+   "error": "HTTP Error 404: Not Found",
+   "source": "anthropic",
+   "verdict": "HỎNG"
+  },
+  {
+   "url": "https://www.anthropic.com/feed.xml",
+   "http": 404,
+   "ok": false,
+   "error": "HTTP Error 404: Not Found",
+   "source": "anthropic",
+   "verdict": "HỎNG"
+  },
+  {
+   "url": "https://blog.google/technology/ai/rss/",
+   "http": 200,
+   "ms": 287,
+   "bytes": 30392,
+   "content_type": "application/xml; charset=utf-8",
+   "items": 20,
+   "with_date": 20,
+   "with_summary": 13,
+   "newest": "2026-11-16T14:00:00+00:00",
+   "oldest": "2026-09-17T20:00:00+00:00",
+   "age_newest_h": 24.9,
+   "last_24h": 0,
+   "last_7d": 6,
+   "sample": [
+    {
+     "title": "New Ask Maps features to help with holiday travel and prep",
+     "date": "2026-11-16T14:00:00+00:00"
+    },
+    {
+     "title": "Google Search gets a major upgrade with Gemini 4 Hydrogen",
+     "date": "2026-11-12T18:00:00+00:00"
+    },
+    {
+     "title": "Gemini Decisions API: Fast, calibrated multimodal decisions",
+     "date": "2026-11-11T18:00:00+00:00"
+    }
+   ],
+   "ok": true,
+   "source": "google-ai",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://research.google/blog/rss/",
+   "http": 200,
+   "ms": 352,
+   "bytes": 78700,
+   "content_type": "application/rss+xml; charset=utf-8",
+   "items": 100,
+   "with_date": 100,
+   "with_summary": 3,
+   "newest": "2026-11-13T20:47:18+00:00",
+   "oldest": "2025-12-04T19:26:09+00:00",
+   "age_newest_h": 90.2,
+   "last_24h": 0,
+   "last_7d": 2,
+   "sample": [
+    {
+     "title": "Advancing science & engineering with Antigravity’s /teamwork",
+     "date": "2026-11-13T20:47:18+00:00"
+    },
+    {
+     "title": "Using wearables to enable cardiovascular-kidney-metabolic (CKM) risk profiling for personalized coaching",
+     "date": "2026-11-11T19:54:00+00:00"
+    },
+    {
+     "title": "Exploring the world's languages with Language Explorer",
+     "date": "2026-11-09T20:29:39+00:00"
+    }
+   ],
+   "ok": true,
+   "source": "google-ai",
+   "verdict": "ÍT CẬP NHẬT"
+  },
+  {
+   "url": "https://deepmind.google/blog/rss.xml",
+   "http": 200,
+   "ms": 300,
+   "bytes": 68852,
+   "content_type": "application/xml",
+   "items": 100,
+   "with_date": 100,
+   "with_summary": 68,
+   "newest": "2026-11-12T18:00:50+00:00",
+   "oldest": "2025-12-11T00:06:40+00:00",
+   "age_newest_h": 116.9,
+   "last_24h": 0,
+   "last_7d": 3,
+   "sample": [
+    {
+     "title": "Introducing Gemini 4 Hydrogen",
+     "date": "2026-11-12T18:00:50+00:00"
+    },
+    {
+     "title": "AlphaGenome 2: Deciphering how cells read DNA to better understand disease",
+     "date": "2026-11-11T15:00:15+00:00"
+    },
+    {
+     "title": "Gemini 4 Carbon is now available",
+     "date": "2026-11-10T16:03:47+00:00"
+    }
+   ],
+   "ok": true,
+   "source": "google-ai",
+   "verdict": "ÍT CẬP NHẬT"
+  }
+ ]
+}
