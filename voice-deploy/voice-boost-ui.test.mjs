@@ -105,7 +105,7 @@ test('route switch: OFF by default sends nothing and reads no location; ON sends
  function boot(storage,geo){
   const html=enhanceVoiceBoost(MINI);const code=html.match(/<script>([\s\S]*)<\/script>/)[1].replace('const store={};','const store='+JSON.stringify(storage)+';');
   const sent=[],watch=[],dom={};
-  const document={getElementById:id=>dom[id]||null,createElement:()=>({style:{},remove(){delete dom[this.id]}}),body:{appendChild:el=>{dom[el.id]=el}}};
+  const document={getElementById:id=>dom[id]||null,createElement:()=>({style:{},appendChild(el){dom[el.id]=el},remove(){delete dom[this.id]}}),body:{appendChild:el=>{dom[el.id]=el}}};
   const navigator={geolocation:{watchPosition:(ok)=>{watch.push(1);if(geo)ok({coords:geo});return 7},clearWatch:()=>watch.push('clear')}};
   class SR{start(){}stop(){}abort(){}}
   const ctx={navigator,document,SR,setTimeout:()=>0,clearTimeout:()=>{},Date,fetch:async(path,opt)=>{sent.push(JSON.parse(opt.body));return {ok:true,json:async()=>({answer:'x',mapsUrl:'https://www.google.com/maps/dir/?api=1&destination=M%E1%BB%B9%20%C4%90%C3%ACnh&travelmode=driving'})}},globalThis:null};
@@ -122,7 +122,7 @@ test('route switch: OFF by default sends nothing and reads no location; ON sends
  on.ctx.ngoShowMapsLink('javascript:alert(1)');assert.equal(on.dom.ngoMapsLink,undefined,'non-Google links refused');
  on.ctx.ngoShowRouteError('TomTom từ chối khóa');assert.match(on.dom.ngoRouteErr.textContent,/Tra đường: TomTom từ chối khóa/);
  on.ctx.ngoShowRouteError(null);assert.equal(on.dom.ngoRouteErr,undefined);
- on.ctx.ngoShowRouteCompare('So sánh — TomTom: 22 phút | Vietmap: 25 phút');assert.match(on.dom.ngoRouteCmp.textContent,/Vietmap: 25 phút/);on.ctx.ngoShowRouteCompare(null);assert.equal(on.dom.ngoRouteCmp,undefined);
+ on.ctx.ngoShowRouteCompare('So sánh: TomTom 22 phút · Vietmap 25 phút\nTomTom qua Láng | Vietmap qua Bưởi');assert.equal(on.dom.ngoRouteCmp.textContent,'So sánh: TomTom 22 phút · Vietmap 25 phút','short line only');on.dom.ngoRouteCmp.onclick();assert.match(on.dom.ngoRouteCmp.textContent,/Vietmap qua Bưởi/,'tap shows detail');on.ctx.ngoShowRouteCompare(null);assert.equal(on.dom.ngoRouteCmp,undefined);
  off.ctx.ngoShowRouteCompare('x');assert.equal(off.dom.ngoRouteCmp,undefined);
  off.ctx.ngoShowRouteError('x');assert.equal(off.dom.ngoRouteErr,undefined,'no route banner when switch off');
 });
@@ -175,14 +175,14 @@ test('trip monitor on page: starts from a route answer, checks TomTom every 4 mi
   class D extends Date{constructor(...a){super(...(a.length?a:[T]))}static now(){return T}}
   const code=html.match(/<script>([\s\S]*)<\/script>/)[1].replace('const store={};','const store={"ngo_routes_v1":"1"};let step="listening",history=[],key="sk-test";const render=()=>{};function speak(t,g){globalThis.spoken.push(t)}');
   const dom={},ticks=[],calls=[];
-  const document={hidden:false,getElementById:id=>dom[id]||null,createElement:()=>({style:{},remove(){delete dom[this.id]}}),body:{appendChild:el=>{dom[el.id]=el}}};
+  const document={hidden:false,getElementById:id=>dom[id]||null,createElement:()=>({style:{},appendChild(el){dom[el.id]=el},remove(){delete dom[this.id]}}),body:{appendChild:el=>{dom[el.id]=el}}};
   const navigator={geolocation:{watchPosition:ok=>{ok({coords:{latitude:21.03,longitude:105.78}});return 1},clearWatch(){},getCurrentPosition(ok){ok({coords:{latitude:21.03,longitude:105.78}})}}};
   let reply={routes:[R('Láng → Phạm Hùng',16)]};
   const ctx={navigator,document,Date:D,Math,JSON,Number,String,Array,setTimeout:()=>0,clearTimeout(){},setInterval:(f,ms)=>{if(ms===20000)ticks.push(f)},spoken:[],
     fetch:async(p,o)=>{calls.push([p,JSON.parse(o.body)]);if(p==='/api/route-check')return {ok:true,status:200,json:async()=>reply};return {ok:true,json:async()=>({answer:'x',trip:{to:{lat:21.05,lng:105.82,name:'Hồ Tây'},seconds:20*60,path:'Láng → Phạm Hùng'}})}}};
   ctx.globalThis=ctx;vm.runInNewContext(code+';globalThis.apiFn=apiCall;globalThis.peek=()=>({step,history,gen});globalThis.setStep=s=>{step=s};',ctx);
   await ctx.apiFn('/api/chat','sk',{messages:[]});
-  assert.match(dom.ngoTripChip.textContent,/Đang canh đường → Hồ Tây/);
+  assert.match(dom.ngoTripChip.textContent,/🚗 Hồ Tây ✕/);assert.ok(dom.ngoDock,'route widgets live in the bottom dock');
   const tick=ticks[0];await tick();assert.equal(calls.filter(c=>c[0]==='/api/route-check').length,0,'nothing before 4 min');
   T+=4*60000;await tick();const rc=calls.filter(c=>c[0]==='/api/route-check');
   assert.equal(rc.length,1);assert.deepEqual(rc[0][1].to,{lat:21.05,lng:105.82,name:'Hồ Tây'});assert.equal(rc[0][1].apiKey,'sk-test');assert.equal(ctx.spoken.length,0,'on schedule -> silent');

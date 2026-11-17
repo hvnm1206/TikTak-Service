@@ -104,19 +104,25 @@ if(u.pathname==="/api/tts"){
  const instructions=style==="nghiem_tuc"?"Speak natural Vietnamese clearly and calmly.":"Speak lively conversational Vietnamese with a playful, youthful and expressive voice; clear Northern Vietnamese intonation.";
  // 16/11/2026: Google Chirp3-HD "Leda" (same voice as Ngáo, owner-chosen). Billed per character, so the
  // slow-generate/fast-play kid voice costs nothing extra. Any Google failure falls back to OpenAI Marin.
+ let googleErr="";
  if(env.GOOGLE_TTS_KEY&&env.NGO_GOOGLE_TTS!=="off"){
   const gctl=new AbortController(),gtm=setTimeout(()=>gctl.abort(),20000);
+  // 17/11/2026: route answers (long street chains, no full stop) were refused by Google ("sentences too long") and fell back
+  // to Marin. Split sentences over ~160 chars at commas into separate sentences for Google only.
+  const gtext=text.replace(/\s*(?:→|->|⇒)\s*/g,", ").split(/(?<=[.!?…])\s+/).map(sn=>{if(sn.length<=160)return sn;const out=[];let cur="";for(const part of sn.split(/,\s*/)){if(cur&&(cur+", "+part).length>140){out.push(cur);cur=part}else cur=cur?cur+", "+part:part}if(cur)out.push(cur);return out.map(x=>/[.!?…]$/.test(x)?x:x+".").join(" ")}).join(" ");
   try{
    const gr=await fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key="+encodeURIComponent(env.GOOGLE_TTS_KEY),{method:"POST",headers:{"Content-Type":"application/json"},signal:gctl.signal,
-    body:JSON.stringify({input:{text},voice:{languageCode:"vi-VN",name:env.NGO_GOOGLE_VOICE||"vi-VN-Chirp3-HD-Leda"},audioConfig:{audioEncoding:pcm?"LINEAR16":"MP3",sampleRateHertz:24000,speakingRate:speakingSpeed}})});
+    body:JSON.stringify({input:{text:gtext},voice:{languageCode:"vi-VN",name:env.NGO_GOOGLE_VOICE||"vi-VN-Chirp3-HD-Leda"},audioConfig:{audioEncoding:pcm?"LINEAR16":"MP3",sampleRateHertz:24000,speakingRate:speakingSpeed}})});
    if(gr.ok){
     const gj=await gr.json();let bytes=Uint8Array.from(atob(String(gj?.audioContent||"")),c=>c.charCodeAt(0));
     if(pcm&&bytes.length>44&&String.fromCharCode(...bytes.subarray(0,4))==="RIFF"){
      for(let i=12;i+8<=bytes.length;){const id=String.fromCharCode(...bytes.subarray(i,i+4)),size=bytes[i+4]|bytes[i+5]<<8|bytes[i+6]<<16|bytes[i+7]<<24;if(id==="data"){bytes=bytes.subarray(i+8,Math.min(bytes.length,i+8+size));break}i+=8+size+(size&1)}
     }
     if(bytes.length>=128)return new Response(bytes,{status:200,headers:{"content-type":pcm?"audio/L16;rate=24000;channels=1":"audio/mpeg","cache-control":"no-store","x-content-type-options":"nosniff","x-nmh-tts-source":"google-chirp3-leda"}});
-   }
-  }catch{}finally{clearTimeout(gtm)}
+    googleErr="empty audio";
+   }else googleErr="HTTP "+gr.status+" "+String((await gr.json().catch(()=>null))?.error?.message||"").slice(0,120);
+  }catch(e){googleErr=String(e?.name||e).slice(0,60)}finally{clearTimeout(gtm)}
+  console.warn("ngo-tts google fallback",googleErr); // visible in Workers logs; reason also returned in x-nmh-tts-google-error
  }
  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),30000);
  try{
@@ -129,7 +135,7 @@ if(u.pathname==="/api/tts"){
   }
   const contentType=r.headers.get("content-type")||"";
   if(!contentType.includes("audio/")&&!contentType.includes("octet-stream"))return respond({error:"OpenAI TTS trả dữ liệu không phải âm thanh",code:"TTS_NON_AUDIO_RESPONSE"},502);
-  return new Response(r.body,{status:200,headers:{"content-type":pcm?"audio/L16;rate=24000;channels=1":"audio/mpeg","cache-control":"no-store","x-content-type-options":"nosniff","x-nmh-tts-source":"openai-marin"}});
+  return new Response(r.body,{status:200,headers:{"content-type":pcm?"audio/L16;rate=24000;channels=1":"audio/mpeg","cache-control":"no-store","x-content-type-options":"nosniff","x-nmh-tts-source":"openai-marin",...(googleErr?{"x-nmh-tts-google-error":googleErr.replace(/[^\x20-\x7E]/g,"?")}:{})}});
  }catch(e){return respond({error:e?.name==="AbortError"?"TTS quá thời gian":"Không kết nối TTS"},504)}finally{clearTimeout(tm)}
 }
 const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),55000);

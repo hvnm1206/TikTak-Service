@@ -47,17 +47,24 @@ const HELPERS=String.raw`
   return globalThis.ngoRouteContext()};
  function ngoGeoStop(){try{if(ngoGeoWatch!==null)navigator.geolocation.clearWatch(ngoGeoWatch)}catch{}ngoGeoWatch=null;ngoGeo=null}
  globalThis.ngoRouteContext=()=>ngoRoutesOn?{route:{enabled:true,origin:ngoGeo&&Date.now()-ngoGeo.at<10*60000?{lat:ngoGeo.lat,lng:ngoGeo.lng}:null}}:{};
- globalThis.ngoShowRouteError=err=>{try{let e=document.getElementById("ngoRouteErr");if(!ngoRoutesOn||!err){e?.remove();return}if(!e){e=document.createElement("div");e.id="ngoRouteErr";e.style.cssText="position:fixed;left:12px;right:12px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:50;background:#7f1d1d;color:#fff;padding:10px 12px;border-radius:12px;font:600 13px/1.35 system-ui;box-shadow:0 6px 20px #0008";e.onclick=()=>e.remove();document.body.appendChild(e)}e.textContent="⚠️ Tra đường: "+String(err).slice(0,200)}catch{}};
- globalThis.ngoShowRouteCompare=txt=>{try{let e=document.getElementById("ngoRouteCmp");if(!ngoRoutesOn||!txt){e?.remove();return}if(!e){e=document.createElement("div");e.id="ngoRouteCmp";e.style.cssText="position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 40px);z-index:50;background:#1e3a8a;color:#fff;padding:8px 12px;border-radius:12px;font:600 12px/1.35 system-ui;box-shadow:0 6px 20px #0008";e.onclick=()=>e.remove();document.body.appendChild(e)}e.textContent=String(txt).slice(0,260)}catch{}};
- globalThis.ngoShowMapsLink=url=>{try{let b=document.getElementById("ngoMapsLink");if(!ngoRoutesOn||!url||!/^https:\/\/www\.google\.com\/maps\/dir\//.test(url)){b?.remove();return}
-  if(!b){b=document.createElement("a");b.id="ngoMapsLink";b.target="_blank";b.rel="noopener";b.textContent="🗺️ Mở Google Maps dẫn đường";b.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));z-index:50;background:#2563eb;color:#fff;padding:12px 18px;border-radius:999px;font-weight:800;text-decoration:none;box-shadow:0 6px 20px #0008";document.body.appendChild(b)}
-  b.href=url;clearTimeout(b._t);b._t=setTimeout(()=>b.remove(),5*60000)}catch{}};
+ // 17/11/2026 owner screenshots: route widgets covered the header and the KẾT THÚC/NGẮT AI buttons -> one compact dock at the very bottom.
+ function ngoDock(){let d=document.getElementById("ngoDock");if(!d){d=document.createElement("div");d.id="ngoDock";d.style.cssText="position:fixed;left:8px;right:8px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:50;display:flex;gap:6px;align-items:flex-end;justify-content:center;pointer-events:none";document.body.appendChild(d)}return d}
+ function ngoDockTidy(){if(!["ngoTripChip","ngoRouteCmp","ngoMapsLink"].some(id=>document.getElementById(id)))document.getElementById("ngoDock")?.remove()}
+ const NGO_PILL="pointer-events:auto;border:0;border-radius:14px;padding:8px 10px;font:700 12px/1.3 system-ui;color:#fff;box-shadow:0 4px 14px #0008;text-decoration:none;overflow:hidden;";
+ globalThis.ngoShowRouteError=err=>{try{let e=document.getElementById("ngoRouteErr");if(!ngoRoutesOn||!err){e?.remove();return}if(!e){e=document.createElement("div");e.id="ngoRouteErr";e.style.cssText="position:fixed;left:12px;right:12px;bottom:calc(58px + env(safe-area-inset-bottom));z-index:51;background:#7f1d1d;color:#fff;padding:10px 12px;border-radius:12px;font:600 13px/1.35 system-ui;box-shadow:0 6px 20px #0008";e.onclick=()=>e.remove();document.body.appendChild(e)}e.textContent="⚠️ Tra đường: "+String(err).slice(0,200)}catch{}};
+ globalThis.ngoShowRouteCompare=txt=>{try{let e=document.getElementById("ngoRouteCmp");if(!ngoRoutesOn||!txt){e?.remove();ngoDockTidy();return}
+  const [head,...rest]=String(txt).split("\n"),detail=rest.join(" ");
+  if(!e){e=document.createElement("button");e.id="ngoRouteCmp";e.type="button";e.style.cssText=NGO_PILL+"order:1;background:#1e3a8a;flex:1 1 40%;max-width:46vw;text-align:left";e.onclick=()=>{e._open=!e._open;e.textContent=e._open?e._head+(e._detail?" — "+e._detail:""):e._head;e.style.maxWidth=e._open?"none":"46vw"};ngoDock().appendChild(e)}
+  e._head=head.slice(0,90);e._detail=detail.slice(0,260);e._open=false;e.style.maxWidth="46vw";e.textContent=e._head}catch{}};
+ globalThis.ngoShowMapsLink=url=>{try{let b=document.getElementById("ngoMapsLink");if(!ngoRoutesOn||!url||!/^https:\/\/www\.google\.com\/maps\/dir\//.test(url)){b?.remove();ngoDockTidy();return}
+  if(!b){b=document.createElement("a");b.id="ngoMapsLink";b.target="_blank";b.rel="noopener";b.textContent="🗺️ Google Maps";b.style.cssText=NGO_PILL+"order:2;background:#2563eb;flex:0 0 auto;white-space:nowrap";ngoDock().appendChild(b)}
+  b.href=url;clearTimeout(b._t);b._t=setTimeout(()=>{b.remove();ngoDockTidy()},5*60000)}catch{}};
  if(ngoRoutesOn)ngoGeoStart();
 ${TRIP_LOGIC}
  let ngoTrip=null,ngoTripSayQ=null,ngoTripBusy=false;const NGO_TRIP_EVERY=4*60000;
- function ngoTripChip(){try{let c=document.getElementById("ngoTripChip");if(!ngoTrip){c?.remove();return}
-  if(!c){c=document.createElement("button");c.id="ngoTripChip";c.type="button";c.style.cssText="position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 6px);z-index:51;background:#065f46;color:#fff;border:0;padding:6px 12px;border-radius:999px;font:700 12px/1.2 system-ui;box-shadow:0 4px 14px #0008;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis";c.onclick=()=>ngoTripEnd();document.body.appendChild(c)}
-  c.textContent="🚗 Đang canh đường → "+String(ngoTrip.to.name||"điểm đến").slice(0,40)+" · chạm để dừng"}catch{}}
+ function ngoTripChip(){try{let c=document.getElementById("ngoTripChip");if(!ngoTrip){c?.remove();ngoDockTidy();return}
+  if(!c){c=document.createElement("button");c.id="ngoTripChip";c.type="button";c.style.cssText=NGO_PILL+"order:0;background:#065f46;flex:0 1 auto;max-width:30vw;white-space:nowrap;text-overflow:ellipsis";c.onclick=()=>ngoTripEnd();ngoDock().appendChild(c)}
+  c.textContent="🚗 "+String(ngoTrip.to.name||"điểm đến").split(",")[0].slice(0,24)+" ✕"}catch{}}
  function ngoTripEnd(){ngoTrip=null;ngoTripSayQ=null;ngoTripChip()}
  globalThis.ngoTripStart=trip=>{try{if(!ngoRoutesOn||!trip||!trip.to||!Number.isFinite(trip.to.lat)||!Number.isFinite(trip.to.lng))return;const now=Date.now();
   ngoTrip={to:trip.to,path:String(trip.path||""),expectEnd:now+(Number(trip.seconds)||0)*1000,started:now,lastCheck:now,lastAlertAt:0,alerted:[]};ngoTripChip()}catch{}};

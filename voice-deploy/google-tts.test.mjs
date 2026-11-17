@@ -48,3 +48,13 @@ test('TTS endpoint strips leftover markdown symbols before synthesis',async()=>{
  const {seen}=await tts({GOOGLE_TTS_KEY:'g'},{text:'**Phở** *ngon* # 5*3'},()=>new Response(JSON.stringify({audioContent:b64(new Uint8Array(400))})));
  assert.equal(seen[0].body.input.text,'Phở ngon 5 nhân 3');
 });
+
+test('long route sentence: arrows -> commas and split into short sentences for Google; fallback reason exposed',async()=>{
+ const long='Đi qua '+Array.from({length:12},(_,i)=>'Phố Số '+(i+1)).join(' → ')+' rồi tới nơi';
+ const {r,seen}=await tts({GOOGLE_TTS_KEY:'g'},{apiKey:KEY,text:long,style:'danh_da'},u=>u.includes('googleapis')?Response.json({audioContent:b64(new Uint8Array(400))}):Response.json({}));
+ assert.equal(r.headers.get('x-nmh-tts-source'),'google-chirp3-leda');
+ const sent=seen[0].body.input.text;assert.ok(!sent.includes('→'));
+ for(const sn of sent.split(/(?<=[.!?…])\s+/))assert.ok(sn.length<=160,'sentence too long for Google: '+sn.length);
+ const fb=await tts({GOOGLE_TTS_KEY:'g'},{apiKey:KEY,text:'Xin chào.',style:'danh_da'},u=>u.includes('googleapis')?Response.json({error:{message:'This request contains sentences that are too long.'}},{status:400}):new Response(new Uint8Array(300),{headers:{'content-type':'audio/mpeg'}}));
+ assert.equal(fb.r.headers.get('x-nmh-tts-source'),'openai-marin');assert.match(fb.r.headers.get('x-nmh-tts-google-error'),/HTTP 400 This request contains sentences/);
+});

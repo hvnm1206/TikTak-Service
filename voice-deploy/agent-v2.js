@@ -127,9 +127,10 @@ export async function vietmapRoute(args,{routeContext,fetchImpl,signal}){
   return {...fnOutput(true,{provider:"Vietmap",from:from.name,to:to.name,routes:calc.routes,note:"Dữ liệu Vietmap; mức đông/tắc theo đoạn, có thể khác Google Maps. Ngố sẽ tự canh giao thông dọc đường và báo khi có tắc mới hoặc đường nhanh hơn."}),mapsUrl,routeCompare,trip:{to:{lat:to.lat,lng:to.lng,name:to.name},seconds:calc.routes[0].seconds_now,path:calc.routes[0].path}};
 }
 // one line for the screen: same origin/destination, both providers (owner compares against what he actually drives)
+// line 1 = short summary shown in the dock; line 2 = detail shown when tapped (owner 17/11: the full line covered the buttons)
 export function compareLine(tt,vm){
-  const f=(n,r)=>n+": "+(r?r.duration_now+(r.path?" qua "+r.path:"")+(r.heavy_km?", đông "+String(r.heavy_km).replace(".",",")+" km":r.delay_minutes?", chậm "+r.delay_minutes+"'":""):"lỗi");
-  return "So sánh — "+f("TomTom",tt)+" | "+f("Vietmap",vm);
+  const t=(n,r)=>n+" "+(r?r.duration_now:"lỗi"),f=(n,r)=>n+(r?(r.path?" qua "+r.path.split(" → ").slice(0,4).join(" → "):"")+(r.heavy_km?", đông "+String(r.heavy_km).replace(".",",")+" km":r.delay_minutes?", chậm "+r.delay_minutes+"'":""):": lỗi");
+  return "So sánh: "+t("TomTom",tt)+" · "+t("Vietmap",vm)+"\n"+f("TomTom",tt)+" | "+f("Vietmap",vm);
 }
 export async function tomtomRoute(args,{routeContext,fetchImpl,signal}){
   const key=routeContext.apiKey,destination=str(args.destination,160),originText=str(args.origin,160),o=routeContext.origin;
@@ -234,6 +235,7 @@ async function callTool(name,args,{fetchImpl,signal,routeContext}){
 }
 export function cleanVoiceAnswer(text){
  return String(text||'')
+  .replace(/\s*(?:→|->|⇒)\s*/g,', ') // route paths: speak arrows as pauses
   // Strip machine citation payloads before the text reaches captions or TTS.
   .replace(/(?:cite|openaiCitation)[^]*/giu,'')
   .replace(/【[^】]*(?:†|turn\d+|search\d+|source|nguồn)[^】]*】/giu,'')
