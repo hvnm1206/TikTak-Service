@@ -566,3 +566,19 @@ test('reasoning "low" by default; if the model rejects the setting the same ques
   assert.deepEqual(bodies,['low','none']);assert.equal(r.answer,'Ừ.');
   await assert.rejects(()=>runAgent({apiKey:key,messages:msg,fetchImpl:async()=>new Response('{"error":{"message":"bad tools"}}',{status:400})}),/OpenAI HTTP 400/,'other 400s are not hidden');
 });
+test('owner 17/11 "nói đúng nhưng câu sau lại bảo không tra": earlier answers carry their provenance; unknown provenance adds nothing',async()=>{
+  let req;
+  await runAgent({apiKey:key,messages:[
+    {role:'user',content:'Đi Hồ Tây thế nào?'},
+    {role:'assistant',content:'Đi qua Láng, khoảng 30 phút.',tools:['get_driving_route'],web:0,sources:[]},
+    {role:'user',content:'Mai Hà Nội có triển lãm gì?'},
+    {role:'assistant',content:'Có triển lãm X ở Bảo tàng.',tools:[],web:1,sources:[{title:'Báo A',url:'https://a.vn/x'}]},
+    {role:'user',content:'Hồi nãy mày tra đường thật à?'},
+    {role:'assistant',content:'Câu cũ không rõ nguồn.'},
+    {role:'user',content:'ok'}],
+   fetchImpl:async(u,o)=>{req??=JSON.parse(o.body);return response([{type:'message',content:[{type:'output_text',text:'Ừ.'}]}])}});
+  assert.match(req.input[1].content,/\[Dữ liệu hệ thống: câu trả lời này dựa trên công cụ get_driving_route\.\]$/);
+  assert.match(req.input[3].content,/tìm web 1 lần, nguồn Báo A <https:\/\/a\.vn\/x>\.\]$/);
+  assert.equal(req.input[5].content,'Câu cũ không rõ nguồn.','no invented provenance for old entries');
+  assert.equal(req.input[0].content,'Đi Hồ Tây thế nào?');
+});

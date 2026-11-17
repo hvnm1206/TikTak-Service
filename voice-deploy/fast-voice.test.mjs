@@ -110,3 +110,9 @@ test('Realtime pilot waits for completed audio and returns valid 24 kHz PCM WAV'
  assert.deepEqual([...result.wave.slice(44)],[1,0,2,0]);
  assert.equal(result.usage.audioOut,2);
 });
+
+import {currentTurnContext as ctc} from './fast-voice-ui.js';
+test('turn context sends provenance of earlier answers (tools, web count, sources) but nothing extra for user turns',()=>{
+  const out=ctc([{role:'user',content:'a'},{role:'assistant',content:'b',tools:['get_driving_route'],web:1,sources:[{title:'T',url:'https://x.vn',extra:1}],diag:'🔧'},{role:'user',content:'c'}]);
+  assert.deepEqual(out,[{role:'user',content:'a'},{role:'assistant',content:'b',tools:['get_driving_route'],web:1,sources:[{title:'T',url:'https://x.vn'}]},{role:'user',content:'c'}]);
+});

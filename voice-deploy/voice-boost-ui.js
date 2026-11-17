@@ -94,7 +94,7 @@ ${TRIP_LOGIC}
  // 17/11 owner "không nhớ mạch chuyện" (after KẾT THÚC): the conversation lived only in page memory and stop()/start/reload
  // wiped it. It now persists on this iPhone (localStorage, last 40 entries); KẾT THÚC only stops voice; SETUP can clear it.
  function ngoHistLoad(){try{const a=JSON.parse(localStorage.getItem("ngo_history_v1")||"[]");return Array.isArray(a)?a.filter(m=>m&&(m.role==="user"||m.role==="assistant")&&typeof m.content==="string").slice(-40):[]}catch{return []}}
- function ngoHistSave(){try{localStorage.setItem("ngo_history_v1",JSON.stringify(history.slice(-40).map(m=>({role:m.role,content:String(m.content).slice(0,1500),...(m.diag?{diag:m.diag}:{}),...(Array.isArray(m.sources)&&m.sources.length?{sources:m.sources.slice(0,5)}:{}),...(m.actionBoundary?{actionBoundary:true}:{})}))))}catch{}}
+ function ngoHistSave(){try{localStorage.setItem("ngo_history_v1",JSON.stringify(history.slice(-40).map(m=>({role:m.role,content:String(m.content).slice(0,1500),...(m.diag?{diag:m.diag}:{}),...(Array.isArray(m.sources)&&m.sources.length?{sources:m.sources.slice(0,5)}:{}),...(m.actionBoundary?{actionBoundary:true}:{}),...(Array.isArray(m.tools)?{tools:m.tools.slice(0,6)}:{}),...(m.web?{web:m.web}:{})}))))}catch{}}
  globalThis.ngoHistClear=()=>{history.length=0;try{localStorage.removeItem("ngo_history_v1")}catch{}render()};
  function ngoTripSay(text){if(!active)return false;if(step!=="listening"||heard)return false;gen++;closeRec();const g=gen;history.push({role:"assistant",content:text});render();speak(text,g);return true}
  async function ngoTripTick(){try{
@@ -160,8 +160,8 @@ export function enhanceVoiceBoost(page){
   'if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110);clearTimeout(ngoEndTimer);if(ngoFastEndpoint&&heard)ngoEndTimer=setTimeout(()=>{if(rec===r){try{r.stop()}catch{}}},'+ENDPOINT_MS+')};');
  p=once(p,'r.onend=()=>{if(rec!==r)return;','r.onend=()=>{clearTimeout(ngoEndTimer);if(rec!==r)return;');
  // Per-answer tool/web-search line under each assistant bubble (evidence for "không tra web được").
- if(p.includes('turn.content=result.answer;turn.sources=result.sources||[];'))p=once(p,'turn.content=result.answer;turn.sources=result.sources||[];','turn.content=result.answer;turn.sources=result.sources||[];turn.diag=ngoDiag(result);');
- if(p.includes('content:d.answer,sources:d.sources||[]'))p=once(p,'content:d.answer,sources:d.sources||[]','content:d.answer,sources:d.sources||[],diag:ngoDiag(d)');
+ if(p.includes('turn.content=result.answer;turn.sources=result.sources||[];'))p=once(p,'turn.content=result.answer;turn.sources=result.sources||[];','turn.content=result.answer;turn.sources=result.sources||[];turn.diag=ngoDiag(result);turn.tools=Array.isArray(result.tools)?result.tools:[];turn.web=Number(result.webSearchCalls)||0;');
+ if(p.includes('content:d.answer,sources:d.sources||[]'))p=once(p,'content:d.answer,sources:d.sources||[]','content:d.answer,sources:d.sources||[],diag:ngoDiag(d),tools:Array.isArray(d.tools)?d.tools:[],web:Number(d.webSearchCalls)||0');
  if(p.includes('p.textContent=m.content;e.append(p);'))p=once(p,'p.textContent=m.content;e.append(p);','p.textContent=m.content;e.append(p);if(m.role==="assistant"&&m.diag){const q=document.createElement("div");q.style.cssText="font-size:11px;opacity:.65;margin-top:4px";q.textContent=m.diag;e.append(q)}');
  // SETUP switches next to the voice panel.
  p=once(p,'<h3 style="margin:0 0 12px">TÙY CHỈNH GIỌNG NÓI</h3>','<h3 style="margin:0 0 12px">TÙY CHỈNH GIỌNG NÓI</h3>'+SETUP_HTML);

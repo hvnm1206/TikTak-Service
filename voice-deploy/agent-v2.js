@@ -385,7 +385,15 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     ...(actionRuntime?["Chọn công cụ theo NGỮ NGHĨA của yêu cầu người dùng hiện tại, không theo từ khóa, tên người hay ví dụ cố định. Phân biệt lưu thông tin dài hạn, ghi chú, chỉnh sửa dữ liệu, nhắc việc theo thời điểm và hỏi đáp thông thường. Với thời gian, tự hiểu mốc nói tự nhiên theo giờ Việt Nam rồi truyền dữ liệu chuẩn cho công cụ; không bắt người dùng nói định dạng máy. Chỉ thông báo thực hiện thành công khi backend xác minh. Nếu công cụ trả lỗi, xem lại ý định và tham số, không đẩy nguyên thông báo kỹ thuật không liên quan cho người dùng."]:[]),
     ...personal
   ].join("\n");
-  const input=messages.slice(-16).map(m=>({role:m.role,content:str(m.content,1500)}));
+  // 17/11 owner: "nói đúng nhưng câu sau lại bảo không tra" - history carried only the text, so the model saw no trace of
+  // the tools/sources behind its own earlier answer and disowned it. Each earlier answer now carries its provenance (data).
+  const provenance=m=>{if(m.role!=="assistant"||!Array.isArray(m.tools))return ""; // unknown provenance (older entries): say nothing
+    const t=Array.isArray(m.tools)?m.tools.filter(x=>typeof x==="string"&&/^[a-z_]{2,40}$/.test(x)).slice(0,6):[];
+    const w=Number.isFinite(+m.web)?Math.min(5,Math.max(0,Math.round(+m.web))):0;
+    const src=Array.isArray(m.sources)?m.sources.filter(x=>x&&typeof x.url==="string").slice(0,3).map(x=>str(x.title||"",80)+" <"+str(x.url,200)+">"):[];
+    if(!t.length&&!w&&!src.length)return "\n[Dữ liệu hệ thống: câu trả lời này không dùng công cụ hay nguồn tra cứu nào.]";
+    return "\n[Dữ liệu hệ thống: câu trả lời này dựa trên "+[t.length?"công cụ "+t.join(", "):"",w?"tìm web "+w+" lần":"",src.length?"nguồn "+src.join("; "):""].filter(Boolean).join(", ")+".]"};
+  const input=messages.slice(-16).map(m=>({role:m.role,content:str(m.content,1500)+provenance(m)}));
   const enabledActions=Array.isArray(actionRuntime?.tools)?actionRuntime.tools:[];
   const routeTools=routeContext?.apiKey?[ROUTE_TOOL,LOCATION_TOOL]:[];let mapsUrl=null,routeError=null,trip=null,routeCompare=null,routeTurns=null;
   const allSources=[];const toolCalls=[];let lastActionFailure=null;let webSearchCalls=0;let usage={input_tokens:0,output_tokens:0,cached_input_tokens:0,api_calls:0};let response=null;

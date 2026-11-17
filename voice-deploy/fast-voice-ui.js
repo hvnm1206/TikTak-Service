@@ -2,7 +2,7 @@ export function currentTurnContext(history,limit=12){
  const rows=Array.isArray(history)?history:[];
  let boundary=-1;
  for(let i=rows.length-1;i>=0;i--)if(rows[i]?.actionBoundary===true){boundary=i;break}
- return rows.slice(boundary+1).slice(-limit).map(m=>({role:m.role,content:m.content}));
+ return rows.slice(boundary+1).slice(-limit).map(m=>({role:m.role,content:m.content,...(m.role==="assistant"&&Array.isArray(m.tools)?{tools:m.tools}:{}),...(m.role==="assistant"&&m.web?{web:m.web}:{}),...(m.role==="assistant"&&Array.isArray(m.sources)&&m.sources.length?{sources:m.sources.slice(0,3).map(s=>({title:s.title,url:s.url}))}:{})}));
 }
 
 const client=String.raw`
