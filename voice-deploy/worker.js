@@ -94,7 +94,7 @@ if(u.pathname==="/api/realtime-speech-preview"){
 if(u.pathname==="/api/route-check"){ // 17/11/2026 trip monitor: TomTom only, no OpenAI call; same origin + key-format guard as other APIs
  const cl=k=>String(k||"").trim().replace(/^["']+|["']+$/g,"").trim(),tk=cl(env.TOMTOM_KEY),vk=cl(env.VIETMAP_KEY),useVm=vk&&!tk; // 17/11: the trip monitor needs live traffic -> TomTom whenever its key exists
  if(env.NGO_ROUTES==="off"||!(useVm||tk))return respond({error:"Tra đường đang tắt"},404);
- const r=useVm?await vietmapCheck({from:body?.from,to:body?.to,key:vk,signal:request.signal}):await tomtomCheck({from:body?.from,to:body?.to,key:tk,signal:request.signal});
+ const r=useVm?await vietmapCheck({from:body?.from,to:body?.to,key:vk,signal:request.signal}):await tomtomCheck({from:body?.from,to:body?.to,key:tk,polyline:typeof body?.polyline==="string"?body.polyline:null,signal:request.signal});
  return respond(r,r.error?502:200);
 }
 if(u.pathname==="/api/tts"){

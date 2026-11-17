@@ -43,18 +43,33 @@ async function tomtomPlace(q,key,near,fetchImpl,signal){
   const x=(await r.json())?.results?.[0];if(!x?.position)return null;
   return {lat:x.position.lat,lng:x.position.lon,name:str(x.poi?.name||x.address?.freeformAddress||q,120)};
 }
-async function tomtomCalc(from,to,key,fetchImpl,signal){
+// polyline5 helpers (Vietmap route geometry -> TomTom reference route; trim for the trip monitor)
+export function decodePolyline(str){const out=[];let i=0,lat=0,lng=0;str=String(str||"");while(i<str.length){for(const k of [0,1]){let r=0,sh=0,b;do{b=str.charCodeAt(i++)-63;r|=(b&31)<<sh;sh+=5}while(b>=32&&i<=str.length);const d=r&1?~(r>>1):r>>1;if(k===0)lat+=d;else lng+=d}out.push([lat/1e5,lng/1e5])}return out}
+export function encodePolyline(pts){let o="",pl=0,pg=0;const e=v=>{v=v<0?~(v<<1):v<<1;let s="";while(v>=32){s+=String.fromCharCode((32|(v&31))+63);v>>=5}return s+String.fromCharCode(v+63)};for(const [a,b] of pts){const la=Math.round(a*1e5),lg=Math.round(b*1e5);o+=e(la-pl)+e(lg-pg);pl=la;pg=lg}return o}
+const distM=(a,b)=>{const R=6371000,r=x=>x*Math.PI/180,dl=r(b[0]-a[0]),dg=r(b[1]-a[1]),h=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
+// remaining part of a planned route from the car's position; offRouteM tells whether the driver left it
+export function trimPolyline(str,here){const pts=decodePolyline(str);if(pts.length<2)return {points:null,offRouteM:Infinity};let bi=0,bd=Infinity;pts.forEach((p,i)=>{const d=distM([here.lat,here.lng],p);if(d<bd){bd=d;bi=i}});
+  const rest=[[here.lat,here.lng],...pts.slice(bi+1)];return {points:rest.length>=2?encodePolyline(rest):null,offRouteM:Math.round(bd),end:pts[pts.length-1]}}
+async function tomtomCalc(from,to,key,fetchImpl,signal,ref=null){
   const u=new URL("https://api.tomtom.com/routing/1/calculateRoute/"+from.lat+","+from.lng+":"+to.lat+","+to.lng+"/json");
   // 16/11/2026: v1 sent instructionsType together with routeRepresentation=none, which TomTom rejects (HTTP 400) -> every
   // route failed. Street names come from guidance instructions, so keep the default route representation.
   const base={key,traffic:"true",travelMode:"car",maxAlternatives:"2",computeTravelTimeFor:"all"};
   for(const [k,v] of Object.entries({...base,sectionType:"traffic",instructionsType:"text"}))u.searchParams.set(k,v);
+  // ref: encoded polyline5 of the planned route (Vietmap) -> TomTom reassesses THAT route with live traffic (routes[0]) and adds alternatives
+  if(ref){u.searchParams.set("minDeviationDistance","0");const r=await fetchImpl(u,{method:"POST",signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({encodedPolyline:ref,encodedPolylinePrecision:5})});
+    if(r.ok){const j=await r.json();if(j?.routes?.length)return summarizeTomtom(j.routes,true)}
+    u.searchParams.delete("minDeviationDistance")} // reconstruction refused -> plain live route below, flagged as not the same road
   let r=await fetchImpl(u,{signal});
   if(r.status===400){const m=new URL(u);for(const k of ["sectionType","instructionsType"])m.searchParams.delete(k);r=await fetchImpl(m,{signal})} // minimal retry
   if(!r.ok){const t=(await r.text().catch(()=>"")).replace(/key=[^&\s"]+/g,"key=***").replace(/\s+/g," ").slice(0,140);
     return {error:(r.status===403||r.status===401?"TomTom Routing từ chối TOMTOM_KEY (HTTP "+r.status+"): ":"TomTom tính đường lỗi HTTP "+r.status+": ")+(t||"không có chi tiết")}}
   const routes=((await r.json())?.routes||[]).slice(0,3);
   if(!routes.length)return {error:"TomTom không tìm được tuyến."};
+  return summarizeTomtom(routes,false);
+}
+function summarizeTomtom(all,onReference){
+  const routes=all.slice(0,3);
   const out=routes.map((rt,i)=>{
     const sm=rt.summary||{},ins=rt.guidance?.instructions||[];
     const streetAt=idx=>{let s="";for(const x of ins){if((x.pointIndex??0)<=idx&&x.street)s=x.street}return s};
@@ -68,7 +83,7 @@ async function tomtomCalc(from,to,key,fetchImpl,signal){
     return {option:i+1,via,path,seconds_now:now,arrive_at:new Date(Date.now()+now*1000).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Ho_Chi_Minh"}),duration_now:fmtMin(now),duration_free_flow:fmtMin(free),delay_minutes:Math.max(0,Math.round((sm.trafficDelayInSeconds??(now-free))/60)),distance_km:Math.round((sm.lengthInMeters||0)/100)/10,
       status:jams.some(j=>j.kind!=="ùn tắc")?"có sự cố trên đường":jams.length?"có đoạn tắc":"thông thoáng",slow_points:jams};
   });
-  return {routes:out};
+  return {routes:out,onReference};
 }
 // 17/11/2026 trip monitor: one TomTom call from the current position to a known destination (no search, no GPT).
 export async function vietmapCheck({from,to,key,fetchImpl=fetch,signal}){
@@ -77,11 +92,16 @@ export async function vietmapCheck({from,to,key,fetchImpl=fetch,signal}){
   if(!key)return {error:"Chưa cấu hình VIETMAP_KEY."};
   return vietmapCalc(from,to,key,fetchImpl,signal);
 }
-export async function tomtomCheck({from,to,key,fetchImpl=fetch,signal}){
+export async function tomtomCheck({from,to,key,polyline=null,fetchImpl=fetch,signal}){
   const ok=p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)&&Math.abs(p.lat)<=90&&Math.abs(p.lng)<=180;
   if(!ok(from)||!ok(to))return {error:"Tọa độ không hợp lệ."};
   if(!key)return {error:"Chưa cấu hình TOMTOM_KEY."};
-  try{return await tomtomCalc(from,to,key,fetchImpl,signal)}catch(e){return {error:"TomTom lỗi: "+String(e?.message||e).slice(0,100)}}
+  try{
+    // on the planned road: reassess the rest of it from here; > 250 m away = driver left it -> plain live route (reroute)
+    if(typeof polyline==="string"&&polyline.length>4&&polyline.length<=20000){const t=trimPolyline(polyline,from);
+      if(t.points&&t.offRouteM<=250){const r=await tomtomCalc(from,to,key,fetchImpl,signal,t.points);return {...r,offRouteM:t.offRouteM}}
+      const r=await tomtomCalc(from,to,key,fetchImpl,signal);return {...r,offRoute:true,offRouteM:t.offRouteM}}
+    return await tomtomCalc(from,to,key,fetchImpl,signal)}catch(e){return {error:"TomTom lỗi: "+String(e?.message||e).slice(0,100)}}
 }
 // 17/11/2026 Vietmap (owner registering a key): Vietnamese road data (one-way, bans). Used side by side with TomTom so the
 // owner can compare on his usual trips; becomes the primary provider only when it is the sole key or NGO_ROUTE_PROVIDER=vietmap.
@@ -99,12 +119,12 @@ async function vietmapPlace(q,key,near,fetchImpl,signal){
 }
 export async function vietmapCalc(from,to,key,fetchImpl=fetch,signal){
   const u=new URL(VM+"route/v4");u.searchParams.set("apikey",key);u.searchParams.append("point",from.lat+","+from.lng);u.searchParams.append("point",to.lat+","+to.lng);
-  for(const [k,v] of Object.entries({vehicle:"car",alternative:"true",annotations:"congestion,congestion_distance",points_encoded:"true"}))u.searchParams.set(k,v);
+  for(const [k,v] of Object.entries({vehicle:"car",alternative:"true",annotations:"congestion,congestion_distance",points_encoded:"true",time:new Date().toISOString().replace(/\.\d{3}Z$/,"Z")}))u.searchParams.set(k,v); // time: Vietmap applies car time/zone bans only when sent
   let r;try{r=await fetchImpl(u,{signal})}catch(e){return {error:"Vietmap không phản hồi: "+String(e?.message||e).slice(0,80)}}
   if(!r.ok)return {error:"Vietmap tính đường lỗi HTTP "+r.status+": "+(vmMask(await r.text().catch(()=>""))||"không có chi tiết")};
   const j=await r.json().catch(()=>null);const paths=(j?.paths||[]).slice(0,3);
   if(j?.code&&j.code!=="OK"||!paths.length)return {error:"Vietmap không tìm được tuyến"+(j?.code&&j.code!=="OK"?" ("+j.code+")":"")+"."};
-  return {routes:paths.map((pt,i)=>{
+  return {polylines:paths.map(pt=>typeof pt.points==="string"?pt.points:null),routes:paths.map((pt,i)=>{
     const ins=pt.instructions||[],len={};for(const x of ins){const st=x.street_name;if(st)len[st]=(len[st]||0)+(x.distance||0)}
     const seq=[];for(const x of ins){const st=x.street_name;if(st&&seq.at(-1)!==st&&(len[st]||0)>=300)seq.push(st)}
     const sec=Math.round((pt.time||0)/1000),heavy=Array.isArray(pt.congestion_distance)?pt.congestion_distance.reduce((a,b)=>a+(Number(b)||0),0):0;
@@ -125,12 +145,17 @@ export async function vietmapRoute(args,{routeContext,fetchImpl,signal}){
   const calc=await vietmapCalc(from,to,key,fetchImpl,signal);if(calc.error)return fnOutput(false,{error:calc.error});
   let routeCompare=null; // owner 17/11: Vietmap primary, TomTom shown on screen for comparison (same coordinates, one call)
   let live=null; // 17/11 owner: "đang tắc vẫn báo thoáng" - Vietmap trial has no live traffic; time + jams come from TomTom
-  if(routeContext.compareKey){const t=await tomtomCalc(from,to,routeContext.compareKey,fetchImpl,signal).catch(e=>({error:String(e?.message||e)}));routeCompare=t.error?"So sánh — TomTom lỗi: "+t.error:compareLine(t.routes[0],calc.routes[0]);
-    if(!t.error){const b=t.routes[0];live={source:"TomTom (giao thông thực tế)",duration_now:b.duration_now,duration_free_flow:b.duration_free_flow,delay_minutes:b.delay_minutes,arrive_at:b.arrive_at,status:b.status,slow_points:b.slow_points,tomtom_path:b.path,seconds_now:b.seconds_now}}}
+  let alts=[];
+  if(routeContext.compareKey){const t=await tomtomCalc(from,to,routeContext.compareKey,fetchImpl,signal,calc.polylines?.[0]||null).catch(e=>({error:String(e?.message||e)}));
+    if(!t.error){const b=t.routes[0];
+      live={source:"TomTom (giao thông thực tế)",same_road_as_vietmap:!!t.onReference,duration_now:b.duration_now,duration_free_flow:b.duration_free_flow,delay_minutes:b.delay_minutes,arrive_at:b.arrive_at,status:b.status,slow_points:b.slow_points,tomtom_path:b.path,seconds_now:b.seconds_now};
+      alts=t.onReference?t.routes.slice(1).map(a=>({path:a.path,duration_now:a.duration_now,faster_by_minutes:Math.round((b.seconds_now-a.seconds_now)/60),status:a.status,slow_points:a.slow_points})):[];
+      routeCompare=(t.onReference?"Giao thông trên tuyến: ":"So sánh: ")+"TomTom "+b.duration_now+(b.delay_minutes?" (chậm "+b.delay_minutes+"')":"")+" · Vietmap lúc thoáng "+calc.routes[0].duration_now+"\n"+(alts.length?"Phương án khác: "+alts.map(a=>a.duration_now+" qua "+a.path.split(" → ").slice(0,3).join(" → ")).join(" | "):"Tuyến: "+calc.routes[0].path)}
+    else routeCompare="So sánh — TomTom lỗi: "+t.error}
   const mapsUrl="https://www.google.com/maps/dir/?api=1&origin="+from.lat.toFixed(5)+","+from.lng.toFixed(5)+"&destination="+to.lat.toFixed(5)+","+to.lng.toFixed(5)+"&travelmode=driving";
-  return {...fnOutput(true,{provider:"Vietmap",from:from.name,to:to.name,routes:calc.routes,live_traffic:live,
-    note:live?"Tuyến đường (path) theo Vietmap. Thời gian, giờ đến và tình trạng tắc PHẢI lấy từ live_traffic (TomTom, có giao thông thực tế); thời gian Vietmap chưa tính tắc nên không đọc. Ngố sẽ tự canh giao thông dọc đường.":"Dữ liệu Vietmap, chưa tính tắc đường thực tế: nói rõ là thời gian ước tính lúc đường thông, không khẳng định đường thoáng."}),
-    mapsUrl,routeCompare,trip:{to:{lat:to.lat,lng:to.lng,name:to.name},seconds:live?live.seconds_now:calc.routes[0].seconds_now,path:live?live.tomtom_path:calc.routes[0].path}};
+  return {...fnOutput(true,{provider:"Vietmap",from:from.name,to:to.name,routes:calc.routes,live_traffic:live,live_alternatives:alts,
+    note:live?(live.same_road_as_vietmap?"Tuyến đề xuất (routes[0].path, Vietmap: tôn trọng đường một chiều, cấm rẽ, giờ cấm ô tô). live_traffic là giao thông thực tế đo TRÊN CHÍNH tuyến này: thời gian, giờ đến, đoạn tắc PHẢI lấy từ đây. live_alternatives: phương án khác kèm nhanh/chậm hơn mấy phút.":"Tuyến theo Vietmap; live_traffic là TomTom tính trên tuyến của TomTom (có thể khác đường): nói rõ điều đó.")+" Thời gian Vietmap chưa tính tắc, không đọc. Ngố sẽ tự canh giao thông trên tuyến này.":"Dữ liệu Vietmap, chưa tính tắc đường thực tế: nói rõ là thời gian ước tính lúc đường thông, không khẳng định đường thoáng."}),
+    mapsUrl,routeCompare,trip:{to:{lat:to.lat,lng:to.lng,name:to.name},seconds:live?live.seconds_now:calc.routes[0].seconds_now,path:calc.routes[0].path,polyline:calc.polylines?.[0]||null}};
 }
 // one line for the screen: same origin/destination, both providers (owner compares against what he actually drives)
 // line 1 = short summary shown in the dock; line 2 = detail shown when tapped (owner 17/11: the full line covered the buttons)

@@ -13,8 +13,10 @@ export const TRIP_LOGIC=String.raw`
   const routes=(check&&Array.isArray(check.routes))?check.routes:[];if(!routes.length)return {say:null,trip};
   const streets=x=>String(x||"").split(" → ").filter(Boolean),own=streets(trip.path);
   const score=r=>streets(r.path).filter(x=>own.includes(x)).length;
-  const best=routes[0];let cur=routes.reduce((a,r)=>score(r)>score(a)?r:a,routes[0]);if(!score(cur))cur=best;
+  // onReference: routes[0] IS the planned road with live traffic, the rest are alternatives (owner 17/11: one road, one truth)
+  const best=routes.reduce((a,r)=>(Number(r.seconds_now)||1e9)<(Number(a.seconds_now)||1e9)?r:a,routes[0]);let cur=check.onReference?routes[0]:routes.reduce((a,r)=>score(r)>score(a)?r:a,routes[0]);if(!check.onReference&&!score(cur))cur=best;
   const t={...trip,alerted:[...(trip.alerted||[])]},msgs=[],seen=k=>t.alerted.includes(k),mark=k=>t.alerted.push(k);
+  if(check.offRoute){t.polyline=null;t.path=cur.path||t.path} // driver left the planned road: follow the new one
   const hhmm=ms=>new Date(ms).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Ho_Chi_Minh"});
   for(const j of (cur.slow_points||[]))if(j.kind!=="ùn tắc"&&!seen("inc:"+j.street+j.kind)){mark("inc:"+j.street+j.kind);msgs.push("Phía trước có "+j.kind+" ở "+j.street+", chậm khoảng "+j.delay_minutes+" phút.")}
   const end=now+(Number(cur.seconds_now)||0)*1000,worse=Math.round((end-t.expectEnd)/60000);
@@ -74,7 +76,7 @@ ${TRIP_LOGIC}
   c.textContent="🚗 "+String(ngoTrip.to.name||"điểm đến").split(",")[0].slice(0,24)+" ✕"}catch{}}
  function ngoTripEnd(){ngoTrip=null;ngoTripSayQ=null;ngoTripChip()}
  globalThis.ngoTripStart=trip=>{try{if(!ngoRoutesOn||!trip||!trip.to||!Number.isFinite(trip.to.lat)||!Number.isFinite(trip.to.lng))return;const now=Date.now();
-  ngoTrip={to:trip.to,path:String(trip.path||""),expectEnd:now+(Number(trip.seconds)||0)*1000,started:now,lastCheck:now,lastAlertAt:0,alerted:[]};ngoTripChip()}catch{}};
+  ngoTrip={to:trip.to,path:String(trip.path||""),polyline:typeof trip.polyline==="string"&&trip.polyline.length<=20000?trip.polyline:null,expectEnd:now+(Number(trip.seconds)||0)*1000,started:now,lastCheck:now,lastAlertAt:0,alerted:[]};ngoTripChip()}catch{}};
  function ngoTripSay(text){if(!active)return false;if(step!=="listening"||heard)return false;gen++;closeRec();const g=gen;history.push({role:"assistant",content:text});render();speak(text,g);return true}
  async function ngoTripTick(){try{
   if(!ngoTrip)return;if(!ngoRoutesOn||Date.now()-ngoTrip.started>3*3600000){ngoTripEnd();return}
@@ -85,7 +87,7 @@ ${TRIP_LOGIC}
   const here={lat:ngoGeo.lat,lng:ngoGeo.lng};
   if(ngoDistM(here,ngoTrip.to)<400){const n=ngoTrip.to.name;ngoTripEnd();ngoTripSayQ="Sắp tới "+(n||"nơi")+" rồi, Ngố dừng canh đường.";return}
   ngoTripBusy=true;ngoTrip.lastCheck=Date.now();
-  const r=await fetch("/api/route-check",{method:"POST",headers:{"Content-Type":"application/json"},cache:"no-store",body:JSON.stringify({apiKey:key,from:here,to:ngoTrip.to})});
+  const r=await fetch("/api/route-check",{method:"POST",headers:{"Content-Type":"application/json"},cache:"no-store",body:JSON.stringify({apiKey:key,from:here,to:ngoTrip.to,...(ngoTrip.polyline?{polyline:ngoTrip.polyline}:{})})});
   const d=await r.json().catch(()=>({}));if(!ngoTrip)return;
   if(!r.ok||d.error){globalThis.ngoShowRouteError?.("canh đường: "+(d.error||"HTTP "+r.status));return}
   const out=ngoTripDecide(ngoTrip,d,Date.now());ngoTrip=out.trip;

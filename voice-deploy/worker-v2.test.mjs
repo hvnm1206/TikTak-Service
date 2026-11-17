@@ -375,3 +375,12 @@ test('/api/route-check uses TomTom (live traffic) when its key exists, Vietmap o
     assert.equal(j.routes[0].seconds_now,600);assert.match(seen.at(-1),/vietmap.*apikey=vk/);
   }finally{globalThis.fetch=old}
 });
+test('/api/route-check with the planned route polyline: TomTom POST reassesses the rest of that road',async()=>{
+  const {encodePolyline}=await import('./agent-v2.js');const line=encodePolyline([[21.02,105.81],[21.03,105.815],[21.05,105.82]]);
+  const old=globalThis.fetch,seen=[];
+  globalThis.fetch=async(u,o={})=>{seen.push({u:String(u),o});return Response.json({routes:[{summary:{lengthInMeters:4000,travelTimeInSeconds:700,trafficDelayInSeconds:100,noTrafficTravelTimeInSeconds:600}}]})};
+  try{
+    const r=await worker.fetch(request('/api/route-check',{apiKey:key,from:{lat:21.0201,lng:105.8101},to:{lat:21.05,lng:105.82},polyline:line}),{TOMTOM_KEY:'tk'});
+    const j=await r.json();assert.equal(j.onReference,true);assert.equal(seen[0].o.method,'POST');assert.ok(JSON.parse(seen[0].o.body).encodedPolyline);
+  }finally{globalThis.fetch=old}
+});

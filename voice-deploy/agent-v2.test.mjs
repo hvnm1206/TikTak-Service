@@ -467,7 +467,7 @@ test('Vietmap primary with TomTom compare key (owner 17/11): Ngố speaks Vietma
     throw Error('unexpected '+u)};
   const r=await drivingRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'vietmap',apiKey:'vk',compareKey:'tk',origin:{lat:21,lng:105.8}},fetchImpl:f});
   assert.equal(r.ok,true);assert.equal(r.data.provider,'Vietmap');assert.equal(r.data.routes[0].duration_now,'25 phút');
-  assert.equal(r.routeCompare.split('\n')[0],'So sánh: TomTom 22 phút · Vietmap 25 phút');
+  assert.equal(r.routeCompare.split('\n')[0],"So sánh: TomTom 22 phút (chậm 2') · Vietmap lúc thoáng 25 phút",'no Vietmap geometry -> plain TomTom comparison');
   assert.equal(seen.filter(x=>x.includes('tomtom')).length,1,'one TomTom call, no TomTom search');
 });
 
@@ -505,7 +505,37 @@ test('owner 17/11 "đang tắc vẫn báo thoáng": Vietmap without congestion d
   const r=await vietmapRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'vietmap',apiKey:'vk',compareKey:'tk',origin:{lat:21,lng:105.8}},fetchImpl:f});
   assert.equal(r.data.routes[0].status,'không có dữ liệu tắc đường');
   assert.equal(r.data.live_traffic.duration_now,'32 phút');assert.equal(r.data.live_traffic.status,'có đoạn tắc');assert.equal(r.data.live_traffic.slow_points[0].street,'Láng');
-  assert.match(r.data.note,/PHẢI lấy từ live_traffic/);assert.equal(r.trip.seconds,32*60,'trip monitor baseline uses live traffic time');
+  assert.match(r.data.note,/trên tuyến của TomTom \(có thể khác đường\)/,'without Vietmap geometry Ngố must say TomTom measured another road');assert.equal(r.data.live_traffic.same_road_as_vietmap,false);assert.equal(r.trip.seconds,32*60,'trip monitor baseline uses live traffic time');
   const solo=await vietmapRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'vietmap',apiKey:'vk',origin:{lat:21,lng:105.8}},fetchImpl:f});
   assert.equal(solo.data.live_traffic,null);assert.match(solo.data.note,/không khẳng định đường thoáng/);
+});
+
+import { decodePolyline, encodePolyline, trimPolyline } from './agent-v2.js';
+test('owner 17/11 "xem lại yêu cầu ban đầu": traffic measured ON the Vietmap route (TomTom reconstruction), alternatives, car time bans',async()=>{
+  const line=encodePolyline([[21,105.8],[21.01,105.805],[21.03,105.81],[21.05,105.82]]);
+  assert.deepEqual(decodePolyline(line)[2],[21.03,105.81]);
+  const seen=[];
+  const f=async(u,o={})=>{u=new URL(String(u));seen.push({u,o});
+    if(u.pathname==='/api/search/v4')return Response.json([{ref_id:'r1',name:'Hồ Tây',address:'Hà Nội'}]);
+    if(u.pathname==='/api/place/v4')return Response.json({lat:21.05,lng:105.82});
+    if(u.pathname==='/api/route/v4')return Response.json({code:'OK',paths:[{distance:9000,time:17*60000,points:line,instructions:[{street_name:'Láng',distance:4000},{street_name:'Bưởi',distance:3000}],congestion:['unknown']}]});
+    if(u.pathname.includes('calculateRoute')){
+      if(o.method!=='POST')throw Error('expected POST reconstruction');
+      return Response.json({routes:[
+        {summary:{lengthInMeters:9000,travelTimeInSeconds:30*60,trafficDelayInSeconds:13*60,noTrafficTravelTimeInSeconds:17*60},guidance:{instructions:[{routeOffsetInMeters:0,pointIndex:0,street:'Láng'},{routeOffsetInMeters:4000,pointIndex:5,street:'Bưởi'}]},sections:[{sectionType:'TRAFFIC',startPointIndex:5,delayInSeconds:600,simpleCategory:'JAM'}]},
+        {summary:{lengthInMeters:10000,travelTimeInSeconds:22*60,trafficDelayInSeconds:60,noTrafficTravelTimeInSeconds:21*60},guidance:{instructions:[{routeOffsetInMeters:0,pointIndex:0,street:'Kim Mã'}]}}]})}
+    throw Error('unexpected '+u)};
+  const r=await vietmapRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'vietmap',apiKey:'vk',compareKey:'tk',origin:{lat:21,lng:105.8}},fetchImpl:f});
+  const vmCall=seen.find(x=>x.u.pathname==='/api/route/v4').u;assert.match(vmCall.searchParams.get('time'),/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/,'departure time sent so car time bans apply');
+  const tt=seen.find(x=>x.u.pathname.includes('calculateRoute'));assert.deepEqual(JSON.parse(tt.o.body),{encodedPolyline:line,encodedPolylinePrecision:5});
+  const L=r.data.live_traffic;assert.equal(L.same_road_as_vietmap,true);assert.equal(L.duration_now,'30 phút');assert.equal(L.delay_minutes,13);assert.equal(L.slow_points[0].street,'Bưởi');
+  assert.equal(r.data.live_alternatives[0].faster_by_minutes,8);assert.match(r.data.live_alternatives[0].path,/Kim Mã/);
+  assert.match(r.data.note,/TRÊN CHÍNH tuyến này/);assert.equal(r.trip.polyline,line);assert.equal(r.trip.seconds,30*60);
+  assert.match(r.routeCompare,/^Giao thông trên tuyến: TomTom 30 phút \(chậm 13'\)/);assert.match(r.routeCompare,/Phương án khác: 22 phút qua Kim Mã/);
+  assert.ok(!JSON.stringify(r.data).includes(line),'geometry never sent to the model (cost)');
+});
+test('trip monitor on the planned road: rest of the polyline from the car; > 250 m off it -> reroute flag',async()=>{
+  const line=encodePolyline([[21,105.8],[21.01,105.805],[21.03,105.81],[21.05,105.82]]);
+  const t=trimPolyline(line,{lat:21.0101,lng:105.8051});assert.ok(t.offRouteM<30);assert.deepEqual(decodePolyline(t.points).slice(-1)[0],[21.05,105.82]);
+  assert.ok(trimPolyline(line,{lat:21.02,lng:105.86}).offRouteM>250);
 });

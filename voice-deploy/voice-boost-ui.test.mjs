@@ -211,3 +211,12 @@ test('location quality (owner 17/11 "nhận vị trí linh tinh"): GPS on, fresh
   assert.deepEqual(JSON.parse(JSON.stringify(sent[1].route.origin)),{lat:21.03,lng:105.78,acc:25});
   assert.equal(opts.at(-1).maximumAge,0,'route question asks for a brand-new GPS fix');
 });
+
+test('trip decision on the planned road (onReference): routes[0] is the driver\'s road even if slower; faster alternative suggested; off-route adopts the new road',()=>{
+  const {d}=decideFn();const T0=Date.UTC(2026,10,17,1,0);
+  const trip={path:'Láng → Bưởi',polyline:'abc',expectEnd:T0+30*60000,lastAlertAt:0,alerted:[]};
+  const o=d(trip,{onReference:true,routes:[R('Phố Láng → Đường Bưởi',27),R('Kim Mã → Liễu Giai',20)]},T0+4*60000);
+  assert.match(o.say,/Có đường nhanh hơn khoảng 7 phút, đi qua Kim Mã → Liễu Giai/);
+  const off=d(trip,{offRoute:true,routes:[R('Kim Mã → Liễu Giai',20)]},T0+4*60000);
+  assert.equal(off.trip.polyline,null);assert.equal(off.trip.path,'Kim Mã → Liễu Giai');
+});
