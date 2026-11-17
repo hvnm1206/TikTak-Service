@@ -43,7 +43,7 @@ def parse_feed(raw, wallclock_tz=None, sitemap_prefix=None):
         if name == "url":
             loc = next((x.text for x in el if local(x.tag) == "loc"), "") or ""
             lm = next((x.text for x in el if local(x.tag) == "lastmod"), None)
-            if sitemap_prefix and loc.startswith(sitemap_prefix):
+            if loc and (not sitemap_prefix or loc.startswith(sitemap_prefix)):
                 items.append({"title": loc.rstrip("/").rsplit("/", 1)[-1].replace("-", " "), "link": loc, "date": parse_date(lm), "summary": ""})
             continue
         if name not in ("item", "entry"):
@@ -100,7 +100,7 @@ def page_meta(url):
 
 
 def enrich_sitemap(items, days):
-    """Với nguồn sitemap: chỉ đọc trang có lastmod trong `days` ngày; thay ngày bằng ngày đăng thật nếu trang có."""
+    """Với nguồn sitemap: chỉ đọc trang có lastmod trong `days` ngày; chỉ giữ trang có khai báo ngày đăng, dùng ngày đăng thật."""
     res = []
     for i in items:
         if not i["date"] or (NOW - i["date"]).total_seconds() > days * 86400:
@@ -111,6 +111,8 @@ def enrich_sitemap(items, days):
             print("META_FAIL", i["link"], e)
             continue
         pub = parse_date(m.get("date"))
+        if not pub:
+            continue  # trang không khai báo ngày đăng (tuyển dụng, giới thiệu...) thì không phải bài viết
         res.append({**i, "title": m.get("title") or i["title"], "summary": m.get("summary", ""),
                     "date": pub or i["date"], "lastmod": i["date"].isoformat(), "date_is_published": bool(pub),
                     "meta_from": {k: v for k, v in m.items() if k.endswith("_from")}})
