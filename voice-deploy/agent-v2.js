@@ -354,7 +354,10 @@ async function readResponseStream(body,{onEvent,permitSpeech}){
  if(!completed)throw Error('Luồng GPT bị ngắt trước khi hoàn tất.');
  return completed;
 }
-export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fetch,signal,toolFetchImpl=fetch,personalization={},actionRuntime=null,onEvent=null,routeContext=null}){
+// 17/11 owner "nó nói không tra và bịa": effort "none" answered from memory without judging whether fresh facts were
+// needed. Default "low" lets the model decide to search; falls back to "none" only if the model rejects the setting.
+export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fetch,signal,toolFetchImpl=fetch,personalization={},actionRuntime=null,onEvent=null,routeContext=null,reasoning="low"}){
+  let ngoEffort=["none","minimal","low","medium"].includes(reasoning)?reasoning:"low";
   if(!apiKey||!Array.isArray(messages)||messages.length<1)throw Error("Thiếu dữ liệu trò chuyện");
   const choice=Object.hasOwn(STYLES,style)?style:"nghiem_tuc";
   const personal=[];
@@ -393,7 +396,8 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     let r;
     try{
       r=await fetchImpl(API,{method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},
-        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:webSearchCalls?[...TOOLS,...routeTools,...enabledActions]:[...TOOLS,...routeTools,...enabledActions,WEB_SEARCH],...(webSearchCalls?{}:{max_tool_calls:1}),tool_choice:round===2?"none":"auto",reasoning:{effort:"none"},max_output_tokens:460,store:false,...(onEvent?{stream:true}:{})})});
+        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:webSearchCalls?[...TOOLS,...routeTools,...enabledActions]:[...TOOLS,...routeTools,...enabledActions,WEB_SEARCH],...(webSearchCalls?{}:{max_tool_calls:1}),tool_choice:round===2?"none":"auto",reasoning:{effort:ngoEffort},max_output_tokens:460,store:false,...(onEvent?{stream:true}:{})})});
+      if(!r.ok&&r.status===400&&ngoEffort!=="none"){const t=typeof r.clone==="function"?await r.clone().text().catch(()=>""):"";if(/reasoning|effort/i.test(t)){ngoEffort="none";round--;continue}}
       if(!r.ok)throw Error(r.status===401?"API key không hợp lệ":r.status===429?"API hết hạn mức":r.status===400?"OpenAI HTTP 400: cần kiểm tra quyền hỗ trợ web_search của model/API key":"OpenAI HTTP "+r.status);
       response=onEvent?await readResponseStream(r.body,{onEvent,permitSpeech:!lastActionFailure}):await r.json();
     }finally{clearTimeout(tm)}

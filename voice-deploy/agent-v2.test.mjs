@@ -16,7 +16,7 @@ test('uses Ngáo reference model and auto tools, returns usage and estimate',asy
   assert.equal(body.model,MODEL);
   assert.equal(body.tool_choice,'auto');
   assert.equal(body.store,false);
-  assert.equal(body.reasoning.effort,'none');
+  assert.equal(body.reasoning.effort,'low','model reasons before answering (owner 17/11: answered without searching and made things up)');
   assert.ok(body.tools.length>=4);
   assert.equal(r.answer,'Xin chào.');
   assert.ok(r.estimatedModelUsd>0);
@@ -556,4 +556,13 @@ test('owner 17/11 13:58: no hardcoded topic lists in instructions; web_search av
   assert.ok(first.tools.some(t=>t.type==='web_search'),'web_search offered on the first round');
   assert.doesNotMatch(first.instructions,/triển lãm|hội chợ|lịch chiếu|BẮT BUỘC dùng web_search/,'no patched keyword lists');
   assert.match(first.instructions,/Giờ Việt Nam hiện tại: /,'model knows today to reason about tomorrow');
+});
+
+test('reasoning "low" by default; if the model rejects the setting the same question is retried once with "none"',async()=>{
+  const bodies=[];
+  const r=await runAgent({apiKey:key,messages:msg,fetchImpl:async(u,o)=>{const b=JSON.parse(o.body);bodies.push(b.reasoning.effort);
+    if(bodies.length===1)return new Response(JSON.stringify({error:{message:"Unsupported value: 'reasoning.effort' does not support 'low' with this model."}}),{status:400});
+    return response([{type:'message',content:[{type:'output_text',text:'Ừ.'}]}])}});
+  assert.deepEqual(bodies,['low','none']);assert.equal(r.answer,'Ừ.');
+  await assert.rejects(()=>runAgent({apiKey:key,messages:msg,fetchImpl:async()=>new Response('{"error":{"message":"bad tools"}}',{status:400})}),/OpenAI HTTP 400/,'other 400s are not hidden');
 });

@@ -171,7 +171,7 @@ async function chatTurn(request,env,ctx,body,key,signal,onEvent){
  const rprov=env.NGO_ROUTE_PROVIDER==="tomtom"&&tmk?"tomtom":vmk?"vietmap":tmk?"tomtom":"google",rkey=rprov==="tomtom"?tmk:rprov==="vietmap"?vmk:gmk,cmpKey=env.NGO_ROUTE_COMPARE==="off"?null:rprov==="tomtom"?(vmk||null):rprov==="vietmap"?(tmk||null):null; // owner 17/11: Vietmap primary when its key exists; NGO_ROUTE_PROVIDER=tomtom reverts
  const routeContext=rq&&rq.enabled===true&&rkey&&env.NGO_ROUTES!=="off"?{apiKey:rkey,provider:rprov,compareKey:cmpKey,origin:(Number.isFinite(rq.origin?.lat)&&Number.isFinite(rq.origin?.lng)&&Math.abs(rq.origin.lat)<=90&&Math.abs(rq.origin.lng)<=180)?{lat:+rq.origin.lat,lng:+rq.origin.lng,...(Number.isFinite(+rq.origin.acc)&&+rq.origin.acc>=0?{acc:Math.round(+rq.origin.acc)}:{})}:null}:null;
  let result;
- try{result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal,actionRuntime,onEvent,routeContext})}
+ try{result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal,actionRuntime,onEvent,routeContext,reasoning:env.NGO_REASONING||"low"})}
  catch(e){console.warn(JSON.stringify({t:"ngo-turn",ok:false,err:String(e?.message||e).replace(/sk-[A-Za-z0-9_-]+/g,"sk-***").slice(0,200)}));throw e}
  // 17/11 trace for "không tra web được": tool names, search count, model only - no conversation content, no keys
  console.log(JSON.stringify({t:"ngo-turn",ok:true,tools:result?.tools||[],web:result?.webSearchCalls||0,model:result?.model,routes:!!routeContext}));
