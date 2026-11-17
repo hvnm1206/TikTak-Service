@@ -10,6 +10,28 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
     steps:
+      - name: Recent Worker logs (read-only, trace lines and 5xx)
+        continue-on-error: true
+        run: |
+          python3 - <<'PY'
+          import os,json,time,urllib.request
+          a='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']
+          now=int(time.time()*1000)
+          body={"queryId":"ngo-probe","timeframe":{"from":now-3*3600*1000,"to":now},"view":"events","limit":60,
+                "parameters":{"filters":[{"key":"$workers.scriptName","operation":"eq","type":"string","value":"nmh-voice-gpt-test"}]}}
+          req=urllib.request.Request(a+'/workers/observability/telemetry/query',data=json.dumps(body).encode(),method='POST',
+            headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN'],'Content-Type':'application/json','User-Agent':'NMH-NGO-PROBE'})
+          try:
+            with urllib.request.urlopen(req,timeout=40) as r:res=json.load(r)
+          except urllib.error.HTTPError as e:
+            print('NGO_LOGS_HTTP',e.code,e.read()[:400].decode('utf-8','replace'));raise SystemExit(0)
+          ev=(res.get('result') or {}).get('events',{}).get('events',[]) or []
+          print('NGO_LOGS_COUNT',len(ev))
+          for x in ev[:60]:
+            md=x.get('$metadata',{});wk=x.get('$workers',{});src=x.get('source')
+            msg=md.get('message') or (src if isinstance(src,str) else json.dumps(src)[:300] if src else '')
+            print('NGO_LOG',md.get('timestamp') or x.get('timestamp'),wk.get('event',{}).get('request',{}).get('path') if isinstance(wk.get('event'),dict) else '',wk.get('outcome') or md.get('statusCode') or '',str(msg)[:300])
+          PY
       - name: Active version and secret names (no values)
         run: |
           python3 - <<'PY'
