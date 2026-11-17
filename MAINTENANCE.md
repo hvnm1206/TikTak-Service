@@ -1,5 +1,10 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Một tuyến, một nguồn sự thật (đối chiếu yêu cầu ban đầu)
+- 08:53 chủ app: xem lại yêu cầu ban đầu (tuyến, trạng thái, phương án, đổi lộ trình realtime, một chiều/cấm, công tắc). Rút lại đề xuất tắt tính năng.
+- Vietmap route v4 gửi time (giờ cấm ô tô chỉ áp dụng khi có time). TomTom POST encodedPolyline dựng lại đúng tuyến Vietmap → tắc/thời gian trên chính tuyến đó + phương án khác. Canh đường gửi polyline, cắt từ vị trí xe; lệch >250 m → tính lại tuyến. Test 190/190.
+- Production 96b23ebb-550c-4d1d-97bd-2642895132dc; rollback faf306eb-f90f-460f-8cea-368821658211.
+
 ## 17/11/2026 — Đang tắc vẫn báo thoáng
 - 07:59 chủ app: tuyến đúng nhưng tắc vẫn báo thoáng. Nguyên nhân: Vietmap (trial) không có giao thông thời gian thực (07:21: Vietmap 17' vs TomTom 32'); thiếu dữ liệu tắc bị hiểu là 'thông thoáng'.
 - Sửa: tuyến theo Vietmap; thời gian/giờ đến/tắc theo TomTom (live_traffic); thiếu dữ liệu → 'không có dữ liệu tắc đường'; canh đường dùng TomTom; sửa nhãn SETUP. Test 186/186.
