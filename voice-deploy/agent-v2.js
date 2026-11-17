@@ -110,7 +110,7 @@ export async function vietmapCalc(from,to,key,fetchImpl=fetch,signal){
     const sec=Math.round((pt.time||0)/1000),heavy=Array.isArray(pt.congestion_distance)?pt.congestion_distance.reduce((a,b)=>a+(Number(b)||0),0):0;
     return {option:i+1,path:seq.slice(0,6).join(" → "),via:Object.entries(len).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]).join(", "),seconds_now:sec,duration_now:fmtMin(sec),
       distance_km:Math.round((pt.distance||0)/100)/10,arrive_at:new Date(Date.now()+sec*1000).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Ho_Chi_Minh"}),
-      heavy_km:Math.round(heavy/100)/10,status:heavy>=1000?"có đoạn tắc":heavy>0?"có đoạn đông":"thông thoáng",slow_points:[]};
+      heavy_km:Math.round(heavy/100)/10,status:heavy>=1000?"có đoạn tắc":heavy>0?"có đoạn đông":(Array.isArray(pt.congestion)&&pt.congestion.some(l=>l&&l!=="unknown"))?"thông thoáng":"không có dữ liệu tắc đường",slow_points:[]}; // 17/11: no congestion data is NOT "clear" (owner: jammed but told clear)
   })};
 }
 export async function vietmapRoute(args,{routeContext,fetchImpl,signal}){
@@ -124,9 +124,13 @@ export async function vietmapRoute(args,{routeContext,fetchImpl,signal}){
   if(!to)return fnOutput(false,{error:"Không tìm thấy điểm đến '"+destination+"'."});
   const calc=await vietmapCalc(from,to,key,fetchImpl,signal);if(calc.error)return fnOutput(false,{error:calc.error});
   let routeCompare=null; // owner 17/11: Vietmap primary, TomTom shown on screen for comparison (same coordinates, one call)
-  if(routeContext.compareKey){const t=await tomtomCalc(from,to,routeContext.compareKey,fetchImpl,signal).catch(e=>({error:String(e?.message||e)}));routeCompare=t.error?"So sánh — TomTom lỗi: "+t.error:compareLine(t.routes[0],calc.routes[0])}
+  let live=null; // 17/11 owner: "đang tắc vẫn báo thoáng" - Vietmap trial has no live traffic; time + jams come from TomTom
+  if(routeContext.compareKey){const t=await tomtomCalc(from,to,routeContext.compareKey,fetchImpl,signal).catch(e=>({error:String(e?.message||e)}));routeCompare=t.error?"So sánh — TomTom lỗi: "+t.error:compareLine(t.routes[0],calc.routes[0]);
+    if(!t.error){const b=t.routes[0];live={source:"TomTom (giao thông thực tế)",duration_now:b.duration_now,duration_free_flow:b.duration_free_flow,delay_minutes:b.delay_minutes,arrive_at:b.arrive_at,status:b.status,slow_points:b.slow_points,tomtom_path:b.path,seconds_now:b.seconds_now}}}
   const mapsUrl="https://www.google.com/maps/dir/?api=1&origin="+from.lat.toFixed(5)+","+from.lng.toFixed(5)+"&destination="+to.lat.toFixed(5)+","+to.lng.toFixed(5)+"&travelmode=driving";
-  return {...fnOutput(true,{provider:"Vietmap",from:from.name,to:to.name,routes:calc.routes,note:"Dữ liệu Vietmap; mức đông/tắc theo đoạn, có thể khác Google Maps. Ngố sẽ tự canh giao thông dọc đường và báo khi có tắc mới hoặc đường nhanh hơn."}),mapsUrl,routeCompare,trip:{to:{lat:to.lat,lng:to.lng,name:to.name},seconds:calc.routes[0].seconds_now,path:calc.routes[0].path}};
+  return {...fnOutput(true,{provider:"Vietmap",from:from.name,to:to.name,routes:calc.routes,live_traffic:live,
+    note:live?"Tuyến đường (path) theo Vietmap. Thời gian, giờ đến và tình trạng tắc PHẢI lấy từ live_traffic (TomTom, có giao thông thực tế); thời gian Vietmap chưa tính tắc nên không đọc. Ngố sẽ tự canh giao thông dọc đường.":"Dữ liệu Vietmap, chưa tính tắc đường thực tế: nói rõ là thời gian ước tính lúc đường thông, không khẳng định đường thoáng."}),
+    mapsUrl,routeCompare,trip:{to:{lat:to.lat,lng:to.lng,name:to.name},seconds:live?live.seconds_now:calc.routes[0].seconds_now,path:live?live.tomtom_path:calc.routes[0].path}};
 }
 // one line for the screen: same origin/destination, both providers (owner compares against what he actually drives)
 // line 1 = short summary shown in the dock; line 2 = detail shown when tapped (owner 17/11: the full line covered the buttons)

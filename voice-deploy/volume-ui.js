@@ -71,7 +71,7 @@ function once(text,from,to,code){
 export function enhanceVolumePage(page){
  let p=once(page,ORIGINAL,LOUD,'NGO_VOLUME_PRESENCE_METER_MISMATCH');
  p=once(p,' const labels={idle:',' const loudVoiceProcess='+loudVoiceProcess.toString()+'; const labels={idle:','NGO_VOLUME_HELPER_MISMATCH');
- p=once(p,'Âm lượng giọng AI Marin (khuếch đại có giới hạn): ','Âm lượng giọng AI Marin (chuẩn hóa + chống vỡ tiếng): ','NGO_VOLUME_LABEL_MISMATCH');
+ p=once(p,'Âm lượng giọng AI Marin (khuếch đại có giới hạn): ','Âm lượng giọng AI (chuẩn hóa + chống vỡ tiếng): ','NGO_VOLUME_LABEL_MISMATCH');
  p=once(p,'<p class="hint">Nếu âm thanh méo, giảm mức khuếch đại. Chỉ áp dụng cho giọng AI, không thay đổi micro hay âm lượng iPhone.</p>','<p class="hint">Kéo phải để to hơn. Mỗi đoạn giọng được đưa về cùng độ to và có bộ chống vỡ tiếng. Âm lượng iPhone vẫn phải bật đủ lớn.</p>','NGO_VOLUME_HINT_MISMATCH');
  return p;
 }

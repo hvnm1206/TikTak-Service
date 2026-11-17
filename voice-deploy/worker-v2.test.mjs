@@ -361,7 +361,7 @@ test('/api/route-check: TomTom only (no OpenAI), trimmed key, origin + key-forma
     assert.equal(seen.length,1,'no upstream call when blocked');
   }finally{globalThis.fetch=old}
 });
-test('/api/route-check uses Vietmap when VIETMAP_KEY exists (owner chose Vietmap), TomTom when forced or only key',async()=>{
+test('/api/route-check uses TomTom (live traffic) when its key exists, Vietmap only as the sole key',async()=>{
   const old=globalThis.fetch,seen=[];
   globalThis.fetch=async(u)=>{u=String(u);seen.push(u);
     if(u.includes('maps.vietmap.vn/api/route/v4'))return Response.json({code:'OK',paths:[{distance:4000,time:600000,instructions:[{street_name:'Láng',distance:4000}]}]});
@@ -370,8 +370,8 @@ test('/api/route-check uses Vietmap when VIETMAP_KEY exists (owner chose Vietmap
   try{
     const body={apiKey:key,from:{lat:21.02,lng:105.81},to:{lat:21.05,lng:105.82}};
     let j=await (await worker.fetch(request('/api/route-check',body),{TOMTOM_KEY:'tk',VIETMAP_KEY:' vk '})).json();
+    assert.equal(j.routes[0].seconds_now,660);assert.match(seen.at(-1),/tomtom/,'live traffic (TomTom) watches the trip when its key exists');
+    j=await (await worker.fetch(request('/api/route-check',body),{VIETMAP_KEY:' vk '})).json();
     assert.equal(j.routes[0].seconds_now,600);assert.match(seen.at(-1),/vietmap.*apikey=vk/);
-    j=await (await worker.fetch(request('/api/route-check',body),{TOMTOM_KEY:'tk',VIETMAP_KEY:'vk',NGO_ROUTE_PROVIDER:'tomtom'})).json();
-    assert.equal(j.routes[0].seconds_now,660);assert.match(seen.at(-1),/tomtom/);
   }finally{globalThis.fetch=old}
 });

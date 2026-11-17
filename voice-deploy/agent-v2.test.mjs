@@ -440,7 +440,7 @@ test('Vietmap route: search v4 -> place v4 (refid) -> route v4 car + alternative
   const rt=seen[2];assert.deepEqual(rt.searchParams.getAll('point'),['21,105.8','21.055,105.818']);
   for(const [k,v] of [['vehicle','car'],['alternative','true'],['annotations','congestion,congestion_distance']])assert.equal(rt.searchParams.get(k),v);
   const a=r.data.routes[0];assert.equal(a.path,'Láng → Bưởi');assert.equal(a.duration_now,'24 phút');assert.equal(a.heavy_km,1.5);assert.equal(a.status,'có đoạn tắc');
-  assert.equal(r.data.routes[1].status,'thông thoáng');assert.equal(r.trip.to.lat,21.055);assert.match(r.mapsUrl,/destination=21\.05500,105\.81800/);
+  assert.equal(r.data.routes[1].status,'không có dữ liệu tắc đường','no congestion data is not clear');assert.equal(r.trip.to.lat,21.055);assert.match(r.mapsUrl,/destination=21\.05500,105\.81800/);
   const bad=await vietmapCalc({lat:21,lng:105.8},{lat:21.05,lng:105.82},'vk',async()=>new Response('denied apikey=vk',{status:401}));
   assert.match(bad.error,/HTTP 401/);assert.ok(!bad.error.includes('=vk'));
 });
@@ -493,4 +493,19 @@ test('current location (owner 17/11 "hỏi vị trí hiện tại nó không bi�
   let first;
   await runAgent({apiKey:key,messages:msg,routeContext:ctx,fetchImpl:async(u,o)=>{first??=JSON.parse(o.body);return response([{type:'message',content:[{type:'output_text',text:'ok'}]}])}});
   assert.ok(first.tools.some(t=>t.name==='get_current_location'));assert.match(first.instructions,/get_current_location/);
+});
+
+test('owner 17/11 "đang tắc vẫn báo thoáng": Vietmap without congestion data is never "thông thoáng"; TomTom live traffic drives time/status',async()=>{
+  const f=async(u)=>{u=new URL(String(u));
+    if(u.pathname==='/api/search/v4')return Response.json([{ref_id:'r1',name:'Hồ Tây',address:'Hà Nội'}]);
+    if(u.pathname==='/api/place/v4')return Response.json({lat:21.05,lng:105.82});
+    if(u.pathname==='/api/route/v4')return Response.json({code:'OK',paths:[{distance:9000,time:17*60000,instructions:[{street_name:'Láng',distance:4000}],congestion:['unknown','unknown']}]});
+    if(u.pathname.includes('calculateRoute'))return Response.json({routes:[{summary:{lengthInMeters:9000,travelTimeInSeconds:32*60,trafficDelayInSeconds:15*60,noTrafficTravelTimeInSeconds:17*60},guidance:{instructions:[{routeOffsetInMeters:0,pointIndex:0,street:'Láng'}]},sections:[{sectionType:'TRAFFIC',startPointIndex:0,delayInSeconds:900,simpleCategory:'JAM'}]}]});
+    throw Error('unexpected '+u)};
+  const r=await vietmapRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'vietmap',apiKey:'vk',compareKey:'tk',origin:{lat:21,lng:105.8}},fetchImpl:f});
+  assert.equal(r.data.routes[0].status,'không có dữ liệu tắc đường');
+  assert.equal(r.data.live_traffic.duration_now,'32 phút');assert.equal(r.data.live_traffic.status,'có đoạn tắc');assert.equal(r.data.live_traffic.slow_points[0].street,'Láng');
+  assert.match(r.data.note,/PHẢI lấy từ live_traffic/);assert.equal(r.trip.seconds,32*60,'trip monitor baseline uses live traffic time');
+  const solo=await vietmapRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'vietmap',apiKey:'vk',origin:{lat:21,lng:105.8}},fetchImpl:f});
+  assert.equal(solo.data.live_traffic,null);assert.match(solo.data.note,/không khẳng định đường thoáng/);
 });
