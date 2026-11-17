@@ -37,16 +37,23 @@ const HELPERS=String.raw`
  // 16/11/2026: optional driving routes (Google Maps). OFF by default; location is read only while the switch is on.
  let ngoRoutesOn=load("ngo_routes_v1","0")==="1",ngoGeo=null,ngoGeoWatch=null;
  let ngoGeoErr="";
- function ngoGeoShow(){try{const el=document.getElementById("ngoGeoStatus");if(!el)return;el.textContent=!ngoRoutesOn?"":ngoGeo?"📍 Đã có vị trí iPhone ("+Math.round((Date.now()-ngoGeo.at)/1000)+" giây trước)":ngoGeoErr==="denied"?"⚠️ iPhone đang CHẶN vị trí cho Safari: Cài đặt → Quyền riêng tư & Bảo mật → Dịch vụ định vị → Trang web Safari → Khi dùng ứng dụng; rồi tải lại Ngố.":ngoGeoErr?"⚠️ Chưa lấy được vị trí ("+ngoGeoErr+").":"⏳ Đang lấy vị trí…"}catch{}}
- function ngoGeoOk(p){ngoGeo={lat:p.coords.latitude,lng:p.coords.longitude,at:Date.now()};ngoGeoErr="";ngoGeoShow()}
+ // 17/11/2026 owner: "nhận vị trí linh tinh". Root cause: enableHighAccuracy:false (cell/Wi-Fi guess, can be km off in a car)
+ // and fixes accepted up to 10 min old (car has moved). Now: GPS on, fresh fix (< 30 s) with accuracy <= 150 m for a route
+ // question, wait up to 8 s for a better one, and never send a fix worse than 500 m (Ngố asks the origin instead).
+ const NGO_GEO_FRESH=30000,NGO_GEO_GOOD=150,NGO_GEO_MAX=500;
+ function ngoGeoShow(){try{const el=document.getElementById("ngoGeoStatus");if(!el)return;el.textContent=!ngoRoutesOn?"":ngoGeo?"📍 Vị trí iPhone: sai số ±"+Math.round(ngoGeo.acc)+" m ("+Math.round((Date.now()-ngoGeo.at)/1000)+" giây trước)"+(ngoGeo.acc>NGO_GEO_MAX?" — chưa đủ chính xác":""):ngoGeoErr==="denied"?"⚠️ iPhone đang CHẶN vị trí cho Safari: Cài đặt → Quyền riêng tư & Bảo mật → Dịch vụ định vị → Trang web Safari → Khi dùng ứng dụng + bật Vị trí chính xác; rồi tải lại Ngố.":ngoGeoErr?"⚠️ Chưa lấy được vị trí ("+ngoGeoErr+").":"⏳ Đang lấy vị trí…"}catch{}}
+ function ngoGeoOk(p){const acc=Number(p.coords.accuracy);const f={lat:p.coords.latitude,lng:p.coords.longitude,acc:Number.isFinite(acc)?acc:9999,at:Date.now()};
+  // keep a fresh precise fix rather than replacing it with a coarse one that arrives right after
+  if(ngoGeo&&Date.now()-ngoGeo.at<10000&&ngoGeo.acc<f.acc&&f.acc>NGO_GEO_GOOD)return;ngoGeo=f;ngoGeoErr="";ngoGeoShow()}
  function ngoGeoFail(e){ngoGeoErr=e&&e.code===1?"denied":e&&e.code===3?"hết thời gian chờ":"không xác định";ngoGeoShow()}
- function ngoGeoStart(){try{if(!navigator.geolocation){ngoGeoErr="trình duyệt không hỗ trợ";ngoGeoShow();return}if(ngoGeoWatch!==null)return;ngoGeoWatch=navigator.geolocation.watchPosition(ngoGeoOk,ngoGeoFail,{enableHighAccuracy:false,maximumAge:60000,timeout:15000});ngoGeoShow()}catch{}}
- // Before a question is sent: use a fix < 10 min old, otherwise ask the iPhone once and wait up to 6 s.
- globalThis.ngoRouteContextAsync=async()=>{if(!ngoRoutesOn)return {};if(!(ngoGeo&&Date.now()-ngoGeo.at<10*60000)&&navigator.geolocation){
-  await new Promise(res=>{let done=false;const end=()=>{if(!done){done=true;res()}};setTimeout(end,6000);try{navigator.geolocation.getCurrentPosition(p=>{ngoGeoOk(p);end()},e=>{ngoGeoFail(e);end()},{enableHighAccuracy:false,maximumAge:120000,timeout:6000})}catch{end()}})}
-  return globalThis.ngoRouteContext()};
+ function ngoGeoStart(){try{if(!navigator.geolocation){ngoGeoErr="trình duyệt không hỗ trợ";ngoGeoShow();return}if(ngoGeoWatch!==null)return;ngoGeoWatch=navigator.geolocation.watchPosition(ngoGeoOk,ngoGeoFail,{enableHighAccuracy:true,maximumAge:5000,timeout:20000});ngoGeoShow()}catch{}}
+ const ngoGeoGood=()=>ngoGeo&&Date.now()-ngoGeo.at<NGO_GEO_FRESH&&ngoGeo.acc<=NGO_GEO_GOOD;
+ // wait (<= ms) for a fresh precise GPS fix; the running watch usually supplies it at once
+ globalThis.ngoGeoFresh=ms=>new Promise(res=>{if(ngoGeoGood()||!navigator.geolocation)return res();let done=false;const end=()=>{if(!done){done=true;clearInterval(t);res()}};const t=setInterval(()=>{if(ngoGeoGood())end()},250);setTimeout(end,ms);
+  try{navigator.geolocation.getCurrentPosition(p=>{ngoGeoOk(p);if(ngoGeoGood())end()},e=>{ngoGeoFail(e);if(e&&e.code===1)end()},{enableHighAccuracy:true,maximumAge:0,timeout:ms})}catch{end()}});
+ globalThis.ngoRouteContextAsync=async()=>{if(!ngoRoutesOn)return {};await globalThis.ngoGeoFresh(8000);return globalThis.ngoRouteContext()};
  function ngoGeoStop(){try{if(ngoGeoWatch!==null)navigator.geolocation.clearWatch(ngoGeoWatch)}catch{}ngoGeoWatch=null;ngoGeo=null}
- globalThis.ngoRouteContext=()=>ngoRoutesOn?{route:{enabled:true,origin:ngoGeo&&Date.now()-ngoGeo.at<10*60000?{lat:ngoGeo.lat,lng:ngoGeo.lng}:null}}:{};
+ globalThis.ngoRouteContext=()=>ngoRoutesOn?{route:{enabled:true,origin:ngoGeo&&Date.now()-ngoGeo.at<2*60000&&ngoGeo.acc<=NGO_GEO_MAX?{lat:ngoGeo.lat,lng:ngoGeo.lng,acc:Math.round(ngoGeo.acc)}:null}}:{};
  // 17/11/2026 owner screenshots: route widgets covered the header and the KẾT THÚC/NGẮT AI buttons -> one compact dock at the very bottom.
  function ngoDock(){let d=document.getElementById("ngoDock");if(!d){d=document.createElement("div");d.id="ngoDock";d.style.cssText="position:fixed;left:8px;right:8px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:50;display:flex;gap:6px;align-items:flex-end;justify-content:center;pointer-events:none";document.body.appendChild(d)}return d}
  function ngoDockTidy(){if(!["ngoTripChip","ngoRouteCmp","ngoMapsLink"].some(id=>document.getElementById(id)))document.getElementById("ngoDock")?.remove()}
@@ -73,8 +80,8 @@ ${TRIP_LOGIC}
   if(!ngoTrip)return;if(!ngoRoutesOn||Date.now()-ngoTrip.started>3*3600000){ngoTripEnd();return}
   if(ngoTripSayQ&&ngoTripSay(ngoTripSayQ))ngoTripSayQ=null;
   if(ngoTripBusy||!active||document.hidden||Date.now()-ngoTrip.lastCheck<NGO_TRIP_EVERY)return;
-  if(!(ngoGeo&&Date.now()-ngoGeo.at<2*60000)&&navigator.geolocation)await new Promise(res=>{let done=false;const end=()=>{if(!done){done=true;res()}};setTimeout(end,8000);try{navigator.geolocation.getCurrentPosition(p=>{ngoGeoOk(p);end()},e=>{ngoGeoFail(e);end()},{enableHighAccuracy:false,maximumAge:30000,timeout:8000})}catch{end()}}); // a parked/slow car may not trigger watchPosition updates
-  if(!ngoTrip||!(ngoGeo&&Date.now()-ngoGeo.at<2*60000))return;
+  await globalThis.ngoGeoFresh(8000); // parked/slow car may send no watch updates; GPS fix requested explicitly
+  if(!ngoTrip||!(ngoGeo&&Date.now()-ngoGeo.at<2*60000&&ngoGeo.acc<=NGO_GEO_MAX))return;
   const here={lat:ngoGeo.lat,lng:ngoGeo.lng};
   if(ngoDistM(here,ngoTrip.to)<400){const n=ngoTrip.to.name;ngoTripEnd();ngoTripSayQ="Sắp tới "+(n||"nơi")+" rồi, Ngố dừng canh đường.";return}
   ngoTripBusy=true;ngoTrip.lastCheck=Date.now();

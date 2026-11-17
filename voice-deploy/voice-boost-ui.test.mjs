@@ -108,16 +108,16 @@ test('route switch: OFF by default sends nothing and reads no location; ON sends
   const document={getElementById:id=>dom[id]||null,createElement:()=>({style:{},appendChild(el){dom[el.id]=el},remove(){delete dom[this.id]}}),body:{appendChild:el=>{dom[el.id]=el}}};
   const navigator={geolocation:{watchPosition:(ok)=>{watch.push(1);if(geo)ok({coords:geo});return 7},clearWatch:()=>watch.push('clear')}};
   class SR{start(){}stop(){}abort(){}}
-  const ctx={navigator,document,SR,setTimeout:()=>0,clearTimeout:()=>{},Date,fetch:async(path,opt)=>{sent.push(JSON.parse(opt.body));return {ok:true,json:async()=>({answer:'x',mapsUrl:'https://www.google.com/maps/dir/?api=1&destination=M%E1%BB%B9%20%C4%90%C3%ACnh&travelmode=driving'})}},globalThis:null};
+  const ctx={navigator,document,SR,setTimeout:()=>0,clearTimeout:()=>{},setInterval:()=>0,clearInterval:()=>{},Date,fetch:async(path,opt)=>{sent.push(JSON.parse(opt.body));return {ok:true,json:async()=>({answer:'x',mapsUrl:'https://www.google.com/maps/dir/?api=1&destination=M%E1%BB%B9%20%C4%90%C3%ACnh&travelmode=driving'})}},globalThis:null};
   ctx.globalThis=ctx;vm.runInNewContext(code+';globalThis.apiFn=apiCall;',ctx);return {ctx,sent,watch,dom};
  }
- const off=boot({},{latitude:21.0,longitude:105.8});
+ const off=boot({},{latitude:21.0,longitude:105.8,accuracy:12});
  await off.ctx.apiFn('/api/chat','sk',{messages:[]});
  assert.equal(off.sent[0].route,undefined);assert.equal(off.watch.length,0,'no location access when off');
  assert.equal(off.dom.ngoMapsLink,undefined);
- const on=boot({ngo_routes_v1:'1'},{latitude:21.03,longitude:105.78});
+ const on=boot({ngo_routes_v1:'1'},{latitude:21.03,longitude:105.78,accuracy:12});
  await on.ctx.apiFn('/api/chat','sk',{messages:[]});
- assert.deepEqual(JSON.parse(JSON.stringify(on.sent[0].route)),{enabled:true,origin:{lat:21.03,lng:105.78}});
+ assert.deepEqual(JSON.parse(JSON.stringify(on.sent[0].route)),{enabled:true,origin:{lat:21.03,lng:105.78,acc:12}});
  assert.match(on.dom.ngoMapsLink.href,/^https:\/\/www\.google\.com\/maps\/dir\//);
  on.ctx.ngoShowMapsLink('javascript:alert(1)');assert.equal(on.dom.ngoMapsLink,undefined,'non-Google links refused');
  on.ctx.ngoShowRouteError('TomTom từ chối khóa');assert.match(on.dom.ngoRouteErr.textContent,/Tra đường: TomTom từ chối khóa/);
@@ -126,17 +126,17 @@ test('route switch: OFF by default sends nothing and reads no location; ON sends
  off.ctx.ngoShowRouteCompare('x');assert.equal(off.dom.ngoRouteCmp,undefined);
  off.ctx.ngoShowRouteError('x');assert.equal(off.dom.ngoRouteErr,undefined,'no route banner when switch off');
 });
-test('route switch ON without a fix: waits for one getCurrentPosition (max 6 s) before sending; denied shows how to enable',async()=>{
+test('route switch ON without a fix: waits for one precise GPS fix (max 8 s) before sending; denied shows how to enable',async()=>{
   const html=enhanceVoiceBoost(MINI);const code=html.match(/<script>([\s\S]*)<\/script>/)[1].replace('const store={};','const store={"ngo_routes_v1":"1"};');
   const sent=[],dom={};let asked=0;
   const document={getElementById:id=>dom[id]||(dom[id]={textContent:"",style:{}}),createElement:()=>({style:{},remove(){}}),body:{appendChild(){}}};
-  const navigator={geolocation:{watchPosition:()=>7,clearWatch(){},getCurrentPosition:(ok)=>{asked++;setTimeout(()=>ok({coords:{latitude:21.06,longitude:105.82}}),5)}}};
+  const navigator={geolocation:{watchPosition:()=>7,clearWatch(){},getCurrentPosition:(ok)=>{asked++;setTimeout(()=>ok({coords:{latitude:21.06,longitude:105.82,accuracy:20}}),5)}}};
   class SR{start(){}stop(){}abort(){}}
-  const ctx={navigator,document,SR,setTimeout,clearTimeout,Date,fetch:async(p,o)=>{sent.push(JSON.parse(o.body));return {ok:true,json:async()=>({answer:'x'})}},globalThis:null};
+  const ctx={navigator,document,SR,setTimeout,clearTimeout,setInterval:(f,ms)=>ms<1000?setInterval(f,ms):0,clearInterval,Date,fetch:async(p,o)=>{sent.push(JSON.parse(o.body));return {ok:true,json:async()=>({answer:'x'})}},globalThis:null};
   ctx.globalThis=ctx;vm.runInNewContext(code+';globalThis.apiFn=apiCall;',ctx);
   await ctx.apiFn('/api/chat','sk',{messages:[]});
   assert.equal(asked,1);
-  assert.deepEqual(JSON.parse(JSON.stringify(sent[0].route)),{enabled:true,origin:{lat:21.06,lng:105.82}});
+  assert.deepEqual(JSON.parse(JSON.stringify(sent[0].route)),{enabled:true,origin:{lat:21.06,lng:105.82,acc:20}});
   navigator.geolocation.getCurrentPosition=(ok,fail)=>fail({code:1});
   const html2=enhanceVoiceBoost(MINI);const code2=html2.match(/<script>([\s\S]*)<\/script>/)[1].replace('const store={};','const store={"ngo_routes_v1":"1"};');
   const ctx2={...ctx,globalThis:null};ctx2.globalThis=ctx2;vm.runInNewContext(code2+';globalThis.apiFn=apiCall;',ctx2);
@@ -176,9 +176,9 @@ test('trip monitor on page: starts from a route answer, checks TomTom every 4 mi
   const code=html.match(/<script>([\s\S]*)<\/script>/)[1].replace('const store={};','const store={"ngo_routes_v1":"1"};let step="listening",history=[],key="sk-test";const render=()=>{};function speak(t,g){globalThis.spoken.push(t)}');
   const dom={},ticks=[],calls=[];
   const document={hidden:false,getElementById:id=>dom[id]||null,createElement:()=>({style:{},appendChild(el){dom[el.id]=el},remove(){delete dom[this.id]}}),body:{appendChild:el=>{dom[el.id]=el}}};
-  const navigator={geolocation:{watchPosition:ok=>{ok({coords:{latitude:21.03,longitude:105.78}});return 1},clearWatch(){},getCurrentPosition(ok){ok({coords:{latitude:21.03,longitude:105.78}})}}};
+  const navigator={geolocation:{watchPosition:ok=>{ok({coords:{latitude:21.03,longitude:105.78,accuracy:15}});return 1},clearWatch(){},getCurrentPosition(ok){ok({coords:{latitude:21.03,longitude:105.78,accuracy:15}})}}};
   let reply={routes:[R('Láng → Phạm Hùng',16)]};
-  const ctx={navigator,document,Date:D,Math,JSON,Number,String,Array,setTimeout:()=>0,clearTimeout(){},setInterval:(f,ms)=>{if(ms===20000)ticks.push(f)},spoken:[],
+  const ctx={navigator,document,Date:D,Math,JSON,Number,String,Array,setTimeout:()=>0,clearTimeout(){},setInterval:(f,ms)=>{if(ms===20000)ticks.push(f);return 0},clearInterval(){},spoken:[],
     fetch:async(p,o)=>{calls.push([p,JSON.parse(o.body)]);if(p==='/api/route-check')return {ok:true,status:200,json:async()=>reply};return {ok:true,json:async()=>({answer:'x',trip:{to:{lat:21.05,lng:105.82,name:'Hồ Tây'},seconds:20*60,path:'Láng → Phạm Hùng'}})}}};
   ctx.globalThis=ctx;vm.runInNewContext(code+';globalThis.apiFn=apiCall;globalThis.peek=()=>({step,history,gen});globalThis.setStep=s=>{step=s};',ctx);
   await ctx.apiFn('/api/chat','sk',{messages:[]});
@@ -192,4 +192,22 @@ test('trip monitor on page: starts from a route answer, checks TomTom every 4 mi
   ctx.setStep('listening');T+=20000;await tick();assert.equal(ctx.spoken.length,1);assert.match(ctx.spoken[0],/chậm thêm khoảng/);
   assert.equal(ctx.peek().history.at(-1).content,ctx.spoken[0],'alert kept in conversation for follow-up questions');
   dom.ngoTripChip.onclick();assert.equal(dom.ngoTripChip,undefined);T+=5*60000;await tick();assert.equal(calls.filter(c=>c[0]==='/api/route-check').length,2,'stopped');
+});
+
+test('location quality (owner 17/11 "nhận vị trí linh tinh"): GPS on, fresh precise fix only; coarse fix (> 500 m) never sent',async()=>{
+  const html=enhanceVoiceBoost(MINI);const code=html.match(/<script>([\s\S]*)<\/script>/)[1].replace('const store={};','const store={"ngo_routes_v1":"1"};');
+  const sent=[],dom={},opts=[];let fix={latitude:21.2,longitude:105.9,accuracy:1800};
+  const document={getElementById:id=>dom[id]||(dom[id]={textContent:"",style:{}}),createElement:()=>({style:{},remove(){}}),body:{appendChild(){}}};
+  const navigator={geolocation:{watchPosition:(ok,f,o)=>{opts.push(o);ok({coords:fix});return 7},clearWatch(){},getCurrentPosition:(ok,f,o)=>{opts.push(o);ok({coords:fix})}}};
+  class SR{start(){}stop(){}abort(){}}
+  const ctx={navigator,document,SR,setTimeout:(f,ms)=>ms>=8000?setTimeout(f,5):setTimeout(f,ms),clearTimeout,setInterval:(f,ms)=>ms<1000?setInterval(f,ms):0,clearInterval,Date,fetch:async(p,o)=>{sent.push(JSON.parse(o.body));return {ok:true,json:async()=>({answer:'x'})}},globalThis:null};
+  ctx.globalThis=ctx;vm.runInNewContext(code+';globalThis.apiFn=apiCall;',ctx);
+  assert.equal(opts[0].enableHighAccuracy,true);assert.ok(opts[0].maximumAge<=5000);
+  await ctx.apiFn('/api/chat','sk',{messages:[]});
+  assert.equal(JSON.parse(JSON.stringify(sent[0].route)).origin,null,'1.8 km uncertainty -> ask the user instead of guessing');
+  assert.match(dom.ngoGeoStatus.textContent,/±1800 m.*chưa đủ chính xác/);
+  fix={latitude:21.03,longitude:105.78,accuracy:25};
+  await ctx.apiFn('/api/chat','sk',{messages:[]});
+  assert.deepEqual(JSON.parse(JSON.stringify(sent[1].route.origin)),{lat:21.03,lng:105.78,acc:25});
+  assert.equal(opts.at(-1).maximumAge,0,'route question asks for a brand-new GPS fix');
 });
