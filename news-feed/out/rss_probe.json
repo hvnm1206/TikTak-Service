@@ -1,78 +1,18 @@
 {
- "checked_at": "2026-11-17T15:06:46.671581+00:00",
+ "checked_at": "2026-11-17T15:11:57.885950+00:00",
  "results": [
   {
    "url": "https://vnexpress.net/rss/so-hoa.rss",
-   "http": 200,
-   "ms": 3284,
-   "bytes": 68840,
-   "content_type": "application/xml; charset=utf-8",
-   "items": 60,
-   "with_date": 60,
-   "with_summary": 60,
-   "newest": "2026-11-17T19:11:43+07:00",
-   "oldest": "2026-11-13T00:00:00+07:00",
-   "age_newest_h": 2.9,
-   "last_24h": 15,
-   "last_7d": 60,
-   "sample": [
-    {
-     "title": "Việt Nam nghiên cứu chung, hợp tác khoa học công nghệ với Trung Quốc",
-     "date": "2026-11-17T19:11:43+07:00",
-     "summary": "Việt Nam và Trung Quốc công bố các nhiệm vụ nghiên cứu chung, đồng thời ký 16 văn kiện hợp tác giữa cơ quan, trường đại học và doanh nghiệp về khoa học và công ",
-     "lastmod": null
-    },
-    {
-     "title": "TP HCM lấy hiệu quả kinh doanh làm thước đo chuyển đổi số doanh nghiệp nhỏ",
-     "date": "2026-11-17T16:53:27+07:00",
-     "summary": "Lãnh đạo UBND TP HCM khẳng định chuyển đổi số chỉ thành công khi lan tỏa tới từng cửa hàng, hộ kinh doanh và lấy hiệu quả thực tế làm tiêu chí đánh giá chính.",
-     "lastmod": null
-    },
-    {
-     "title": "'Việt Nam cần dồn lực cho chip chuyên dụng'",
-     "date": "2026-11-17T16:08:13+07:00",
-     "summary": "Việt Nam sẽ tập trung phát triển chip bán dẫn ở phân khúc chuyên dụng, gắn với công nghệ chiến lược, thay vì cạnh tranh trực diện trong lĩnh vực chip đa dụng, t",
-     "lastmod": null
-    },
-    {
-     "title": "Bình chọn máy lọc nước RO Hydrogen được yêu thích",
-     "date": "2026-11-17T15:29:57+07:00",
-     "summary": "Số bình chọn thứ 7 của Sản phẩm tôi yêu 2026 có chủ đề máy lọc nước RO Hydrogen được yêu thích nhất, bắt đầu từ 12h ngày 17-26/11.",
-     "lastmod": null
-    },
-    {
-     "title": "Elon Musk tiết lộ siêu tên lửa Starship V4 sẽ lớn và mạnh hơn",
-     "date": "2026-11-17T14:35:21+07:00",
-     "summary": "Elon Musk, nhà sáng lập kiêm CEO SpaceX, cho biết phiên bản mới của tên lửa Starship sẽ dài 70 m, tăng 40% kích thước và chứa nhiều nhiên liệu đẩy hơn 60% so vớ",
-     "lastmod": null
-    },
-    {
-     "title": "Viettel được cấp phép kinh doanh viễn thông tại Cộng hòa Dominica",
-     "date": "2026-11-17T14:17:30+07:00",
-     "summary": "Viettel được quyền triển khai mạng 4G/5G tại Cộng hòa Dominica sau khi ký hợp đồng nhượng quyền viễn thông tại đây.",
-     "lastmod": null
-    },
-    {
-     "title": "Sam Altman nói về Jensen Huang: 'Người hùng cũng có khuyết điểm'",
-     "date": "2026-11-17T12:00:00+07:00",
-     "summary": "CEO OpenAI Sam Altman nói \"đồng cảm sâu sắc\" với Jensen Huang, nhưng từ chối bình luận về khả năng cựu CEO Nvidia quay lại công ty.",
-     "lastmod": null
-    },
-    {
-     "title": "Giá tiền ảo Pi xuống mức thấp nhất từ khi mở mạng",
-     "date": "2026-11-17T11:00:00+07:00",
-     "summary": "Giá tiền ảo Pi lần đầu chạm mốc 0,05 USD, giảm 98% giá trị so với mức đỉnh 3 USD, trong bối cảnh dự án không chuyển biến tích cực.",
-     "lastmod": null
-    }
-   ],
-   "ok": true,
+   "http": 503,
+   "ok": false,
+   "error": "HTTP Error 503: Service Unavailable",
    "source": "vnexpress-sohoa",
-   "verdict": "DÙNG ĐƯỢC"
+   "verdict": "HỎNG"
   },
   {
    "url": "https://vnexpress.net/rss/khoa-hoc-cong-nghe.rss",
    "http": 200,
-   "ms": 1513,
+   "ms": 1619,
    "bytes": 68840,
    "content_type": "application/xml; charset=utf-8",
    "items": 60,
@@ -80,7 +20,7 @@
    "with_summary": 60,
    "newest": "2026-11-17T19:11:43+07:00",
    "oldest": "2026-11-13T00:00:00+07:00",
-   "age_newest_h": 2.9,
+   "age_newest_h": 3.0,
    "last_24h": 15,
    "last_7d": 60,
    "sample": [
@@ -140,7 +80,7 @@
   {
    "url": "https://genk.vn/rss/home.rss",
    "http": 200,
-   "ms": 2521,
+   "ms": 2308,
    "bytes": 69889,
    "content_type": "text/xml; charset=UTF-8",
    "items": 61,
@@ -148,7 +88,7 @@
    "with_summary": 61,
    "newest": "2026-11-17T21:31:00+07:00",
    "oldest": "2026-11-16T09:26:00+07:00",
-   "age_newest_h": 0.6,
+   "age_newest_h": 0.7,
    "last_24h": 37,
    "last_7d": 61,
    "sample": [
@@ -208,7 +148,7 @@
   {
    "url": "https://genk.vn/rss/ai.rss",
    "http": 200,
-   "ms": 1779,
+   "ms": 1435,
    "bytes": 70457,
    "content_type": "text/xml; charset=UTF-8",
    "items": 61,
@@ -276,18 +216,24 @@
   {
    "url": "https://techcrunch.com/feed/",
    "http": 200,
-   "ms": 96,
-   "bytes": 17810,
+   "ms": 85,
+   "bytes": 17879,
    "content_type": "application/rss+xml; charset=UTF-8",
    "items": 20,
    "with_date": 20,
    "with_summary": 20,
-   "newest": "2026-11-17T15:01:46+00:00",
-   "oldest": "2026-11-16T18:21:14+00:00",
+   "newest": "2026-11-17T15:07:06+00:00",
+   "oldest": "2026-11-16T18:54:18+00:00",
    "age_newest_h": 0.1,
    "last_24h": 20,
    "last_7d": 20,
    "sample": [
+    {
+     "title": "Uber and Zipline’s drone delivery service takes off in Texas, with dozens of cities to follow",
+     "date": "2026-11-17T15:07:06+00:00",
+     "summary": "The two companies want to make one million deliveries per day using Zipline drones by the end of 2029.",
+     "lastmod": null
+    },
     {
      "title": "Meta launches Direct, a standalone messaging app for Instagram",
      "date": "2026-11-17T15:01:46+00:00",
@@ -329,12 +275,6 @@
      "date": "2026-11-17T14:00:00+00:00",
      "summary": "The update comes as Billboard reported last month that Sony Music had requested the removal of more than 260,000 deepfake songs from digital platforms, nearly d",
      "lastmod": null
-    },
-    {
-     "title": "Genesis AI raises $500 million to deploy glove-wearing robots",
-     "date": "2026-11-17T14:00:00+00:00",
-     "summary": "Genesis AI's novel approach to training dexterous robots earned it $500 million in Series A funding.",
-     "lastmod": null
     }
    ],
    "ok": true,
@@ -344,18 +284,24 @@
   {
    "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
    "http": 200,
-   "ms": 31,
-   "bytes": 17866,
+   "ms": 60,
+   "bytes": 18071,
    "content_type": "application/rss+xml; charset=UTF-8",
    "items": 20,
    "with_date": 20,
    "with_summary": 20,
-   "newest": "2026-11-17T14:50:58+00:00",
-   "oldest": "2026-11-15T21:56:35+00:00",
-   "age_newest_h": 0.3,
-   "last_24h": 14,
+   "newest": "2026-11-17T15:00:00+00:00",
+   "oldest": "2026-11-15T23:30:00+00:00",
+   "age_newest_h": 0.2,
+   "last_24h": 15,
    "last_7d": 20,
    "sample": [
+    {
+     "title": "Voyage Labs raises $12 million for a specialized AI travel assistant",
+     "date": "2026-11-17T15:00:00+00:00",
+     "summary": "Planning a trip is a favorite demo for personal AI assistants: you can try it with Muse, or with Gemini or half a dozen other choices. But while most pitches us",
+     "lastmod": null
+    },
     {
      "title": "Isomorphic Labs raises $5B as it looks to take drug candidates to clinical trials",
      "date": "2026-11-17T14:50:58+00:00",
@@ -397,12 +343,6 @@
      "date": "2026-11-16T20:07:13+00:00",
      "summary": "The California lawsuit represents one of the first attempts to hold an AI lab legally accountable for a rogue agent incident.",
      "lastmod": null
-    },
-    {
-     "title": "Trump says ex-Nvidia CEO Jensen Huang’s affair with an alleged Chinese spy did not threaten national security",
-     "date": "2026-11-16T19:12:02+00:00",
-     "summary": "Trump contradicted his own government's intelligence officials, who reportedly concluded that Alice Huang is a Chinese spy.",
-     "lastmod": null
     }
    ],
    "ok": true,
@@ -412,21 +352,27 @@
   {
    "url": "https://www.theverge.com/rss/index.xml",
    "http": 200,
-   "ms": 91,
-   "bytes": 32863,
+   "ms": 106,
+   "bytes": 32073,
    "content_type": "application/xml; charset=UTF-8",
    "items": 10,
    "with_date": 10,
    "with_summary": 10,
-   "newest": "2026-11-17T09:59:49-05:00",
+   "newest": "2026-11-17T10:06:37-05:00",
    "oldest": "2026-11-16T15:42:51-05:00",
    "age_newest_h": 0.1,
    "last_24h": 10,
    "last_7d": 10,
    "sample": [
     {
+     "title": "The aliens are coming in 3 Body Problem’s first season 2 trailer",
+     "date": "2026-11-17T10:06:37-05:00",
+     "summary": "The first season of Netflix's 3 Body Problem series ended with the remaining members of the Oxford Five disillusioned at the idea of humanity being utterly unpr",
+     "lastmod": null
+    },
+    {
      "title": "The Verge Best of 2026",
-     "date": "2026-11-17T09:59:49-05:00",
+     "date": "2026-11-17T10:01:00-05:00",
      "summary": "Hundreds of gadgets pass across our desks each year. Some leave their mark and get a full review or make it to the top of a buying guide. It's harder than it so",
      "lastmod": null
     },
@@ -461,12 +407,6 @@
      "lastmod": null
     },
     {
-     "title": "United Airlines system outage disrupts departures just days after the big ground stop",
-     "date": "2026-11-16T20:02:40-05:00",
-     "summary": "Less than a week after an issue with air traffic control communications and radar caused the FAA to halt takeoffs nationwide, United Airlines departing flights ",
-     "lastmod": null
-    },
-    {
      "title": "Hacker behind 2022 GTA VI leaks pleads guilty",
      "date": "2026-11-16T18:35:58-05:00",
      "summary": "Arion Kurtaj, a member of the Lapsus$ cybercrime group who leaked 90 videos of Grand Theft Auto VI in 2022 and hacked other big companies, pleaded guilty on Mon",
@@ -480,7 +420,7 @@
   {
    "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
    "http": 200,
-   "ms": 22,
+   "ms": 45,
    "bytes": 28574,
    "content_type": "application/xml; charset=UTF-8",
    "items": 10,
@@ -488,7 +428,7 @@
    "with_summary": 10,
    "newest": "2026-11-16T18:20:44-05:00",
    "oldest": "2026-11-16T09:06:43-05:00",
-   "age_newest_h": 15.8,
+   "age_newest_h": 15.9,
    "last_24h": 9,
    "last_7d": 10,
    "sample": [
@@ -548,7 +488,7 @@
   {
    "url": "https://openai.com/news/rss.xml",
    "http": 200,
-   "ms": 88,
+   "ms": 136,
    "bytes": 852721,
    "content_type": "text/xml; charset=utf-8",
    "items": 1401,
@@ -556,7 +496,7 @@
    "with_summary": 1275,
    "newest": "2026-11-17T00:00:00+00:00",
    "oldest": "2015-12-11T08:00:00+00:00",
-   "age_newest_h": 15.1,
+   "age_newest_h": 15.2,
    "last_24h": 4,
    "last_7d": 23,
    "sample": [
@@ -616,7 +556,7 @@
   {
    "url": "https://openai.com/blog/rss.xml",
    "http": 200,
-   "ms": 137,
+   "ms": 191,
    "bytes": 852721,
    "content_type": "text/xml; charset=utf-8",
    "items": 1401,
@@ -624,7 +564,7 @@
    "with_summary": 1275,
    "newest": "2026-11-17T00:00:00+00:00",
    "oldest": "2015-12-11T08:00:00+00:00",
-   "age_newest_h": 15.1,
+   "age_newest_h": 15.2,
    "last_24h": 4,
    "last_7d": 23,
    "sample": [
@@ -684,7 +624,7 @@
   {
    "url": "https://www.anthropic.com/sitemap.xml",
    "http": 200,
-   "ms": 87,
+   "ms": 136,
    "bytes": 76491,
    "content_type": "application/xml",
    "sitemap_urls": 592,
@@ -825,7 +765,7 @@
    "with_summary": 111,
    "newest": "2026-11-16T00:00:00+00:00",
    "oldest": "2023-09-19T00:00:00+00:00",
-   "age_newest_h": 39.1,
+   "age_newest_h": 39.2,
    "last_24h": 0,
    "last_7d": 2,
    "sample": [
@@ -885,7 +825,7 @@
   {
    "url": "https://blog.google/technology/ai/rss/",
    "http": 200,
-   "ms": 274,
+   "ms": 403,
    "bytes": 30392,
    "content_type": "application/xml; charset=utf-8",
    "items": 20,
@@ -893,7 +833,7 @@
    "with_summary": 13,
    "newest": "2026-11-16T14:00:00+00:00",
    "oldest": "2026-09-17T20:00:00+00:00",
-   "age_newest_h": 25.1,
+   "age_newest_h": 25.2,
    "last_24h": 0,
    "last_7d": 6,
    "sample": [
@@ -953,7 +893,7 @@
   {
    "url": "https://research.google/blog/rss/",
    "http": 200,
-   "ms": 533,
+   "ms": 713,
    "bytes": 78700,
    "content_type": "application/rss+xml; charset=utf-8",
    "items": 100,
@@ -961,7 +901,7 @@
    "with_summary": 3,
    "newest": "2026-11-13T20:47:18+00:00",
    "oldest": "2025-12-04T19:26:09+00:00",
-   "age_newest_h": 90.3,
+   "age_newest_h": 90.4,
    "last_24h": 0,
    "last_7d": 2,
    "sample": [
@@ -1021,7 +961,7 @@
   {
    "url": "https://deepmind.google/blog/rss.xml",
    "http": 200,
-   "ms": 236,
+   "ms": 303,
    "bytes": 68852,
    "content_type": "application/xml",
    "items": 100,
@@ -1029,7 +969,7 @@
    "with_summary": 68,
    "newest": "2026-11-12T18:00:50+00:00",
    "oldest": "2025-12-11T00:06:40+00:00",
-   "age_newest_h": 117.1,
+   "age_newest_h": 117.2,
    "last_24h": 0,
    "last_7d": 3,
    "sample": [
