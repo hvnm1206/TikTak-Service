@@ -1,5 +1,10 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Vị trí sai: bật GPS, chỉ dùng vị trí mới và chính xác
+- 07:39 chủ app: 'nhận vị trí linh tinh'. Nguyên nhân gốc: enableHighAccuracy:false (đoán theo trạm/wifi, lệch tới km) + chấp nhận vị trí cũ tới 10 phút.
+- Sửa: GPS bật (maximumAge 5 s); câu hỏi đường chờ ≤8 s lấy vị trí <30 s, sai số ≤150 m; sai số >500 m không gửi (Ngố hỏi điểm xuất phát); SETUP hiện ±m. Canh đường dùng cùng quy tắc. Test 184/184.
+- Production 9e86251e-b045-4fe3-aa65-521ca615db5a; rollback e4f9310c-279c-43b3-bdea-74fc6915f0e8.
+
 ## 17/11/2026 — Giọng Google khi trả lời tra đường + gom nút tra đường
 - Ảnh 07:21: câu trả lời đường đi đọc bằng OpenAI Marin (Google lỗi → dự phòng). Chuỗi tên đường dài không dấu chấm. Sửa: '→' thành dấu phẩy; câu >160 ký tự tách ở dấu phẩy (chỉ cho Google); lý do lỗi Google ghi log + header x-nmh-tts-google-error.
 - Kiểm chứng production: câu đường đi dài ~300 ký tự → source=google-chirp3-leda, không lỗi.
