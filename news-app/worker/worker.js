@@ -102,14 +102,17 @@ async function overDailyLimit(env, uid) {
 }
 
 // ---------- Hỏi đáp ----------
-export function buildInstructions(style, articles) {
+export function buildInstructions(style, articles, webAllowed = true) {
   const list = articles.map(a => `[${a.id}] (${a.source} · ${a.category} · mức ${a.importance}) ${a.title_vi} — ${a.summary_vi}`).join('\n');
   return [
     'Bạn là trợ lý bản tin Công nghệ & AI, nói chuyện bằng giọng nói tiếng Việt với người dùng (câu trả lời sẽ được đọc thành tiếng).',
     'Phong cách: ' + (STYLES[style] || STYLES.danh_da),
     'Cách nói: tự nhiên như trò chuyện, câu ngắn, không markdown, không gạch đầu dòng, không đọc đường link. Thường 2-5 câu; khi được hỏi "hôm nay có gì" thì điểm 3-5 tin quan trọng nhất rồi hỏi người dùng muốn nghe kỹ tin nào.',
     'Nguồn sự thật chính là BẢN TIN dưới đây. Trả lời dựa trên bản tin, nêu tên nguồn khi cần. Không bịa chi tiết không có trong bản tin.',
-    'Chỉ dùng web_search khi câu hỏi nằm ngoài bản tin hoặc cần chi tiết bản tin không có; khi dùng thì nói rõ là thông tin tra thêm trên mạng.',
+    'Câu hỏi kiến thức chung (khái niệm, cách một thứ hoạt động, lịch sử, so sánh) thì trả lời bằng hiểu biết của bạn, không tra web; nói ngắn gọn rằng đây là hiểu biết chung, có thể chưa cập nhật nếu chủ đề hay thay đổi.',
+    webAllowed
+      ? 'Chỉ dùng web_search khi câu trả lời phụ thuộc thông tin mới hoặc thay đổi theo thời gian mà bản tin không có (sự kiện vừa xảy ra, giá cả, số liệu hiện tại, phiên bản/sản phẩm mới). Khi dùng thì nói rõ là thông tin tra thêm trên mạng.'
+      : 'Hôm nay đã dùng hết lượt tra web. Nếu câu hỏi cần thông tin mới, trả lời bằng hiểu biết hiện có và nói rõ là chưa tra được thông tin mới nhất.',
     'Nếu người dùng hỏi tiếp về một tin, hiểu theo ngữ cảnh hội thoại.',
     '',
     `BẢN TIN (${articles.length} bài, xếp theo mức quan trọng):`,
@@ -123,12 +126,15 @@ export async function ask(env, user, body, fetchImpl = fetch) {
     .map(m => ({ role: m.role, content: m.content.slice(0, 2000) }));
   if (!msgs.length || msgs.at(-1).role !== 'user') return fail('Thiếu câu hỏi');
   if (!env.OPENAI_API_KEY) return fail('Chưa cấu hình OPENAI_API_KEY trên Worker', 503);
-  if (await overDailyLimit(env, user.id)) return fail('Đã chạm hạn mức chi phí hôm nay', 429);
+  if (await overDailyLimit(env, user.id)) return fail('Hôm nay đã dùng hết hạn mức chi phí hỏi đáp. Mai anh hỏi tiếp nhé.', 429);
   const { articles } = await userArticles(env, user.id);
   const style = Object.hasOwn(STYLES, body?.style) ? body.style : 'danh_da';
+  const today = await env.DB.prepare('SELECT web_searches FROM usage WHERE day=? AND user_id=?').bind(vnDay(), user.id).first();
+  const webAllowed = (today?.web_searches || 0) < Number(env.WEB_DAILY_LIMIT || 10);
   const req = {
-    model: MODEL, reasoning: { effort: 'low' }, instructions: buildInstructions(style, articles), input: msgs,
-    tools: [{ type: 'web_search', search_context_size: 'low' }], max_tool_calls: 1, max_output_tokens: 1200, store: false,
+    model: MODEL, reasoning: { effort: 'low' }, instructions: buildInstructions(style, articles, webAllowed), input: msgs,
+    max_output_tokens: 1200, store: false,
+    ...(webAllowed ? { tools: [{ type: 'web_search', search_context_size: 'low' }], max_tool_calls: 1 } : {}),
   };
   const r = await fetchImpl('https://api.openai.com/v1/responses', {
     method: 'POST', headers: { Authorization: 'Bearer ' + env.OPENAI_API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(req),

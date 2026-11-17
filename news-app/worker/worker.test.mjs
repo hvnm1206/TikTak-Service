@@ -104,6 +104,7 @@ test('hỏi đáp: dùng bản tin làm ngữ cảnh, ghi chi phí, có hạn m�
   assert.ok(sent.body.instructions.includes('Tiêu đề a1') && !sent.body.instructions.includes('Tiêu đề old') && !sent.body.instructions.includes('Tiêu đề dup'));
   assert.ok(sent.body.instructions.includes('Chém gió'));
   assert.equal(sent.body.max_tool_calls, 1);
+  assert.ok(sent.body.instructions.includes('kiến thức chung'));
   const expected = ((3000 * 0.10 + 1000 * 0.01 + 300 * 0.50) / 1e6);
   assert.ok(Math.abs(d.usage.usd - expected) < 1e-9);
   const again = await post(env, '/api/ask', { messages: [{ role: 'user', content: 'Nữa?' }] });
@@ -196,4 +197,13 @@ test('quản trị: cập nhật ngay gọi GitHub workflow_dispatch khi có tok
 test('giao diện: có nhân vật, miệng theo âm lượng, trang quản trị', async () => {
   const html = await (await get(setup(), '/', false)).text();
   for (const k of ['id="avatar"', 'avMouth', 'createAnalyser', 'id="admin"', '/api/admin/overview']) assert.ok(html.includes(k), k);
+});
+
+test('hỏi đáp: hết lượt tra web trong ngày thì không gửi công cụ web_search', async () => {
+  const env = setup({ WEB_DAILY_LIMIT: '2' });
+  env.DB.db.prepare('INSERT INTO usage (day,user_id,web_searches,est_usd) VALUES (?,?,?,?)').run(new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10), 'u1', 2, 0.02);
+  let sent; globalThis.fetch = async (url, init) => { sent = JSON.parse(init.body); return new Response(JSON.stringify({ output: [{ type: 'message', content: [{ type: 'output_text', text: 'Ok.' }] }], usage: { input_tokens: 1, output_tokens: 1 } }), { status: 200 }); };
+  assert.equal((await post(env, '/api/ask', { messages: [{ role: 'user', content: 'Giá vàng?' }] })).status, 200);
+  assert.equal(sent.tools, undefined);
+  assert.ok(sent.instructions.includes('hết lượt tra web'));
 });

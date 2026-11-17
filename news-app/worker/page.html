@@ -111,7 +111,9 @@ function listen(){if(!active)return;if(!SR){showErr("Trình duyệt không hỗ 
  try{r.start();setState("listening");$("err").textContent=""}catch(e){showErr("Không mở được micro: "+e.message)}}
 async function askQ(text,g){setState("thinking");history.push({role:"user",content:text});render();
  try{const d=await api("/api/ask",{messages:history.slice(-10),style});if(g!==gen)return;history.push({role:"assistant",content:d.answer});render();refreshUsage();if(active)await speak(d.answer,g);else{unlockSpeakOnce(d.answer)}}
- catch(e){if(g===gen){if(e.status===401)return boot();showErr("Lỗi: "+e.message)}}}
+ catch(e){if(g===gen){if(e.status===401)return boot();showErr("Lỗi: "+e.message);sayError(e.message,g)}}}
+// Lỗi thì nhân vật nói ra (không im lặng), nói xong tạm dừng, không tự nghe lại.
+async function sayError(msg,g){if(!audioCtx)return;try{const item=await fetchTts(String(msg).slice(0,300));if(g!==gen)return;const was=active;active=false;setState("speaking");await play(item);active=was;if(g===gen)setState("paused")}catch{}}
 function unlockSpeakOnce(text){/* câu gõ tay ngoài phiên nói: vẫn đọc nếu âm thanh đã mở khóa */if(audioCtx)speak(text,gen)}
 
 $("start").onclick=()=>{try{unlock()}catch{}active=true;gen++;noSpeech=0;$("err").textContent="";listen()};
