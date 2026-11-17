@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Không tra mà bịa (cả lý do 503)
+- 19:34–19:35 chủ app: Ngố nói không tra và bịa, bịa cả lý do 503 → chẩn đoán search_news trước đó chưa được chứng minh (503 có thể do mô hình lặp lại từ lượt trước).
+- Gốc: reasoning effort 'none' → trả lời từ trí nhớ, không tự cân nhắc cần tìm. Sửa: effort 'low' (env NGO_REASONING), không thêm câu lệnh; mô hình từ chối giá trị thì lượt đó thử lại với 'none'.
+- Cổng phát hành: đọc GitHub có token (lần trước 403 rate limit ẩn danh). Test 195/195.
+- Production 38cce8b4-a95c-4134-8508-ce98951a703b; rollback c3cc22c5-d94f-495c-a615-a05d249fca73.
+
 ## 17/11/2026 — Ngố đọc '503'
 - 19:23 chủ app: Ngố nói 503. Lỗi chỉ hiển thị, không đọc → 503 nằm trong câu trả lời: kết quả công cụ 'Nguồn dữ liệu trả HTTP 503'. Câu hỏi sự kiện → search_news (RSS Google News) → Google chặn lưu lượng từ IP trung tâm dữ liệu (503). Từ GitHub runner trả 200 nên không tái hiện ở đó.
 - Kiểm chứng phụ: Workers analytics 0 lỗi; D1 khỏe; CPU P99 229 ms vẫn thành công.
