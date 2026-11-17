@@ -1,5 +1,10 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Gỡ toàn bộ hướng dẫn hardcode vá lỗi
+- 13:58 chủ app phản đối bản vá liệt kê từ khóa (triển lãm, hội chợ…) — vi phạm quy tắc không hardcode. Gốc: quy tắc cắt phí tìm web 16/11 làm GPT ngại tìm.
+- Gỡ: quy tắc cắt phí + danh sách từ khóa (thay bằng 1 câu trung tính), các dòng ép tra đường/vị trí, dòng vá thời tiết 'ngày mai' (bản cũ), cụm 'mỗi chữ tốn phí'. Giữ mặc định trả lời ngắn. Chi phí kiểm soát bằng giới hạn kỹ thuật (1 lần gọi công cụ/lượt, web_search context low). Test 193/193.
+- Production 25573d59-3c9c-4615-8949-811807b560fc; rollback 38f29dd3-0abf-4a66-8e48-5d8197568bb0.
+
 ## 17/11/2026 — Tìm kiếm cơ bản bị từ chối (triển lãm ngày mai)
 - 13:53 chủ app: hỏi 'ngày mai ở Hà Nội có triển lãm gì' Ngố không tìm. Nguyên nhân gốc: quy tắc cắt phí 16/11 chỉ cho sự kiện 'gần đây', ép thử search_news trước, và dặn chỉ tìm web khi người dùng muốn kiểm tra.
 - Sửa: bắt buộc web_search cho sự kiện sắp/đang diễn ra, giờ mở cửa, giá vé, tin mới, câu hỏi gắn hôm nay/ngày mai/cuối tuần; công cụ miễn phí không ra kết quả đúng → web_search lượt sau. Kiến thức phổ thông vẫn không tìm web. Test 193/193.
