@@ -10,6 +10,21 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
     steps:
+      - name: Workers plan and CPU limits (read-only)
+        continue-on-error: true
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request
+          a='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']
+          for p in ['/workers/account-settings','/workers/scripts/nmh-voice-gpt-test/settings','/workers/scripts/nmh-voice-gpt-test/script-settings','/subscriptions']:
+            req=urllib.request.Request(a+p,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN'],'User-Agent':'NMH-NGO-PROBE'})
+            try:
+              with urllib.request.urlopen(req,timeout=30) as r:res=json.load(r)['result']
+              if isinstance(res,list):res=[{k:x.get(k) for k in ('rate_plan','component_values','product','state') if k in x} for x in res]
+              elif isinstance(res,dict):res={k:v for k,v in res.items() if k in ('default_usage_model','usage_model','limits','placement','observability','compatibility_date','green_compute')}
+              print('NGO_PLAN',p,json.dumps(res)[:700])
+            except urllib.error.HTTPError as e:print('NGO_PLAN',p,'HTTP',e.code,e.read()[:200].decode('utf-8','replace'))
+          PY
       - name: D1 health for the 503 report (read-only, dummy user, no personal rows)
         continue-on-error: true
         env:
