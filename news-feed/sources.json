@@ -1,0 +1,96 @@
+{
+  "_note": "Danh sách nguồn RSS của bản tin. Thêm/bớt nguồn tại đây, không sửa code. enabled=false để tạm tắt.",
+  "sources": [
+    {
+      "id": "vnexpress-sohoa",
+      "name": "VnExpress Số hóa",
+      "lang": "vi",
+      "enabled": true,
+      "urls": [
+        "https://vnexpress.net/rss/so-hoa.rss",
+        "https://vnexpress.net/rss/khoa-hoc-cong-nghe.rss"
+      ]
+    },
+    {
+      "id": "genk",
+      "name": "Genk",
+      "lang": "vi",
+      "enabled": true,
+      "urls": [
+        "https://genk.vn/rss/home.rss",
+        "https://genk.vn/rss/ai.rss",
+        "https://genk.vn/home.rss"
+      ]
+    },
+    {
+      "id": "techcrunch",
+      "name": "TechCrunch",
+      "lang": "en",
+      "enabled": true,
+      "urls": [
+        "https://techcrunch.com/feed/",
+        "https://techcrunch.com/category/artificial-intelligence/feed/"
+      ]
+    },
+    {
+      "id": "theverge",
+      "name": "The Verge",
+      "lang": "en",
+      "enabled": true,
+      "urls": [
+        "https://www.theverge.com/rss/index.xml",
+        "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
+      ]
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI Blog",
+      "lang": "en",
+      "enabled": true,
+      "urls": [
+        "https://openai.com/news/rss.xml",
+        "https://openai.com/blog/rss.xml"
+      ]
+    },
+    {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "lang": "en",
+      "enabled": true,
+      "urls": [
+        "https://www.anthropic.com/rss.xml",
+        "https://www.anthropic.com/news/rss.xml",
+        "https://www.anthropic.com/feed.xml"
+      ]
+    },
+    {
+      "id": "google-ai",
+      "name": "Google AI Blog",
+      "lang": "en",
+      "enabled": true,
+      "urls": [
+        "https://blog.google/technology/ai/rss/",
+        "https://research.google/blog/rss/",
+        "https://deepmind.google/blog/rss.xml"
+      ]
+    }
+  ],
+  "categories": [
+    "Mô hình & nghiên cứu AI",
+    "Sản phẩm & ứng dụng",
+    "Doanh nghiệp & đầu tư",
+    "Chính sách & pháp lý",
+    "Chip & phần cứng",
+    "Công nghệ Việt Nam",
+    "Khác"
+  ],
+  "digest": {
+    "window_hours": 24,
+    "fallback_window_hours": 48,
+    "min_items": 20,
+    "max_items": 50,
+    "max_per_source": 12,
+    "model": "gpt-6-luna",
+    "reasoning": "low"
+  }
+}
