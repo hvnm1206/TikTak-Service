@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import worker from './worker.js';
+import vm from 'node:vm';
 const key='sk-'+ 'a'.repeat(40);
 const host='https://voice.local.test';
 const request=(path,data,origin=host)=>new Request(host+path,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(data)});
@@ -383,4 +384,13 @@ test('/api/route-check with the planned route polyline: TomTom POST reassesses t
     const r=await worker.fetch(request('/api/route-check',{apiKey:key,from:{lat:21.0201,lng:105.8101},to:{lat:21.05,lng:105.82},polyline:line}),{TOMTOM_KEY:'tk'});
     const j=await r.json();assert.equal(j.onReference,true);assert.equal(seen[0].o.method,'POST');assert.ok(JSON.parse(seen[0].o.body).encodedPolyline);
   }finally{globalThis.fetch=old}
+});
+test('production page shows a per-answer tool/web-search line on both answer paths (evidence for "không tra web được")',async()=>{
+  const html=await (await worker.fetch(new Request('https://nmh-voice-gpt-test.magical-budget.workers.dev/'),{NMH_FAST_VOICE:'active'})).text();
+  assert.ok(html.includes('turn.diag=ngoDiag(result);'),'fast path');
+  assert.ok(html.includes('diag:ngoDiag(d)'),'baseline path');
+  assert.ok(html.includes('if(m.role==="assistant"&&m.diag)'),'rendered under the bubble');
+  const fn=html.match(/function ngoDiag\(d\)\{[\s\S]*?\n/)[0];const c={};vm.runInNewContext(fn+';globalThis.f=ngoDiag;',c);
+  assert.equal(c.f({tools:['search_news'],webSearchCalls:1,model:'gpt-x'}),'🔧 search_news · đã tìm web ×1 · gpt-x');
+  assert.equal(c.f({tools:[],webSearchCalls:0}),'🔧 không gọi công cụ · không tìm web');
 });

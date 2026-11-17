@@ -89,6 +89,8 @@ ${TRIP_LOGIC}
  globalThis.ngoTripStart=trip=>{try{if(!ngoRoutesOn||!trip||!trip.to||!Number.isFinite(trip.to.lat)||!Number.isFinite(trip.to.lng))return;const now=Date.now();
   ngoGpsStat=null;ngoTripOn=true;ngoWakeOn();
   ngoTrip={to:trip.to,path:String(trip.path||""),polyline:typeof trip.polyline==="string"&&trip.polyline.length<=20000?trip.polyline:null,expectEnd:now+(Number(trip.seconds)||0)*1000,started:now,lastCheck:now,lastAlertAt:0,alerted:[]};ngoTripChip()}catch{}};
+ // 17/11 owner "tại sao nó không tra web được": show per answer which tools ran and whether web search happened (evidence, no guessing)
+ function ngoDiag(d){try{const t=Array.isArray(d?.tools)?d.tools.filter(Boolean):[],w=Number(d?.webSearchCalls)||0;return "🔧 "+(t.length?t.join(", "):"không gọi công cụ")+" · "+(w?"đã tìm web ×"+w:"không tìm web")+(d?.model?" · "+d.model:"")}catch{return ""}}
  function ngoTripSay(text){if(!active)return false;if(step!=="listening"||heard)return false;gen++;closeRec();const g=gen;history.push({role:"assistant",content:text});render();speak(text,g);return true}
  async function ngoTripTick(){try{
   if(!ngoTrip)return;if(!ngoRoutesOn||Date.now()-ngoTrip.started>3*3600000){ngoTripEnd();return}
@@ -146,6 +148,10 @@ export function enhanceVoiceBoost(page){
  p=once(p,'if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110)};',
   'if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110);clearTimeout(ngoEndTimer);if(ngoFastEndpoint&&heard)ngoEndTimer=setTimeout(()=>{if(rec===r){try{r.stop()}catch{}}},'+ENDPOINT_MS+')};');
  p=once(p,'r.onend=()=>{if(rec!==r)return;','r.onend=()=>{clearTimeout(ngoEndTimer);if(rec!==r)return;');
+ // Per-answer tool/web-search line under each assistant bubble (evidence for "không tra web được").
+ if(p.includes('turn.content=result.answer;turn.sources=result.sources||[];'))p=once(p,'turn.content=result.answer;turn.sources=result.sources||[];','turn.content=result.answer;turn.sources=result.sources||[];turn.diag=ngoDiag(result);');
+ if(p.includes('content:d.answer,sources:d.sources||[]'))p=once(p,'content:d.answer,sources:d.sources||[]','content:d.answer,sources:d.sources||[],diag:ngoDiag(d)');
+ if(p.includes('p.textContent=m.content;e.append(p);'))p=once(p,'p.textContent=m.content;e.append(p);','p.textContent=m.content;e.append(p);if(m.role==="assistant"&&m.diag){const q=document.createElement("div");q.style.cssText="font-size:11px;opacity:.65;margin-top:4px";q.textContent=m.diag;e.append(q)}');
  // SETUP switches next to the voice panel.
  p=once(p,'<h3 style="margin:0 0 12px">TÙY CHỈNH GIỌNG NÓI</h3>','<h3 style="margin:0 0 12px">TÙY CHỈNH GIỌNG NÓI</h3>'+SETUP_HTML);
  p=once(p,'$("gain").oninput=',SETUP_JS+'$("gain").oninput=');

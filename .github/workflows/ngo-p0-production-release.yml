@@ -103,7 +103,7 @@ jobs:
           python3 - <<'PY'
           import os,json
           assert os.environ['PROD_WORKER']=='nmh-voice-gpt-test' and os.environ['PROD_DB_ID']=='3ce295cb-a84d-4a50-abee-d14fdd903514'
-          c={'name':os.environ['PROD_WORKER'],'main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,
+          c={'name':os.environ['PROD_WORKER'],'main':'worker.js','compatibility_date':'2026-10-01','workers_dev':True,'observability':{'enabled':True,'head_sampling_rate':1},
              'd1_databases':[{'binding':'NMH_DB','database_name':'nmh-voice-v3','database_id':os.environ['PROD_DB_ID']}],
              'vars':{'NMH_V3_GOOGLE_CLIENT_ID':os.environ['GOOGLE_CLIENT'],'NMH_MEMORY_V2_MODE':'active','NMH_REMINDERS_MODE':'active','NMH_PERSONAL_MEMORY':'pilot','NMH_FAST_VOICE':'active','NMH_APP_CHANNEL':'production'}}
           with open('voice-deploy/wrangler-ngo-prod.generated.jsonc','w') as f:json.dump(c,f)

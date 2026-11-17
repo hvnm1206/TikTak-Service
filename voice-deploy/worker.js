@@ -170,7 +170,11 @@ async function chatTurn(request,env,ctx,body,key,signal,onEvent){
  const rq=body?.route,clean=k=>String(k||"").trim().replace(/^["']+|["']+$/g,"").trim(),tmk=clean(env.TOMTOM_KEY),vmk=clean(env.VIETMAP_KEY),gmk=clean(env.GOOGLE_MAPS_KEY); // 17/11: keys tolerate pasted spaces/quotes
  const rprov=env.NGO_ROUTE_PROVIDER==="tomtom"&&tmk?"tomtom":vmk?"vietmap":tmk?"tomtom":"google",rkey=rprov==="tomtom"?tmk:rprov==="vietmap"?vmk:gmk,cmpKey=env.NGO_ROUTE_COMPARE==="off"?null:rprov==="tomtom"?(vmk||null):rprov==="vietmap"?(tmk||null):null; // owner 17/11: Vietmap primary when its key exists; NGO_ROUTE_PROVIDER=tomtom reverts
  const routeContext=rq&&rq.enabled===true&&rkey&&env.NGO_ROUTES!=="off"?{apiKey:rkey,provider:rprov,compareKey:cmpKey,origin:(Number.isFinite(rq.origin?.lat)&&Number.isFinite(rq.origin?.lng)&&Math.abs(rq.origin.lat)<=90&&Math.abs(rq.origin.lng)<=180)?{lat:+rq.origin.lat,lng:+rq.origin.lng,...(Number.isFinite(+rq.origin.acc)&&+rq.origin.acc>=0?{acc:Math.round(+rq.origin.acc)}:{})}:null}:null;
- const result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal,actionRuntime,onEvent,routeContext});
+ let result;
+ try{result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal,actionRuntime,onEvent,routeContext})}
+ catch(e){console.warn(JSON.stringify({t:"ngo-turn",ok:false,err:String(e?.message||e).replace(/sk-[A-Za-z0-9_-]+/g,"sk-***").slice(0,200)}));throw e}
+ // 17/11 trace for "không tra web được": tool names, search count, model only - no conversation content, no keys
+ console.log(JSON.stringify({t:"ngo-turn",ok:true,tools:result?.tools||[],web:result?.webSearchCalls||0,model:result?.model,routes:!!routeContext}));
  const latency={memoryMs:Math.round(perfMemory-perfStart),agentMs:Math.round(performance.now()-perfAgentStart),serverMs:Math.round(performance.now()-perfStart)};
  // Verified tool actions are completed synchronously and are not reinterpreted by the background memory observer.
  if(result.actionStatus&&!personalMemoryEnabled(env))return {...result,latency};
