@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Ngố đọc '503'
+- 19:23 chủ app: Ngố nói 503. Lỗi chỉ hiển thị, không đọc → 503 nằm trong câu trả lời: kết quả công cụ 'Nguồn dữ liệu trả HTTP 503'. Câu hỏi sự kiện → search_news (RSS Google News) → Google chặn lưu lượng từ IP trung tâm dữ liệu (503). Từ GitHub runner trả 200 nên không tái hiện ở đó.
+- Kiểm chứng phụ: Workers analytics 0 lỗi; D1 khỏe; CPU P99 229 ms vẫn thành công.
+- Sửa gốc: bỏ search_news, tin tức/sự kiện qua web_search OpenAI; Wikipedia/Open-Meteo gửi User-Agent. Test 194/194.
+- Production c3cc22c5-d94f-495c-a615-a05d249fca73; rollback 452716d0-92cb-4c9e-9beb-583504e7cb6b.
+
 ## 17/11/2026 — Lỗi 503 khi hỏi
 - 19:07 chủ app báo 503. 503 duy nhất của /api/chat: loadV3Context (đọc kho cá nhân D1) lỗi → bỏ cả lượt, nuốt lý do.
 - Probe chỉ đọc (người dùng giả): D1 khỏe, 13 bảng, 4 truy vấn 0,1–0,2 s. Token CF không có quyền đọc Workers logs (403).
