@@ -1,0 +1,84 @@
+name: Bản tin NMH — kiểm thử thật end-to-end (phiên tạm, tự xóa)
+on:
+  push:
+    branches: [nmh-news-app]
+permissions:
+  contents: write
+jobs:
+  e2e:
+    if: startsWith(github.event.head_commit.message, 'test(news-e2e)')
+    runs-on: ubuntu-latest
+    env:
+      CF_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+      U: https://nmh-news.magical-budget.workers.dev
+      D1T: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+      CFT: ${{ secrets.NMH_CF_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hỏi đáp + giọng đọc thật bằng phiên tạm
+        run: |
+          python3 - <<'PY' 2>&1 | tee /tmp/e2e.txt
+          import os,json,time,secrets,hashlib,base64,re,urllib.request,urllib.error
+          A='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CF_ACCOUNT_ID']
+          def cf(p,tok,body=None,m=None):
+            r=urllib.request.urlopen(urllib.request.Request(A+p,data=json.dumps(body).encode() if body is not None else None,method=m or ('POST' if body is not None else 'GET'),headers={'Authorization':'Bearer '+tok,'Content-Type':'application/json'}),timeout=60)
+            return json.load(r)['result']
+          dbid=next(x for x in cf('/d1/database?name=nmh-news',os.environ['D1T']) if x['name']=='nmh-news')['uuid']
+          q=lambda s,p=[]:cf('/d1/database/'+dbid+'/query',os.environ['D1T'],{'sql':s,'params':p})[0]['results']
+          U=os.environ['U']
+          health=json.load(urllib.request.urlopen(U+'/api/health'));print('HEALTH',health)
+          email=re.search(r'"ALLOWED_EMAILS":\s*"([^",\s]+)',open('news-app/worker/wrangler.jsonc').read()).group(1)
+          uid='ci-e2e-'+secrets.token_hex(4);tok=secrets.token_urlsafe(32)[:43]
+          q('INSERT INTO users (id,email,name,created_at) VALUES (?,?,?,?)',[uid,email,'CI E2E',int(time.time()*1000)])
+          q('INSERT INTO sessions (token_hash,user_id,expires_at,created_at) VALUES (?,?,?,?)',[hashlib.sha256(tok.encode()).hexdigest(),uid,int(time.time()*1000)+3600e3,int(time.time()*1000)])
+          H={'cookie':'__Host-nmhnews='+tok,'origin':U,'content-type':'application/json'}
+          def call(path,body=None):
+            t=time.time();req=urllib.request.Request(U+path,data=json.dumps(body).encode() if body is not None else None,method='POST' if body is not None else 'GET',headers=H)
+            try:
+              with urllib.request.urlopen(req,timeout=90) as r:d=json.load(r);code=r.status
+            except urllib.error.HTTPError as e:d={'error':e.read()[:300].decode()};code=e.code
+            return code,d,round(time.time()-t,2)
+          try:
+            c,d,s=call('/api/today');print('TODAY',c,s,'s, bài:',len(d.get('articles',[])),'lastRun:',d.get('lastRun'))
+            hist=[]
+            for qs in ['Hôm nay có tin gì nổi bật về AI?','Kể kỹ hơn tin đầu tiên đi.','Giá vàng SJC hôm nay bao nhiêu?']:
+              hist.append({'role':'user','content':qs})
+              c,d,s=call('/api/ask',{'messages':hist,'style':'chem_gio'})
+              print('\nASK',c,s,'s |',qs);print('  ANSWER:',d.get('answer') or d);print('  USAGE:',d.get('usage'),'sources:',[x['url'] for x in d.get('sources',[])][:3])
+              if c==200:hist.append({'role':'assistant','content':d['answer']})
+            text=(hist[1]['content'] if len(hist)>1 else 'Xin chào')[:220]
+            for st in ['chem_gio','nghiem_tuc']:
+              c,d,s=call('/api/tts',{'text':text,'style':st})
+              if c==200:
+                b=base64.b64decode(d['audio']);print('\nTTS',st,c,s,'s bytes=',len(b),'mp3_header=',b[:3]==b'ID3' or b[:2]==b'\xff\xf3' or b[:2]==b'\xff\xfb','rate=',d['playbackRate'],'chars=',d['chars'])
+                open('/tmp/tts-'+st+'.mp3','wb').write(b)
+              else:print('\nTTS',st,c,d)
+            print('\nUSAGE_ROW',q('SELECT * FROM usage WHERE user_id=?',[uid]))
+          finally:
+            for t in ['sessions','usage','user_prefs']:q(f'DELETE FROM {t} WHERE user_id=?',[uid])
+            q('DELETE FROM users WHERE id=?',[uid]);print('\nCLEANUP_OK left=',q('SELECT COUNT(*) n FROM sessions WHERE user_id=?',[uid]))
+          PY
+      - name: CPU Worker (Cloudflare analytics, 30 phút gần nhất)
+        if: always()
+        run: |
+          sleep 60
+          python3 - <<'PY' 2>&1 | tee -a /tmp/e2e.txt
+          import os,json,urllib.request,datetime
+          s=(datetime.datetime.utcnow()-datetime.timedelta(minutes=30)).strftime('%Y-%m-%dT%H:%M:%SZ')
+          q='query($a:String!,$s:Time!){viewer{accounts(filter:{accountTag:$a}){workersInvocationsAdaptive(limit:50,filter:{scriptName:"nmh-news",datetime_geq:$s}){sum{requests errors} quantiles{cpuTimeP50 cpuTimeP99 wallTimeP99} dimensions{status}}}}}'
+          for t in [os.environ['CFT'],os.environ['D1T']]:
+            try:
+              r=json.load(urllib.request.urlopen(urllib.request.Request('https://api.cloudflare.com/client/v4/graphql',data=json.dumps({'query':q,'variables':{'a':os.environ['CF_ACCOUNT_ID'],'s':s}}).encode(),headers={'Authorization':'Bearer '+t,'Content-Type':'application/json'}),timeout=40))
+              if r.get('errors'):print('GQL_ERR',str(r['errors'])[:200]);continue
+              for x in r['data']['viewer']['accounts'][0]['workersInvocationsAdaptive']:print('CPU',x)
+              break
+            except Exception as e:print('GQL_FAIL',e)
+          PY
+      - name: Lưu báo cáo + mẫu âm thanh
+        if: always()
+        run: |
+          mkdir -p /tmp/rep && cd /tmp/rep
+          git init -q && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git fetch -q --depth=1 origin nmh-news-reports && git checkout -q FETCH_HEAD -b r || git checkout -q --orphan r
+          cp /tmp/e2e.txt e2e-latest.txt; cp /tmp/tts-*.mp3 . 2>/dev/null || true
+          git add -A && git -c user.name=nmh-news -c user.email=actions@users.noreply.github.com commit -qm "e2e ${{ github.run_id }}" && git push -q origin HEAD:nmh-news-reports
