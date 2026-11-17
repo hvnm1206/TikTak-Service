@@ -149,6 +149,12 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   assert.equal(restored.status,200);
   assert.equal(restored.body.text,'Lỗi E12: kiểm tra cảm biến áp suất trước khi khởi động lại.');
   const context=await loadV3Context(req('/api/chat','POST',{},cookie),e,'Lỗi E12 cần làm gì?');
+  // owner 17/11 "Lỗi 503": transient D1 error retried once; persistent one reports its real reason
+  {const real=e.NMH_DB.prepare;let fails=1;
+   e.NMH_DB.prepare=function(sql){if(sql.startsWith('SELECT body FROM v3_memories')&&fails>0){fails--;return {bind(){return this},async all(){throw Error('D1_ERROR: Network connection lost.')}}}return real.call(this,sql)};
+   const ok=await loadV3Context(req('/api/chat','POST',{},cookie),e,'Lỗi E12 cần làm gì?');assert.equal(fails,0);assert.equal(ok.contextError,undefined,'second attempt succeeds');assert.equal(ok.personalPrompt,context.personalPrompt);
+   fails=5;const bad=await loadV3Context(req('/api/chat','POST',{},cookie),e,'Lỗi E12 cần làm gì?');assert.match(bad.contextError,/\(D1: D1_ERROR: Network connection lost\.\)/);
+   e.NMH_DB.prepare=real}
   assert.equal(context.personalPrompt,selected);
   assert.ok(context.documents.some(x=>x.name==='quytrinh.txt'));
   // The real UI stores explicit identity statements; indirect phrasing must still surface them.
@@ -245,4 +251,3 @@ test('D1-only V3 needs no R2 binding and rejects anonymous access',async()=>{
  const unauth=await handleV3(req('/api/v3/documents'),e);
  assert.equal(unauth.status,401);
 });
-

@@ -91,6 +91,7 @@ export async function loadV3Context(req,env,question){
  if(!productionReady(env))return {personalPrompt:'',memories:[],documents:[]};
  const sub=await sessionSubject(req,env);
  if(!sub)return {personalPrompt:'',memories:[],documents:[]};
+ let lastErr;for(let attempt=0;attempt<2;attempt++){ // 17/11 owner 'Lỗi 503': one retry for transient D1 errors, real reason kept
  try{
   // Independent owner-scoped reads run in parallel: one D1 round trip instead of four sequential ones.
   const terms=extractTerms(question).slice(0,5);
@@ -105,7 +106,9 @@ export async function loadV3Context(req,env,question){
   const memories=(recent.results||[]).filter(x=>typeof x.body==='string'&&x.body.trim()).slice(0,20);
   const docs=(rows.results||[]).map(x=>({...x,score:scoreSegment(question,x.body)})).filter(x=>x.score>=3).sort((a,b)=>b.score-a.score).slice(0,4).map(x=>({name:x.name,segment:x.segment,text:x.body.slice(0,900)}));
   return {personalPrompt:maxText(profile?.prompt,2500),memories:memories.map(x=>x.body),documents:docs,...(learned.length?{learned}: {})};
- }catch{return {personalPrompt:'',memories:[],documents:[],contextError:'Không truy cập được kho cá nhân, không thể xác minh tài liệu.'}}
+ }catch(e){lastErr=e;console.warn(JSON.stringify({t:'ngo-v3-context',attempt,err:String(e?.message||e).slice(0,200)}))}
+ }
+ return {personalPrompt:'',memories:[],documents:[],contextError:'Không truy cập được kho cá nhân, không thể xác minh tài liệu. (D1: '+String(lastErr?.message||lastErr||'lỗi không rõ').replace(/\s+/g,' ').slice(0,90)+')'};
 }
 export async function storeVoiceNote(req,env,note){
  if(typeof note!=='string'||note.trim().length<2||note.length>2200)return {answer:'Nội dung ghi chú không hợp lệ.',saved:false};
