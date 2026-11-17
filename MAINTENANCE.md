@@ -1,5 +1,10 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Đang tắc vẫn báo thoáng
+- 07:59 chủ app: tuyến đúng nhưng tắc vẫn báo thoáng. Nguyên nhân: Vietmap (trial) không có giao thông thời gian thực (07:21: Vietmap 17' vs TomTom 32'); thiếu dữ liệu tắc bị hiểu là 'thông thoáng'.
+- Sửa: tuyến theo Vietmap; thời gian/giờ đến/tắc theo TomTom (live_traffic); thiếu dữ liệu → 'không có dữ liệu tắc đường'; canh đường dùng TomTom; sửa nhãn SETUP. Test 186/186.
+- Production faf306eb-f90f-460f-8cea-368821658211; rollback b4e937fd-69e9-4cd8-a4db-7150230167c4.
+
 ## 17/11/2026 — Công cụ vị trí hiện tại
 - get_current_location (Vietmap reverse v4, TomTom dự phòng), chỉ có khi bật tra đường. Chủ app làm rõ 07:51: chỉ cần vị trí để xác định tuyến. Test 185/185.
 - Production b4e937fd-69e9-4cd8-a4db-7150230167c4; rollback 9e86251e-b045-4fe3-aa65-521ca615db5a.
