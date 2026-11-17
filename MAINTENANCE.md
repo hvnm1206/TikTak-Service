@@ -1,5 +1,10 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Bộ đo khả thi cho dẫn đường rảnh tay
+- Chủ app: rảnh tay, chỉ nói với Ngố; Ngố sáng suốt tuyến; phải kiểm khả thi trước khi xây. Kết luận đã kiểm: Ngố không điều khiển được Google Maps (iOS cần chạm; app nền mất mic); Google Maps API cấm ở VN (Prohibited Territories).
+- Bộ đo (chưa phải tính năng): giữ sáng màn hình khi canh đường; SETUP hiện số lần GPS, khoảng cách lâu nhất, sai số TB, trạng thái giữ sáng; nút '↱ N chỗ rẽ' (danh sách chỗ rẽ Vietmap). Test 192/192.
+- Production 64f1a76b-df20-4ee8-a3e4-125c4edbbc59; rollback 96b23ebb-550c-4d1d-97bd-2642895132dc.
+
 ## 17/11/2026 — Một tuyến, một nguồn sự thật (đối chiếu yêu cầu ban đầu)
 - 08:53 chủ app: xem lại yêu cầu ban đầu (tuyến, trạng thái, phương án, đổi lộ trình realtime, một chiều/cấm, công tắc). Rút lại đề xuất tắt tính năng.
 - Vietmap route v4 gửi time (giờ cấm ô tô chỉ áp dụng khi có time). TomTom POST encodedPolyline dựng lại đúng tuyến Vietmap → tắc/thời gian trên chính tuyến đó + phương án khác. Canh đường gửi polyline, cắt từ vị trí xe; lệch >250 m → tính lại tuyến. Test 190/190.
