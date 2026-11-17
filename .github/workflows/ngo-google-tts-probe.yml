@@ -34,3 +34,7 @@ jobs:
             echo "NGO_PROBE_$fmt status=$code source=${src:-none} type=$ct bytes=$(stat -c%s out.bin)"
             [ "$code" = 200 ] || head -c 300 out.bin; echo
           done
+          LONG='Đi theo tuyến chính qua Phố Nguyễn Cơ Thạch → Hàm Nghi → Lê Đức Thọ → Hồ Tùng Mậu → Phạm Hùng → Đại Lộ Thăng Long → Phố Trần Bình → Phố Tôn Thất Thuyết → Đường Trần Thái Tông, quãng đường khoảng 9 km, mất chừng 17 phút, dự kiến tới lúc 7 giờ 40, có đoạn đông ở Phạm Hùng'
+          code=$(curl -sS -o out.bin -D h.txt -w '%{http_code}' -X POST "$U/api/tts" -H "origin: $U" -H 'content-type: application/json' \
+            --data-binary "$(python3 -c 'import json,sys;print(json.dumps({"apiKey":"sk-probe"+"x"*40,"text":sys.argv[1],"style":"danh_da","format":"pcm"}))' "$LONG")")
+          echo "NGO_PROBE_long status=$code source=$(grep -i '^x-nmh-tts-source' h.txt | tr -d '\r' | cut -d' ' -f2) google_error=$(grep -i '^x-nmh-tts-google-error' h.txt | tr -d '\r' | cut -d' ' -f2-) bytes=$(stat -c%s out.bin)"
