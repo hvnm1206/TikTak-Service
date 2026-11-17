@@ -1,5 +1,10 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — 'Phản hồi bị ngắt' + Ngố tự phủ định câu đúng
+- 20:19 ảnh: 'OpenAI: Phản hồi bị ngắt trước khi hoàn tất'. Analytics 20:15: 3 lượt exceededResources tại 10 ms CPU = giới hạn Workers Free; một lượt thường hiện ~20–24 ms CPU. Cần Workers Paid (chủ app quyết, 5 USD/tháng). Chưa đổi gì.
+- Phủ định: lịch sử chỉ gửi chữ, không có dấu vết công cụ/nguồn → model tưởng câu cũ chưa kiểm chứng. Sửa: lưu + gửi tools/web/sources của từng câu trả lời; agent gắn dòng dữ liệu nguồn gốc; câu cũ không rõ nguồn không gắn gì. Test 198/198.
+- Production 42a2bfe1-78cb-41a8-8e25-eaf421ec4d39; rollback 7cb645f3-89fc-48d9-b559-842227c69087.
+
 ## 17/11/2026 — Giữ mạch chuyện qua KẾT THÚC/mở lại
 - 19:54–19:57 chủ app: không nhớ mạch chuyện sau KẾT THÚC (do My bảo bấm). Lịch sử chỉ nằm trong bộ nhớ trang; stop()/START/tải lại xóa sạch.
 - Sửa: lưu lịch sử trên iPhone (localStorage ngo_history_v1, 40 mục), nạp khi mở, lưu mỗi lần render; KẾT THÚC/START không xóa; nút SETUP 'Xóa lịch sử hội thoại'. Test 196/196.
