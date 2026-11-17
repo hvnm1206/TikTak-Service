@@ -1,10 +1,2 @@
-FETCH_FAIL https://deepmind.google/blog/rss.xml not well-formed (invalid token): line 1, column 0
-SELECTED 50 {'vnexpress-sohoa': 12, 'openai': 2, 'theverge': 12, 'genk': 12, 'techcrunch': 12}
-OPENAI_HTTP 400 {
-  "error": {
-    "message": "Response input messages must contain the word 'json' in some form to use 'text.format' of type 'json_object'.",
-    "type": "invalid_request_error",
-    "param": "input",
-    "code": null
-  }
-}
+SELECTED 50 {'openai': 2, 'vnexpress-sohoa': 12, 'techcrunch': 12, 'theverge': 12, 'genk': 12}
+USAGE {"model": "gpt-6-luna", "items": 50, "input_tokens": 5325, "cached_tokens": 0, "output_tokens": 5799, "est_usd_per_run": 0.003432, "est_usd_30_days": 0.103}

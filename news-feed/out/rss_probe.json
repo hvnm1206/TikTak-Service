@@ -1,10 +1,10 @@
 {
- "checked_at": "2026-11-17T15:14:13.082137+00:00",
+ "checked_at": "2026-11-17T15:15:41.790305+00:00",
  "results": [
   {
    "url": "https://vnexpress.net/rss/so-hoa.rss",
    "http": 200,
-   "ms": 3543,
+   "ms": 1998,
    "bytes": 68840,
    "content_type": "application/xml; charset=utf-8",
    "items": 60,
@@ -12,7 +12,7 @@
    "with_summary": 60,
    "newest": "2026-11-17T19:11:43+07:00",
    "oldest": "2026-11-13T00:00:00+07:00",
-   "age_newest_h": 3.0,
+   "age_newest_h": 3.1,
    "last_24h": 15,
    "last_7d": 60,
    "sample": [
@@ -72,7 +72,7 @@
   {
    "url": "https://vnexpress.net/rss/khoa-hoc-cong-nghe.rss",
    "http": 200,
-   "ms": 1515,
+   "ms": 1151,
    "bytes": 68840,
    "content_type": "application/xml; charset=utf-8",
    "items": 60,
@@ -80,7 +80,7 @@
    "with_summary": 60,
    "newest": "2026-11-17T19:11:43+07:00",
    "oldest": "2026-11-13T00:00:00+07:00",
-   "age_newest_h": 3.0,
+   "age_newest_h": 3.1,
    "last_24h": 15,
    "last_7d": 60,
    "sample": [
@@ -140,7 +140,7 @@
   {
    "url": "https://genk.vn/rss/home.rss",
    "http": 200,
-   "ms": 2281,
+   "ms": 1424,
    "bytes": 69889,
    "content_type": "text/xml; charset=UTF-8",
    "items": 61,
@@ -208,7 +208,7 @@
   {
    "url": "https://genk.vn/rss/ai.rss",
    "http": 200,
-   "ms": 2434,
+   "ms": 1261,
    "bytes": 70457,
    "content_type": "text/xml; charset=UTF-8",
    "items": 61,
@@ -276,7 +276,7 @@
   {
    "url": "https://techcrunch.com/feed/",
    "http": 200,
-   "ms": 54,
+   "ms": 88,
    "bytes": 17879,
    "content_type": "application/rss+xml; charset=UTF-8",
    "items": 20,
@@ -344,7 +344,7 @@
   {
    "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
    "http": 200,
-   "ms": 19,
+   "ms": 42,
    "bytes": 17866,
    "content_type": "application/rss+xml; charset=UTF-8",
    "items": 20,
@@ -412,7 +412,7 @@
   {
    "url": "https://www.theverge.com/rss/index.xml",
    "http": 200,
-   "ms": 104,
+   "ms": 62,
    "bytes": 32073,
    "content_type": "application/xml; charset=UTF-8",
    "items": 10,
@@ -420,7 +420,7 @@
    "with_summary": 10,
    "newest": "2026-11-17T10:06:37-05:00",
    "oldest": "2026-11-16T15:42:51-05:00",
-   "age_newest_h": 0.1,
+   "age_newest_h": 0.2,
    "last_24h": 10,
    "last_7d": 10,
    "sample": [
@@ -480,24 +480,18 @@
   {
    "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
    "http": 200,
-   "ms": 14,
+   "ms": 33,
    "bytes": 28574,
    "content_type": "application/xml; charset=UTF-8",
    "items": 10,
    "with_date": 10,
    "with_summary": 10,
-   "newest": "2026-11-17T09:45:26-05:00",
+   "newest": "2026-11-17T09:32:46-05:00",
    "oldest": "2026-11-16T09:06:43-05:00",
-   "age_newest_h": 0.5,
+   "age_newest_h": 0.7,
    "last_24h": 9,
    "last_7d": 10,
    "sample": [
-    {
-     "title": "Sam Altman says he wants everyone ‘to have a lot of RAM’",
-     "date": "2026-11-17T09:45:26-05:00",
-     "summary": "OpenAI CEO Sam Altman is once again addressing his controversial comments on PC RAM purchases. \"I want to be clear, I want people to have a lot of RAM, I think ",
-     "lastmod": null
-    },
     {
      "title": "Nvidia’s board is reportedly ‘not considering’ hiring Jensen Huang back",
      "date": "2026-11-17T09:32:46-05:00",
@@ -514,6 +508,12 @@
      "title": "California sues OpenAI over rogue AI hacking incidents",
      "date": "2026-11-16T18:04:02-05:00",
      "summary": "California is suing OpenAI after its AI agents broke out of their testing environment and hacked other companies, including Hugging Face. In a lawsuit filed Mon",
+     "lastmod": null
+    },
+    {
+     "title": "Sam Altman says he wants everyone ‘to have a lot of RAM’",
+     "date": "2026-11-16T17:47:14-05:00",
+     "summary": "OpenAI CEO Sam Altman is once again addressing his controversial comments on PC RAM purchases. \"I want to be clear, I want people to have a lot of RAM, I think ",
      "lastmod": null
     },
     {
@@ -548,7 +548,7 @@
   {
    "url": "https://openai.com/news/rss.xml",
    "http": 200,
-   "ms": 69,
+   "ms": 91,
    "bytes": 852721,
    "content_type": "text/xml; charset=utf-8",
    "items": 1401,
@@ -556,7 +556,7 @@
    "with_summary": 1275,
    "newest": "2026-11-17T00:00:00+00:00",
    "oldest": "2015-12-11T08:00:00+00:00",
-   "age_newest_h": 15.2,
+   "age_newest_h": 15.3,
    "last_24h": 4,
    "last_7d": 23,
    "sample": [
@@ -616,7 +616,7 @@
   {
    "url": "https://openai.com/blog/rss.xml",
    "http": 200,
-   "ms": 106,
+   "ms": 128,
    "bytes": 852721,
    "content_type": "text/xml; charset=utf-8",
    "items": 1401,
@@ -624,7 +624,7 @@
    "with_summary": 1275,
    "newest": "2026-11-17T00:00:00+00:00",
    "oldest": "2015-12-11T08:00:00+00:00",
-   "age_newest_h": 15.2,
+   "age_newest_h": 15.3,
    "last_24h": 4,
    "last_7d": 23,
    "sample": [
@@ -684,7 +684,7 @@
   {
    "url": "https://www.anthropic.com/sitemap.xml",
    "http": 200,
-   "ms": 75,
+   "ms": 111,
    "bytes": 76491,
    "content_type": "application/xml",
    "sitemap_urls": 592,
@@ -825,7 +825,7 @@
    "with_summary": 111,
    "newest": "2026-11-16T00:00:00+00:00",
    "oldest": "2023-09-19T00:00:00+00:00",
-   "age_newest_h": 39.2,
+   "age_newest_h": 39.3,
    "last_24h": 0,
    "last_7d": 2,
    "sample": [
@@ -885,7 +885,7 @@
   {
    "url": "https://blog.google/technology/ai/rss/",
    "http": 200,
-   "ms": 170,
+   "ms": 308,
    "bytes": 30392,
    "content_type": "application/xml; charset=utf-8",
    "items": 20,
@@ -893,7 +893,7 @@
    "with_summary": 13,
    "newest": "2026-11-16T14:00:00+00:00",
    "oldest": "2026-09-17T20:00:00+00:00",
-   "age_newest_h": 25.2,
+   "age_newest_h": 25.3,
    "last_24h": 0,
    "last_7d": 6,
    "sample": [
@@ -953,7 +953,7 @@
   {
    "url": "https://research.google/blog/rss/",
    "http": 200,
-   "ms": 433,
+   "ms": 600,
    "bytes": 78700,
    "content_type": "application/rss+xml; charset=utf-8",
    "items": 100,
@@ -961,7 +961,7 @@
    "with_summary": 3,
    "newest": "2026-11-13T20:47:18+00:00",
    "oldest": "2025-12-04T19:26:09+00:00",
-   "age_newest_h": 90.4,
+   "age_newest_h": 90.5,
    "last_24h": 0,
    "last_7d": 2,
    "sample": [
@@ -1021,70 +1021,13 @@
   {
    "url": "https://deepmind.google/blog/rss.xml",
    "http": 200,
-   "ms": 81,
-   "bytes": 68852,
+   "ms": 163,
+   "bytes": 18603,
    "content_type": "application/xml",
-   "items": 100,
-   "with_date": 100,
-   "with_summary": 68,
-   "newest": "2026-11-12T18:00:50+00:00",
-   "oldest": "2025-12-11T00:06:40+00:00",
-   "age_newest_h": 117.2,
-   "last_24h": 0,
-   "last_7d": 3,
-   "sample": [
-    {
-     "title": "Introducing Gemini 4 Hydrogen",
-     "date": "2026-11-12T18:00:50+00:00",
-     "summary": "",
-     "lastmod": null
-    },
-    {
-     "title": "AlphaGenome 2: Deciphering how cells read DNA to better understand disease",
-     "date": "2026-11-11T15:00:15+00:00",
-     "summary": "Predicting how DNA sequences and their variations impact specific human cell types and disease.",
-     "lastmod": null
-    },
-    {
-     "title": "Gemini 4 Carbon is now available",
-     "date": "2026-11-10T16:03:47+00:00",
-     "summary": "",
-     "lastmod": null
-    },
-    {
-     "title": "Introducing AlphaProof Code: a breakthrough in verifying complex software at depth",
-     "date": "2026-11-10T12:02:28+00:00",
-     "summary": "AlphaProof Code agents wrote three million lines of proofs in Lean to verify Signal’s core encryption.",
-     "lastmod": null
-    },
-    {
-     "title": "Opening the datasets behind our AI weather models",
-     "date": "2026-11-10T11:13:04+00:00",
-     "summary": "Foundational precipitation and geostationary satellite datasets to observe the planet clearly.",
-     "lastmod": null
-    },
-    {
-     "title": "Gemini Robotics 2.5 accelerates real-world general dexterity",
-     "date": "2026-11-09T19:51:47+00:00",
-     "summary": "Our most capable vision-language-action model enhances robot dexterity, reliability, and safety",
-     "lastmod": null
-    },
-    {
-     "title": "Gemini Omni 1.2 Flash: Fast and cost-effective with longer clips",
-     "date": "2026-11-05T17:05:16+00:00",
-     "summary": "",
-     "lastmod": null
-    },
-    {
-     "title": "Agentic cheminformatics with Google Antigravity",
-     "date": "2026-11-03T17:01:49+00:00",
-     "summary": "Learn how Google Antigravity and our Cheminformatics Skills accelerate drug discovery workflows, search compounds, and propose novel rigidified macrocycles.",
-     "lastmod": null
-    }
-   ],
-   "ok": true,
+   "ok": false,
+   "error": "ParseError: not well-formed (invalid token): line 1, column 0",
    "source": "google-ai",
-   "verdict": "ÍT CẬP NHẬT"
+   "verdict": "HỎNG"
   }
  ]
 }
