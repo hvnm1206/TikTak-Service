@@ -20,7 +20,7 @@ jobs:
       GOOGLE_CLIENT: ${{ secrets.NMH_V3_GOOGLE_CLIENT_ID }}
       PROD_DB_ID: '3ce295cb-a84d-4a50-abee-d14fdd903514'
       PROD_WORKER: nmh-voice-gpt-test
-      PROD_EXPECTED_VERSION: faf306eb-f90f-460f-8cea-368821658211
+      PROD_EXPECTED_VERSION: 96b23ebb-550c-4d1d-97bd-2642895132dc
       TARGET: https://nmh-voice-gpt-test.magical-budget.workers.dev
     steps:
       - uses: actions/checkout@v4
