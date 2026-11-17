@@ -91,6 +91,11 @@ ${TRIP_LOGIC}
   ngoTrip={to:trip.to,path:String(trip.path||""),polyline:typeof trip.polyline==="string"&&trip.polyline.length<=20000?trip.polyline:null,expectEnd:now+(Number(trip.seconds)||0)*1000,started:now,lastCheck:now,lastAlertAt:0,alerted:[]};ngoTripChip()}catch{}};
  // 17/11 owner "tại sao nó không tra web được": show per answer which tools ran and whether web search happened (evidence, no guessing)
  function ngoDiag(d){try{const t=Array.isArray(d?.tools)?d.tools.filter(Boolean):[],w=Number(d?.webSearchCalls)||0;return "🔧 "+(t.length?t.join(", "):"không gọi công cụ")+" · "+(w?"đã tìm web ×"+w:"không tìm web")+(d?.model?" · "+d.model:"")}catch{return ""}}
+ // 17/11 owner "không nhớ mạch chuyện" (after KẾT THÚC): the conversation lived only in page memory and stop()/start/reload
+ // wiped it. It now persists on this iPhone (localStorage, last 40 entries); KẾT THÚC only stops voice; SETUP can clear it.
+ function ngoHistLoad(){try{const a=JSON.parse(localStorage.getItem("ngo_history_v1")||"[]");return Array.isArray(a)?a.filter(m=>m&&(m.role==="user"||m.role==="assistant")&&typeof m.content==="string").slice(-40):[]}catch{return []}}
+ function ngoHistSave(){try{localStorage.setItem("ngo_history_v1",JSON.stringify(history.slice(-40).map(m=>({role:m.role,content:String(m.content).slice(0,1500),...(m.diag?{diag:m.diag}:{}),...(Array.isArray(m.sources)&&m.sources.length?{sources:m.sources.slice(0,5)}:{}),...(m.actionBoundary?{actionBoundary:true}:{})}))))}catch{}}
+ globalThis.ngoHistClear=()=>{history.length=0;try{localStorage.removeItem("ngo_history_v1")}catch{}render()};
  function ngoTripSay(text){if(!active)return false;if(step!=="listening"||heard)return false;gen++;closeRec();const g=gen;history.push({role:"assistant",content:text});render();speak(text,g);return true}
  async function ngoTripTick(){try{
   if(!ngoTrip)return;if(!ngoRoutesOn||Date.now()-ngoTrip.started>3*3600000){ngoTripEnd();return}
@@ -117,8 +122,10 @@ const SETUP_HTML='<div style="margin:0 0 16px;padding-bottom:12px;border-bottom:
  '<label><input id="ngoStreamVoice" type="checkbox" style="width:auto"> Phát giọng ngay khi đang tải (nhanh hơn ~3 giây)</label>'+
  '<label><input id="ngoRoutes" type="checkbox" style="width:auto"> Tra đường &amp; giao thông (ô tô, đường Vietmap, giao thông TomTom) — dùng vị trí iPhone</label>'+
  '<p class="hint" id="ngoGeoStatus"></p>'+
+ '<p style="margin:8px 0"><button id="ngoHistClearBtn" type="button" style="width:auto">Xóa lịch sử hội thoại</button> <span class="hint" id="ngoHistInfo"></span></p>'+
  '<p class="hint">Tắt "chốt câu nhanh" nếu Ngố hay cắt ngang khi anh ngập ngừng. Tắt "loa ngoài" nếu micro không nhận sau khi Ngố nói. Tắt "phát ngay" để so với cách cũ (chậm hơn) nếu thấy tiếng không mượt.</p></div>';
 const SETUP_JS=String.raw`
+ $("ngoHistInfo").textContent="Ngố nhớ mạch chuyện qua KẾT THÚC/mở lại (lưu trên iPhone này).";$("ngoHistClearBtn").onclick=()=>{globalThis.ngoHistClear();$("ngoHistInfo").textContent="Đã xóa lịch sử hội thoại."};
  $("ngoLoudSpeaker").checked=ngoLoudSpeaker;$("ngoFastEndpoint").checked=ngoFastEndpoint;
  $("ngoLoudSpeaker").onchange=()=>{ngoLoudSpeaker=$("ngoLoudSpeaker").checked;persist("ngo_loud_speaker_v1",ngoLoudSpeaker?"1":"0");ngoAudioSession("auto")};
  $("ngoStreamVoice").checked=ngoStreamVoice;$("ngoStreamVoice").onchange=()=>{ngoStreamVoice=$("ngoStreamVoice").checked;persist("ngo_stream_voice_v1",ngoStreamVoice?"1":"0")};
@@ -133,6 +140,10 @@ function once(text,from,to){
 export function enhanceVoiceBoost(page){
  let p=page;
  p=once(p,' const labels={idle:',HELPERS+' const labels={idle:');
+ if(p.includes('history=[],active=false'))p=once(p,'history=[],active=false','history=ngoHistLoad(),active=false');
+ if(p.includes('controller=null;history=[];heard="";render();setState("idle")'))p=once(p,'controller=null;history=[];heard="";render();setState("idle")','controller=null;heard="";render();setState("idle")');
+ if(p.includes('active=true;gen++;history=[];render();'))p=once(p,'active=true;gen++;history=[];render();','active=true;gen++;render();');
+ if(p.includes('function render(){'))p=once(p,'function render(){','function render(){ngoHistSave();');
  // Audio session: playback while speaking, auto before the microphone opens.
  p=once(p,'if(!audioCtx)throw Error("AUDIO_NOT_UNLOCKED");','ngoAudioSession("playback");if(!audioCtx)throw Error("AUDIO_NOT_UNLOCKED");');
  p=once(p,'closeRec();heard="";','closeRec();ngoAudioSession("auto");heard="";');

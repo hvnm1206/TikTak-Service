@@ -394,3 +394,17 @@ test('production page shows a per-answer tool/web-search line on both answer pat
   assert.equal(c.f({tools:['get_weather'],webSearchCalls:1,model:'gpt-x'}),'🔧 get_weather · đã tìm web ×1 · gpt-x');
   assert.equal(c.f({tools:[],webSearchCalls:0}),'🔧 không gọi công cụ · không tìm web');
 });
+test('owner 17/11 "không nhớ mạch chuyện": conversation persists on the iPhone across KẾT THÚC, START and reload; SETUP can clear it',async()=>{
+  const html=await (await worker.fetch(new Request('https://nmh-voice-gpt-test.magical-budget.workers.dev/'),{NMH_FAST_VOICE:'active'})).text();
+  assert.ok(html.includes('history=ngoHistLoad(),active=false'),'loaded from the device at start-up');
+  assert.ok(!html.includes('controller=null;history=[];heard=""'),'KẾT THÚC no longer wipes the conversation');
+  assert.ok(!html.includes('active=true;gen++;history=[];'),'START no longer wipes it');
+  assert.ok(html.includes('function render(){ngoHistSave();'),'saved after every change');
+  assert.ok(html.includes('id="ngoHistClearBtn"'));
+  const pick=n=>html.match(new RegExp('function '+n+'\\(\\)\\{[\\s\\S]*?\\n'))[0];
+  const store={};const localStorage={getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=String(v)},removeItem:k=>{delete store[k]}};
+  const c={localStorage,history:[{role:'user',content:'Mai đi Hồ Tây'},{role:'assistant',content:'Ok',diag:'🔧 x'}]};
+  vm.runInNewContext(pick('ngoHistLoad')+pick('ngoHistSave')+';globalThis.L=ngoHistLoad;globalThis.S=ngoHistSave;',c);
+  c.S();const reloaded=c.L();assert.deepEqual(JSON.parse(JSON.stringify(reloaded)),[{role:'user',content:'Mai đi Hồ Tây'},{role:'assistant',content:'Ok',diag:'🔧 x'}]);
+  store.ngo_history_v1='not json';assert.deepEqual(JSON.parse(JSON.stringify(c.L())),[],'corrupt storage never breaks the page');
+});
