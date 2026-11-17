@@ -3,7 +3,7 @@ on:
   push:
     branches: [nmh-news-app]
   schedule:
-    - cron: '7 23 * * *'   # 06:07 giờ Việt Nam. Lưu ý: GitHub chỉ chạy lịch từ nhánh mặc định (main).
+    - cron: '0 17 * * *'   # 00:00 giờ Việt Nam (anh Hải duyệt 17/11/2026). GitHub chỉ chạy lịch từ nhánh main; code lấy từ nhánh nmh-news-app.
   workflow_dispatch:
 permissions:
   contents: write
