@@ -17,6 +17,8 @@ def collect(cfg, probe):
         if r["verdict"] in ("DÙNG ĐƯỢC", "ÍT CẬP NHẬT"):
             usable.setdefault(r["source"], []).append(r["url"])
     names = {s["id"]: s["name"] for s in cfg["sources"] if s.get("enabled", True)}
+    tzs = {s["id"]: s.get("wallclock_tz") for s in cfg["sources"]}
+    smp = {s["id"]: s.get("sitemap_prefix") for s in cfg["sources"]}
     pool, seen = [], set()
     for sid, urls in usable.items():
         if sid not in names:
@@ -24,7 +26,7 @@ def collect(cfg, probe):
         for u in urls:
             try:
                 _, body, _, _ = fetch(u)
-                items = parse_feed(body)
+                items = parse_feed(body, tzs.get(sid), smp.get(sid))
             except Exception as e:
                 print("FETCH_FAIL", u, e)
                 continue

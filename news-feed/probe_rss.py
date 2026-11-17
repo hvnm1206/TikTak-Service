@@ -33,11 +33,19 @@ def local(tag):
     return tag.rsplit("}", 1)[-1]
 
 
-def parse_feed(raw):
+def parse_feed(raw, wallclock_tz=None, sitemap_prefix=None):
+    """wallclock_tz: với nguồn ghi sai múi giờ, giữ giờ ghi trong feed và gán múi giờ này."""
+    fix = dt.datetime.strptime(wallclock_tz.replace(":", ""), "%z").tzinfo if wallclock_tz else None
     root = ET.fromstring(raw)
     items = []
     for el in root.iter():
         name = local(el.tag)
+        if name == "url":
+            loc = next((x.text for x in el if local(x.tag) == "loc"), "") or ""
+            lm = next((x.text for x in el if local(x.tag) == "lastmod"), None)
+            if sitemap_prefix and loc.startswith(sitemap_prefix):
+                items.append({"title": loc.rstrip("/").rsplit("/", 1)[-1].replace("-", " "), "link": loc, "date": parse_date(lm), "summary": ""})
+            continue
         if name not in ("item", "entry"):
             continue
         rec = {"title": "", "link": "", "date": None, "summary": ""}
@@ -49,6 +57,8 @@ def parse_feed(raw):
                 rec["link"] = (c.get("href") or c.text or "").strip() or rec["link"]
             elif n in ("pubDate", "published", "updated", "date") and rec["date"] is None:
                 rec["date"] = parse_date(c.text)
+                if fix and rec["date"]:
+                    rec["date"] = rec["date"].replace(tzinfo=fix)
             elif n in ("description", "summary", "content", "encoded") and not rec["summary"]:
                 rec["summary"] = strip_html(c.text or "")[:800]
         items.append(rec)
@@ -63,12 +73,12 @@ def fetch(url):
         return r.status, body, round((time.time() - t) * 1000), r.headers.get("content-type", "")
 
 
-def probe(url):
+def probe(url, wallclock_tz=None, sitemap_prefix=None):
     out = {"url": url}
     try:
         status, body, ms, ctype = fetch(url)
         out.update(http=status, ms=ms, bytes=len(body), content_type=ctype)
-        items = parse_feed(body)
+        items = parse_feed(body, wallclock_tz, sitemap_prefix)
         dates = sorted([i["date"] for i in items if i["date"]], reverse=True)
         out["items"] = len(items)
         out["with_date"] = len(dates)
@@ -105,7 +115,7 @@ def main(cfg_path, out_dir):
     res = []
     for s in cfg["sources"]:
         for u in s["urls"]:
-            r = probe(u)
+            r = probe(u, s.get("wallclock_tz"), s.get("sitemap_prefix"))
             r["source"] = s["id"]
             r["verdict"] = verdict(r)
             res.append(r)

@@ -18,9 +18,10 @@
       "enabled": true,
       "urls": [
         "https://genk.vn/rss/home.rss",
-        "https://genk.vn/rss/ai.rss",
-        "https://genk.vn/home.rss"
-      ]
+        "https://genk.vn/rss/ai.rss"
+      ],
+      "wallclock_tz": "+07:00",
+      "_tz_note": "Genk ghi múi giờ sai (+00:07 thay vì +07:00): lấy giờ ghi trong feed, coi là giờ VN."
     },
     {
       "id": "techcrunch",
@@ -58,10 +59,12 @@
       "lang": "en",
       "enabled": true,
       "urls": [
-        "https://www.anthropic.com/rss.xml",
-        "https://www.anthropic.com/news/rss.xml",
-        "https://www.anthropic.com/feed.xml"
-      ]
+        "https://www.anthropic.com/sitemap.xml",
+        "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml",
+        "https://raw.githubusercontent.com/taobojlen/anthropic-rss-feed/main/anthropic_news_rss.xml"
+      ],
+      "_note": "Anthropic không có RSS chính thức (đã thử /rss.xml, /news/rss.xml, /feed.xml đều 404). Đang thử sitemap chính thức và feed cộng đồng trên GitHub.",
+      "sitemap_prefix": "https://www.anthropic.com/news/"
     },
     {
       "id": "google-ai",
