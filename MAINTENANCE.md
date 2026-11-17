@@ -1,5 +1,10 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Tìm kiếm cơ bản bị từ chối (triển lãm ngày mai)
+- 13:53 chủ app: hỏi 'ngày mai ở Hà Nội có triển lãm gì' Ngố không tìm. Nguyên nhân gốc: quy tắc cắt phí 16/11 chỉ cho sự kiện 'gần đây', ép thử search_news trước, và dặn chỉ tìm web khi người dùng muốn kiểm tra.
+- Sửa: bắt buộc web_search cho sự kiện sắp/đang diễn ra, giờ mở cửa, giá vé, tin mới, câu hỏi gắn hôm nay/ngày mai/cuối tuần; công cụ miễn phí không ra kết quả đúng → web_search lượt sau. Kiến thức phổ thông vẫn không tìm web. Test 193/193.
+- Production 38f29dd3-0abf-4a66-8e48-5d8197568bb0; rollback 64f1a76b-df20-4ee8-a3e4-125c4edbbc59.
+
 ## 17/11/2026 — Bộ đo khả thi cho dẫn đường rảnh tay
 - Chủ app: rảnh tay, chỉ nói với Ngố; Ngố sáng suốt tuyến; phải kiểm khả thi trước khi xây. Kết luận đã kiểm: Ngố không điều khiển được Google Maps (iOS cần chạm; app nền mất mic); Google Maps API cấm ở VN (Prohibited Territories).
 - Bộ đo (chưa phải tính năng): giữ sáng màn hình khi canh đường; SETUP hiện số lần GPS, khoảng cách lâu nhất, sai số TB, trạng thái giữ sáng; nút '↱ N chỗ rẽ' (danh sách chỗ rẽ Vietmap). Test 192/192.
