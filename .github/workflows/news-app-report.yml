@@ -1,0 +1,35 @@
+name: Bản tin NMH — báo cáo D1 chỉ đọc
+on:
+  push:
+    branches: [nmh-news-app]
+permissions:
+  contents: write
+jobs:
+  report:
+    if: startsWith(github.event.head_commit.message, 'report(news)')
+    runs-on: ubuntu-latest
+    env:
+      CF_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
+      T: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+    steps:
+      - name: Đọc số liệu (không in email)
+        run: |
+          python3 - <<'PY' | tee /tmp/report.txt
+          import os,json,urllib.request
+          A='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CF_ACCOUNT_ID']
+          def cf(p,b=None):
+            r=urllib.request.urlopen(urllib.request.Request(A+p,data=json.dumps(b).encode() if b else None,method='POST' if b else 'GET',headers={'Authorization':'Bearer '+os.environ['T'],'Content-Type':'application/json'}),timeout=60)
+            return json.load(r)['result']
+          db=next(x for x in cf('/d1/database?name=nmh-news') if x['name']=='nmh-news')['uuid']
+          q=lambda s:cf('/d1/database/'+db+'/query',{'sql':s})[0]['results']
+          print('USAGE',json.dumps(q("SELECT day,substr(user_id,1,6) uid,questions,input_tokens,cached_tokens,output_tokens,web_searches,tts_chars,round(est_usd,4) usd FROM usage ORDER BY day DESC")))
+          print('MIGRATIONS',json.dumps(q("SELECT name FROM d1_migrations")))
+          print('RUNS',json.dumps(q("SELECT id,new_articles,est_usd,finished_at FROM runs ORDER BY started_at DESC LIMIT 3")))
+          PY
+      - name: Lưu
+        if: always()
+        run: |
+          mkdir -p /tmp/rep && cd /tmp/rep
+          git init -q && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          git fetch -q --depth=1 origin nmh-news-reports && git checkout -q FETCH_HEAD -b r
+          cp /tmp/report.txt report-latest.txt && git add -A && git -c user.name=nmh-news -c user.email=actions@users.noreply.github.com commit -qm "report ${{ github.run_id }}" && git push -q origin HEAD:nmh-news-reports
