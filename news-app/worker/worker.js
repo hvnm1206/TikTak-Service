@@ -136,7 +136,15 @@ export async function ask(env, user, body, fetchImpl = fetch) {
   for (const o of res.output || []) {
     if (o.type === 'web_search_call') web++;
     if (o.type === 'message') for (const c of o.content || []) {
-      if (c.type === 'output_text') { answer += c.text || ''; for (const a of c.annotations || []) if (a.type === 'url_citation' && a.url) sources.push({ url: a.url, title: a.title || a.url }); }
+      if (c.type === 'output_text') {
+        // Trích dẫn web nằm trong đoạn [start,end) của văn bản: cắt bỏ để không đọc tên miền thành tiếng, giữ link ở danh sách nguồn.
+        let t = c.text || '';
+        const cites = (c.annotations || []).filter(a => a.type === 'url_citation' && a.url);
+        for (const a of cites) sources.push({ url: a.url, title: a.title || a.url });
+        for (const a of [...cites].filter(a => Number.isInteger(a.start_index) && a.end_index > a.start_index).sort((x, y) => y.start_index - x.start_index))
+          t = t.slice(0, a.start_index) + t.slice(a.end_index);
+        answer += t;
+      }
     }
   }
   answer = answer.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '$1').replace(/\(?\[\d+\]\)?/g, '').replace(/[*#_`]+/g, '').replace(/[ \t]{2,}/g, ' ').replace(/ ([.,!?])/g, '$1').trim();

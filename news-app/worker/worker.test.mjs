@@ -109,6 +109,18 @@ test('hỏi đáp: dùng bản tin làm ngữ cảnh, ghi chi phí, có hạn m�
   assert.equal(again.status, 429, 'vượt hạn mức ngày');
 });
 
+test('hỏi đáp: cắt trích dẫn web khỏi câu đọc, giữ nguồn', async () => {
+  const env = setup();
+  const text = 'Vàng SJC bán ra 137,7 triệu đồng/lượng ([ndh.vn](https://ndh.vn/x)). Giá có thể chênh.';
+  const s = text.indexOf(' (['), e = text.indexOf(')).') + 2;
+  globalThis.fetch = async () => new Response(JSON.stringify({ output: [{ type: 'web_search_call' }, { type: 'message', content: [{ type: 'output_text', text,
+    annotations: [{ type: 'url_citation', url: 'https://ndh.vn/x', title: 'NDH', start_index: s, end_index: e }] }] }], usage: { input_tokens: 10, output_tokens: 5 } }), { status: 200 });
+  const d = await (await post(env, '/api/ask', { messages: [{ role: 'user', content: 'Giá vàng?' }] })).json();
+  assert.equal(d.answer, 'Vàng SJC bán ra 137,7 triệu đồng/lượng. Giá có thể chênh.');
+  assert.deepEqual(d.sources, [{ url: 'https://ndh.vn/x', title: 'NDH' }]);
+  assert.equal(d.usage.web, 1);
+});
+
 test('đọc giọng: Leda, trả base64 nguyên vẹn, giọng nhí phát nhanh 1.455', async () => {
   const env = setup();
   let body;

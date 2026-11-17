@@ -76,6 +76,25 @@ jobs:
               break
             except Exception as e:print('GQL_FAIL',e)
           PY
+      - name: CPU theo từng request (Workers Logs)
+        if: always()
+        run: |
+          python3 - <<'PY' 2>&1 | tee -a /tmp/e2e.txt
+          import os,json,time,urllib.request
+          now=int(time.time()*1000)
+          body={"queryId":"nmh-news-e2e","timeframe":{"from":now-20*60*1000,"to":now},"view":"events","limit":100,
+                "parameters":{"filters":[{"key":"$workers.scriptName","operation":"eq","type":"string","value":"nmh-news"}]}}
+          for t in [os.environ['CFT'],os.environ['D1T']]:
+            try:
+              r=json.load(urllib.request.urlopen(urllib.request.Request('https://api.cloudflare.com/client/v4/accounts/'+os.environ['CF_ACCOUNT_ID']+'/workers/observability/telemetry/query',data=json.dumps(body).encode(),headers={'Authorization':'Bearer '+t,'Content-Type':'application/json'}),timeout=40))
+              ev=(r.get('result') or {}).get('events',{}).get('events',[]) or []
+              print('LOG_EVENTS',len(ev))
+              for x in ev:
+                w=x.get('$workers',{});req=(w.get('event') or {}).get('request',{}) if isinstance(w.get('event'),dict) else {}
+                print('REQ_CPU',req.get('method'),str(req.get('url',''))[-40:],'cpuMs=',w.get('cpuTimeMs'),'wallMs=',w.get('wallTimeMs'),'outcome=',w.get('outcome'))
+              break
+            except Exception as e:print('LOGS_FAIL',str(e)[:200])
+          PY
       - name: Lưu báo cáo + mẫu âm thanh
         if: always()
         run: |
