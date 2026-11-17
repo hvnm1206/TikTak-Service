@@ -1,5 +1,10 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Giữ mạch chuyện qua KẾT THÚC/mở lại
+- 19:54–19:57 chủ app: không nhớ mạch chuyện sau KẾT THÚC (do My bảo bấm). Lịch sử chỉ nằm trong bộ nhớ trang; stop()/START/tải lại xóa sạch.
+- Sửa: lưu lịch sử trên iPhone (localStorage ngo_history_v1, 40 mục), nạp khi mở, lưu mỗi lần render; KẾT THÚC/START không xóa; nút SETUP 'Xóa lịch sử hội thoại'. Test 196/196.
+- Production 7cb645f3-89fc-48d9-b559-842227c69087; rollback 38cce8b4-a95c-4134-8508-ce98951a703b.
+
 ## 17/11/2026 — Không tra mà bịa (cả lý do 503)
 - 19:34–19:35 chủ app: Ngố nói không tra và bịa, bịa cả lý do 503 → chẩn đoán search_news trước đó chưa được chứng minh (503 có thể do mô hình lặp lại từ lượt trước).
 - Gốc: reasoning effort 'none' → trả lời từ trí nhớ, không tự cân nhắc cần tìm. Sửa: effort 'low' (env NGO_REASONING), không thêm câu lệnh; mô hình từ chối giá trị thì lượt đó thử lại với 'none'.
