@@ -68,7 +68,7 @@ Với mỗi bài (có thể tiếng Anh hoặc tiếng Việt), viết bằng ti
 - "muc_do": 1-5 (5 = rất quan trọng với người theo dõi AI/công nghệ).
 Gộp các bài trùng sự kiện: bài trùng ghi "trung_voi" = id bài chính, vẫn trả về.
 Sau đó viết "diem_tin": 5 tin nổi bật nhất trong ngày, mỗi tin 1 câu, giọng nói tự nhiên để đọc thành tiếng.
-Trả về JSON duy nhất: {"diem_tin":[...], "bai":[{"id":..,"tieu_de":..,"tom_tat":..,"nhom":..,"muc_do":..,"trung_voi":null}]}"""
+Trả về đúng theo cấu trúc được yêu cầu."""
 
 
 def call_gpt(items, cfg):
@@ -79,7 +79,15 @@ def call_gpt(items, cfg):
         "reasoning": {"effort": d["reasoning"]},
         "instructions": SYSTEM,
         "input": "Các nhóm: " + json.dumps(cfg["categories"], ensure_ascii=False) + "\nCác bài:\n" + json.dumps(payload_items, ensure_ascii=False),
-        "text": {"format": {"type": "json_object"}},
+        "text": {"format": {"type": "json_schema", "name": "ban_tin", "strict": True, "schema": {
+            "type": "object", "additionalProperties": False, "required": ["diem_tin", "bai"],
+            "properties": {
+                "diem_tin": {"type": "array", "items": {"type": "string"}},
+                "bai": {"type": "array", "items": {"type": "object", "additionalProperties": False,
+                    "required": ["id", "tieu_de", "tom_tat", "nhom", "muc_do", "trung_voi"],
+                    "properties": {"id": {"type": "integer"}, "tieu_de": {"type": "string"}, "tom_tat": {"type": "string"},
+                                   "nhom": {"type": "string", "enum": cfg["categories"]}, "muc_do": {"type": "integer"},
+                                   "trung_voi": {"type": ["integer", "null"]}}}}}}}},
     }
     req = urllib.request.Request("https://api.openai.com/v1/responses", data=json.dumps(body).encode(), method="POST",
                                  headers={"Authorization": "Bearer " + os.environ["OPENAI_API_KEY"], "Content-Type": "application/json"})
