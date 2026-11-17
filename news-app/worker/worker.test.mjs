@@ -136,6 +136,8 @@ test('đọc giọng: Leda, trả base64 nguyên vẹn, giọng nhí phát nhanh
   assert.equal(n.headers.get('x-playback-rate'), '1');
   const u = await env.DB.prepare('SELECT tts_chars FROM usage WHERE user_id=?').bind('u1').first();
   assert.equal(u.tts_chars, 12 + 4);
+  const fee = await env.DB.prepare('SELECT est_usd FROM usage WHERE user_id=?').bind('u1').first();
+  assert.equal(fee.est_usd, 0, 'trong hạn mức miễn phí 1 triệu ký tự');
 });
 
 test('thêm nguồn RSS riêng: kiểm tra là RSS thật, tự thêm vào lựa chọn', async () => {

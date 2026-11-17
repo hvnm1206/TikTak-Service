@@ -6,7 +6,11 @@ import PAGE from './page.html';
 const MODEL = 'gpt-6-luna';
 const PRICE = { in: 0.10, cached: 0.01, out: 0.50 };   // USD / 1M token, theo code Ngố; đối chiếu hóa đơn sau 1 tuần
 const WEB_SEARCH_CALL_USD = 0.01;
-const TTS_USD_PER_CHAR = 30 / 1e6;                       // Chirp3-HD giá niêm yết; chưa trừ hạn mức miễn phí — cần đối chiếu hóa đơn Google
+// Chirp 3 HD: miễn phí 1 triệu ký tự/tháng, sau đó 30 USD/1 triệu (cloud.google.com/text-to-speech/pricing, kiểm tra 18/11/2026).
+// Hạn mức miễn phí tính theo tài khoản Google Cloud, DÙNG CHUNG với Ngố/Ngáo (cùng khóa ngao-tts) nên Worker không biết tổng thật:
+// chỉ đếm ký tự; phí USD chỉ tính phần vượt hạn mức của riêng app này.
+const TTS_USD_PER_CHAR = 30 / 1e6;
+const TTS_FREE_CHARS = 1e6;
 const STYLES = {
   danh_da: 'Đanh đá: nhân vật nhí lanh lợi, hay cà khịa hóm hỉnh, xưng tao gọi người dùng mày. Không tục, không xúc phạm.',
   chem_gio: 'Chém gió: nhân vật nhí nghịch ngợm, dí dỏm và thông minh, xưng tôi gọi người dùng anh.',
@@ -173,7 +177,9 @@ async function tts(env, user, body, fetchImpl = fetch) {
       audioConfig: { audioEncoding: 'MP3', sampleRateHertz: 24000, speakingRate: playful ? 0.756 : 1 } }),
   });
   if (!r.ok) { const d = await r.json().catch(() => null); return fail('Google TTS HTTP ' + r.status + ' ' + String(d?.error?.message || '').slice(0, 100), 502); }
-  await addUsage(env, user.id, { tts: text.length, usd: text.length * TTS_USD_PER_CHAR });
+  const m = await env.DB.prepare('SELECT COALESCE(SUM(tts_chars),0) n FROM usage WHERE day LIKE ?').bind(vnDay().slice(0, 7) + '%').first();
+  const over = Math.max(0, (m?.n || 0) + text.length - TTS_FREE_CHARS) - Math.max(0, (m?.n || 0) - TTS_FREE_CHARS);
+  await addUsage(env, user.id, { tts: text.length, usd: over * TTS_USD_PER_CHAR });
   // Chuyển thẳng JSON {audioContent} của Google cho trình duyệt, không parse/stringify ~100 KB base64 trên Worker (tiết kiệm CPU).
   return new Response(r.body, { status: 200, headers: { ...HEADERS, 'x-playback-rate': playful ? '1.455' : '1', 'x-tts-chars': String(text.length) } });
 }
@@ -225,6 +231,7 @@ export async function adminOverview(env) {
     month, target_usd: Number(env.MONTHLY_TARGET_USD || 1),
     cost: { pipeline_usd: p.usd, qa_usd: a.usd, total_usd: p.usd + a.usd, runs: p.runs, new_articles: p.articles, questions: a.questions, web_searches: a.web, tts_chars: a.tts },
     days: days.results, runs: runs.results, sources: sources.results, db: counts.results[0], users: users.results,
+    tts_free_chars: TTS_FREE_CHARS,
     config: { allowed_count: emailList(env.ALLOWED_EMAILS).length, daily_limit_usd: Number(env.DAILY_USD_LIMIT || 0.3), schedule: '00:00 giờ Việt Nam (GitHub Actions)', manual_run: !!env.GITHUB_TOKEN },
   };
 }
