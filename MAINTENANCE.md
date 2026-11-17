@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Giọng Google khi trả lời tra đường + gom nút tra đường
+- Ảnh 07:21: câu trả lời đường đi đọc bằng OpenAI Marin (Google lỗi → dự phòng). Chuỗi tên đường dài không dấu chấm. Sửa: '→' thành dấu phẩy; câu >160 ký tự tách ở dấu phẩy (chỉ cho Google); lý do lỗi Google ghi log + header x-nmh-tts-google-error.
+- Kiểm chứng production: câu đường đi dài ~300 ký tự → source=google-chirp3-leda, không lỗi.
+- Dòng so sánh che header, nút Maps che KẾT THÚC/NGẮT AI → gom vào 1 thanh dưới đáy (chip canh đường, so sánh ngắn — chạm để xem chi tiết, Google Maps). Test 183/183.
+- Production e4f9310c-279c-43b3-bdea-74fc6915f0e8; rollback 5197e1e8-b933-4774-93c3-9f746ff4931a.
+
 ## 17/11/2026 — Vietmap thành nguồn chính
 - 07:03 chủ app thêm VIETMAP_KEY (bản Cloudflare 8e4057ca). 07:14 yêu cầu Ngố đọc theo Vietmap.
 - Ngố đọc Vietmap; TomTom thành dòng so sánh (1 lần gọi cùng tọa độ); canh đường dọc đường dùng Vietmap. NGO_ROUTE_PROVIDER=tomtom để quay lại. Test 181/181.
