@@ -322,13 +322,13 @@ test('short complete first sentence still wins over comma fallback',async()=>{
  ]);
  assert.deepEqual(previews,['Có chứ, tao nhớ mày mà.']);
 });
-test('cost rules: web_search marked paid with free tools first, voice answers short by default',async()=>{
+test('cost control is structural (one search per question, low context), not word lists that stop the model from searching',async()=>{
   let req;
   await runAgent({apiKey:key,messages:msg,fetchImpl:async(url,opt)=>{req=JSON.parse(opt.body);return response([{type:'message',content:[{type:'output_text',text:'Ừ.'}]}])}});
-  assert.match(req.instructions,/web_search là công cụ TỐN PHÍ/);
-  assert.match(req.instructions,/Ưu tiên công cụ miễn phí trước: thời tiết dùng get_weather/);
+  const ws=req.tools.find(t=>t.type==='web_search');assert.ok(ws);assert.equal(ws.search_context_size,'low');assert.equal(req.max_tool_calls,1);
+  assert.match(req.instructions,/Khi câu trả lời cần thông tin mới hoặc thông tin bạn không chắc chắn, dùng web_search\./);
+  assert.doesNotMatch(req.instructions,/TỐN PHÍ|chỉ dùng khi thật sự cần|chỉ tìm web khi người dùng muốn kiểm tra/,'no instruction that discourages searching');
   assert.match(req.instructions,/1–2 câu ngắn \(khoảng 15–35 từ\)/);
-  assert.ok(!/không dùng tìm kiếm cho câu hỏi kiến thức đơn giản/.test(req.instructions));
 });
 test('markdown symbols are never left for TTS to read as "sao"; lists and headings become separate phrases',()=>{
   assert.equal(cleanVoiceAnswer('**Hà Nội** hôm nay *khoảng* 20 độ.'),'Hà Nội hôm nay khoảng 20 độ.');
@@ -369,7 +369,7 @@ test('agent offers the route tool and returns mapsUrl when route context is pres
     fetchImpl:async(u,o)=>{const b=JSON.parse(o.body);if(!n++){first=b;return response([{type:'function_call',name:'get_driving_route',call_id:'c1',arguments:JSON.stringify({destination:'Láng',origin:''})}])}
       return response([{type:'message',content:[{type:'output_text',text:'Mất 10 phút, đường thoáng.'}]}])}});
   assert.ok(first.tools.some(t=>t.name==='get_driving_route'));
-  assert.match(first.instructions,/get_driving_route/);
+  assert.doesNotMatch(first.instructions,/get_driving_route/,'no hardcoded route steering in instructions; the tool description is enough');
   assert.equal(r.answer,'Mất 10 phút, đường thoáng.');
   assert.match(r.mapsUrl,/^https:\/\/www\.google\.com\/maps\/dir\//);
 });
@@ -422,7 +422,7 @@ test('failed route tool: exact reason returned as routeError (key masked) and th
     toolFetchImpl:async()=>new Response('denied key=tk',{status:403}),
     fetchImpl:async(u,o)=>{const b=JSON.parse(o.body);if(!n++){first=b;return response([{type:'function_call',name:'get_driving_route',call_id:'c1',arguments:JSON.stringify({destination:'Hồ Tây',origin:''})}])}
       return response([{type:'message',content:[{type:'output_text',text:'TomTom từ chối khóa.'}]}])}});
-  assert.match(first.instructions,/đúng lý do trong trường error/);
+  assert.doesNotMatch(first.instructions,/đúng lý do trong trường error/);
   assert.match(r.routeError,/TomTom Search từ chối TOMTOM_KEY \(HTTP 403\): denied key=\*\*\*/);assert.ok(!r.routeError.includes('=tk'));assert.equal(r.mapsUrl,null);
 });
 
@@ -492,7 +492,7 @@ test('current location (owner 17/11 "hỏi vị trí hiện tại nó không bi�
   assert.equal(r.ok,false);assert.match(r.data.error,/Vị trí chính xác/);
   let first;
   await runAgent({apiKey:key,messages:msg,routeContext:ctx,fetchImpl:async(u,o)=>{first??=JSON.parse(o.body);return response([{type:'message',content:[{type:'output_text',text:'ok'}]}])}});
-  assert.ok(first.tools.some(t=>t.name==='get_current_location'));assert.match(first.instructions,/get_current_location/);
+  assert.ok(first.tools.some(t=>t.name==='get_current_location'));assert.doesNotMatch(first.instructions,/get_current_location/);
 });
 
 test('owner 17/11 "đang tắc vẫn báo thoáng": Vietmap without congestion data is never "thông thoáng"; TomTom live traffic drives time/status',async()=>{
@@ -550,12 +550,10 @@ test('Vietmap turn list for the feasibility test: turn instructions with km from
   assert.ok(!JSON.stringify(r.data).includes('Rẽ trái vào'),'turn list not added to model input');
 });
 
-test('owner 17/11 13:53 "ngày mai ở Hà Nội có triển lãm gì": upcoming events and dated questions must use web_search; web_search offered',async()=>{
+test('owner 17/11 13:58: no hardcoded topic lists in instructions; web_search available for any question',async()=>{
   let first;
   await runAgent({apiKey:key,messages:[{role:'user',content:'Ngày mai ở Hà Nội có triển lãm gì?'}],fetchImpl:async(u,o)=>{first??=JSON.parse(o.body);return response([{type:'message',content:[{type:'output_text',text:'ok'}]}])}});
   assert.ok(first.tools.some(t=>t.type==='web_search'),'web_search offered on the first round');
-  assert.match(first.instructions,/BẮT BUỘC dùng web_search[^.]*triển lãm/);
-  assert.match(first.instructions,/ngày mai/);assert.match(first.instructions,/không trả kết quả đúng câu hỏi thì dùng web_search/);
-  assert.match(first.instructions,/Giờ Việt Nam hiện tại: /);
-  assert.doesNotMatch(first.instructions,/chỉ tìm web khi người dùng muốn kiểm tra/,'the 16/11 rule that blocked searches is gone');
+  assert.doesNotMatch(first.instructions,/triển lãm|hội chợ|lịch chiếu|BẮT BUỘC dùng web_search/,'no patched keyword lists');
+  assert.match(first.instructions,/Giờ Việt Nam hiện tại: /,'model knows today to reason about tomorrow');
 });
