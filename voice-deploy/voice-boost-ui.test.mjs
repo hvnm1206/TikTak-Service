@@ -220,3 +220,20 @@ test('trip decision on the planned road (onReference): routes[0] is the driver\'
   const off=d(trip,{offRoute:true,routes:[R('Kim Mã → Liễu Giai',20)]},T0+4*60000);
   assert.equal(off.trip.polyline,null);assert.equal(off.trip.path,'Kim Mã → Liễu Giai');
 });
+test('feasibility test kit: wake lock during a trip, GPS cadence stats in SETUP, Vietmap turn list pill',async()=>{
+  const html=enhanceVoiceBoost(MINI);let T=Date.UTC(2026,10,17,2,0);
+  class D extends Date{constructor(...a){super(...(a.length?a:[T]))}static now(){return T}}
+  const code=html.match(/<script>([\s\S]*)<\/script>/)[1].replace('const store={};','const store={"ngo_routes_v1":"1"};let step="listening",history=[],key="sk";const render=()=>{};function speak(){}');
+  const dom={},locks=[];let watchCb;
+  const document={hidden:false,addEventListener(){},getElementById:id=>dom[id]||(id==='ngoGeoStatus'?(dom[id]={textContent:'',style:{}}):null),createElement:()=>({style:{},appendChild(el){dom[el.id]=el},remove(){delete dom[this.id]},addEventListener(){}}),body:{appendChild:el=>{dom[el.id]=el}}};
+  const navigator={wakeLock:{request:async t=>{locks.push(t);return {released:false,addEventListener(){},release(){this.released=true}}}},geolocation:{watchPosition:ok=>{watchCb=ok;return 1},clearWatch(){},getCurrentPosition(ok){ok({coords:{latitude:21,longitude:105.8,accuracy:6}})}}};
+  const ctx={navigator,document,Date:D,Math,JSON,Number,String,Array,setTimeout:()=>0,clearTimeout(){},setInterval:()=>0,clearInterval(){},
+    fetch:async()=>({ok:true,json:async()=>({answer:'x',trip:{to:{lat:21.05,lng:105.82,name:'Hồ Tây'},seconds:900,path:'Láng'},routeTurns:[{km:0.4,text:'Rẽ phải vào Hoàng Hoa Thám'},{km:2.1,text:'Rẽ trái vào Thụy Khuê'}]})})};
+  ctx.globalThis=ctx;vm.runInNewContext(code+';globalThis.apiFn=apiCall;',ctx);
+  watchCb({coords:{latitude:21,longitude:105.8,accuracy:9}}); // fix before any trip: no stats, no error
+  await ctx.apiFn('/api/chat','sk',{messages:[]});await new Promise(r=>setImmediate(r));
+  assert.deepEqual(locks,['screen'],'screen kept on during the trip');
+  for(const g of [3,4,9]){T+=g*1000;watchCb({coords:{latitude:21,longitude:105.8,accuracy:5}})}
+  assert.match(dom.ngoGeoStatus.textContent,/GPS 3 lần, cách nhau lâu nhất 9 giây, sai số TB ±5 m · Màn hình: đang giữ sáng/);
+  assert.equal(dom.ngoTurns.textContent,'↱ 2 chỗ rẽ');dom.ngoTurns.onclick();assert.match(dom.ngoTurns.textContent,/km 0,4: Rẽ phải vào Hoàng Hoa Thám\nkm 2,1: Rẽ trái vào Thụy Khuê/);
+});

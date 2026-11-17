@@ -539,3 +539,13 @@ test('trip monitor on the planned road: rest of the polyline from the car; > 250
   const t=trimPolyline(line,{lat:21.0101,lng:105.8051});assert.ok(t.offRouteM<30);assert.deepEqual(decodePolyline(t.points).slice(-1)[0],[21.05,105.82]);
   assert.ok(trimPolyline(line,{lat:21.02,lng:105.86}).offRouteM>250);
 });
+test('Vietmap turn list for the feasibility test: turn instructions with km from start, not sent to the model',async()=>{
+  const f=async(u)=>{u=new URL(String(u));
+    if(u.pathname==='/api/search/v4')return Response.json([{ref_id:'r1',name:'Hồ Tây',address:'Hà Nội'}]);
+    if(u.pathname==='/api/place/v4')return Response.json({lat:21.05,lng:105.82});
+    if(u.pathname==='/api/route/v4')return Response.json({code:'OK',paths:[{distance:5000,time:600000,instructions:[{sign:0,text:'Đi thẳng Láng',street_name:'Láng',distance:400},{sign:2,text:'Rẽ phải vào Hoàng Hoa Thám',street_name:'Hoàng Hoa Thám',distance:1700},{sign:-2,text:'Rẽ trái vào Thụy Khuê',street_name:'Thụy Khuê',distance:2900},{sign:4,text:'Đích đến',distance:0}]}]});
+    throw Error('unexpected '+u)};
+  const r=await vietmapRoute({destination:'Hồ Tây',origin:''},{routeContext:{provider:'vietmap',apiKey:'vk',origin:{lat:21,lng:105.8}},fetchImpl:f});
+  assert.deepEqual(r.routeTurns,[{km:0.4,text:'Rẽ phải vào Hoàng Hoa Thám'},{km:2.1,text:'Rẽ trái vào Thụy Khuê'},{km:5,text:'Đích đến'}]);
+  assert.ok(!JSON.stringify(r.data).includes('Rẽ trái vào'),'turn list not added to model input');
+});
