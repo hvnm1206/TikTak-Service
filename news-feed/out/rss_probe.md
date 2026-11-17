@@ -1,14 +1,14 @@
-# Kiểm tra RSS — 2026-11-17T15:05:48.925426+00:00 (UTC, chạy từ GitHub Actions)
+# Kiểm tra RSS — 2026-11-17T15:06:46.671581+00:00 (UTC, chạy từ GitHub Actions)
 
 | Nguồn | URL | Kết luận | HTTP | Số bài | 24h | 7 ngày | Bài mới nhất cách (giờ) | Có tóm tắt |
 |---|---|---|---|---|---|---|---|---|
 | vnexpress-sohoa | https://vnexpress.net/rss/so-hoa.rss | DÙNG ĐƯỢC | 200 | 60 | 15 | 60 | 2.9 | 60 |
 | vnexpress-sohoa | https://vnexpress.net/rss/khoa-hoc-cong-nghe.rss | DÙNG ĐƯỢC | 200 | 60 | 15 | 60 | 2.9 | 60 |
 | genk | https://genk.vn/rss/home.rss | DÙNG ĐƯỢC | 200 | 61 | 37 | 61 | 0.6 | 61 |
-| genk | https://genk.vn/rss/ai.rss | DÙNG ĐƯỢC | 200 | 61 | 2 | 15 | 5.2 | 61 |
+| genk | https://genk.vn/rss/ai.rss | DÙNG ĐƯỢC | 200 | 61 | 2 | 15 | 5.3 | 61 |
 | techcrunch | https://techcrunch.com/feed/ | DÙNG ĐƯỢC | 200 | 20 | 20 | 20 | 0.1 | 20 |
-| techcrunch | https://techcrunch.com/category/artificial-intelligence/feed/ | DÙNG ĐƯỢC | 200 | 20 | 15 | 20 | 0.1 | 20 |
-| theverge | https://www.theverge.com/rss/index.xml | DÙNG ĐƯỢC | 200 | 10 | 10 | 10 | 0.6 | 10 |
+| techcrunch | https://techcrunch.com/category/artificial-intelligence/feed/ | DÙNG ĐƯỢC | 200 | 20 | 14 | 20 | 0.3 | 20 |
+| theverge | https://www.theverge.com/rss/index.xml | DÙNG ĐƯỢC | 200 | 10 | 10 | 10 | 0.1 | 10 |
 | theverge | https://www.theverge.com/rss/ai-artificial-intelligence/index.xml | DÙNG ĐƯỢC | 200 | 10 | 9 | 10 | 15.8 | 10 |
 | openai | https://openai.com/news/rss.xml | DÙNG ĐƯỢC | 200 | 1401 | 4 | 23 | 15.1 | 1275 |
 | openai | https://openai.com/blog/rss.xml | DÙNG ĐƯỢC | 200 | 1401 | 4 | 23 | 15.1 | 1275 |
