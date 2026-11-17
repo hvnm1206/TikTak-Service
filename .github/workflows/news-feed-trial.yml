@@ -50,7 +50,9 @@ jobs:
           K3: ${{ secrets.NGO_OPENAI_API_KEY }}
           K4: ${{ secrets.OPENAI_KEY }}
           KEYVAR: ${{ steps.keys.outputs.key_var }}
-        run: OPENAI_API_KEY="${!KEYVAR}" python3 news-feed/digest_trial.py news-feed/sources.json news-feed/out
+        run: |
+          set -o pipefail
+          OPENAI_API_KEY="${!KEYVAR}" python3 news-feed/digest_trial.py news-feed/sources.json news-feed/out 2>&1 | tee news-feed/out/digest_log.txt
       - name: Lưu kết quả về nhánh (để đọc lại, không chứa khóa)
         if: always()
         run: |
