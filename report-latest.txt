@@ -1,0 +1,3 @@
+USAGE [{"day": "2026-11-18", "uid": "117115", "questions": 30, "input_tokens": 474025, "cached_tokens": 289735, "output_tokens": 9032, "web_searches": 29, "tts_chars": 18220, "usd": 0.3158}, {"day": "2026-11-17", "uid": "117115", "questions": 5, "input_tokens": 60393, "cached_tokens": 30853, "output_tokens": 866, "web_searches": 1, "tts_chars": 2450, "usd": 0.0137}]
+MIGRATIONS [{"name": "0001_init.sql"}, {"name": "0002_admin.sql"}, {"name": "0003_fix_tts_estimate.sql"}]
+RUNS [{"id": "20261117-1541-880a6b", "new_articles": 157, "est_usd": 0.010212, "finished_at": 1794930317402}]
