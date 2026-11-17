@@ -474,3 +474,23 @@ test('Vietmap primary with TomTom compare key (owner 17/11): Ngố speaks Vietma
 test('voice answers: route arrows become pauses (never read "mũi tên")',()=>{
   assert.equal(cleanVoiceAnswer('Đi Láng → Phạm Hùng -> Đại lộ Thăng Long.'),'Đi Láng, Phạm Hùng, Đại lộ Thăng Long.');
 });
+
+import { currentLocation } from './agent-v2.js';
+test('current location (owner 17/11 "hỏi vị trí hiện tại nó không biết"): Vietmap reverse, TomTom fallback, honest when no fix; tool offered with routes',async()=>{
+  const seen=[];
+  const f=async(u)=>{u=new URL(String(u));seen.push(u);
+    if(u.pathname==='/api/reverse/v4')return Response.json([{display:'Số 12 Phố Thái Hà, Phường Đống Đa, Hà Nội'}]);
+    if(u.pathname.includes('reverseGeocode'))return Response.json({addresses:[{address:{freeformAddress:'Thái Hà, Đống Đa, Hà Nội'}}]});
+    throw Error('unexpected '+u)};
+  const ctx={provider:'vietmap',apiKey:'vk',compareKey:'tk',origin:{lat:21.0121,lng:105.8203,acc:18}};
+  let r=await currentLocation({routeContext:ctx,fetchImpl:f});
+  assert.equal(r.ok,true);assert.equal(r.data.address,'Số 12 Phố Thái Hà, Phường Đống Đa, Hà Nội');assert.equal(r.data.accuracy_m,18);
+  assert.equal(seen[0].searchParams.get('lat'),'21.0121');assert.equal(seen[0].searchParams.get('apikey'),'vk');
+  r=await currentLocation({routeContext:{provider:'tomtom',apiKey:'tk',origin:{lat:21.0121,lng:105.8203}},fetchImpl:f});
+  assert.equal(r.data.source,'TomTom');
+  r=await currentLocation({routeContext:{provider:'vietmap',apiKey:'vk',origin:null},fetchImpl:f});
+  assert.equal(r.ok,false);assert.match(r.data.error,/Vị trí chính xác/);
+  let first;
+  await runAgent({apiKey:key,messages:msg,routeContext:ctx,fetchImpl:async(u,o)=>{first??=JSON.parse(o.body);return response([{type:'message',content:[{type:'output_text',text:'ok'}]}])}});
+  assert.ok(first.tools.some(t=>t.name==='get_current_location'));assert.match(first.instructions,/get_current_location/);
+});
