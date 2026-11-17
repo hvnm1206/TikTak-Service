@@ -64,7 +64,7 @@
       "_note": "Không có RSS chính thức. Đọc sitemap chính thức, lấy các trang /news/ có lastmod trong N ngày, rồi đọc thẻ meta chuẩn (og:title, description, ngày đăng) của từng trang. lastmod chỉ là ngày sửa, ngày đăng thật lấy từ trang.",
       "sitemap_prefix": "https://www.anthropic.com/news/",
       "type": "sitemap",
-      "enrich_recent_days": 7
+      "enrich_recent_days": 14
     },
     {
       "id": "google-ai",
