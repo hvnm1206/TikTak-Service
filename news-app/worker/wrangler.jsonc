@@ -6,11 +6,12 @@
   "compatibility_date": "2026-10-01",
   "workers_dev": true,
   "rules": [{ "type": "Text", "globs": ["**/*.html"], "fallthrough": true }],
-  "d1_databases": [{ "binding": "DB", "database_name": "nmh-news", "database_id": "__D1_ID__" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "nmh-news", "database_id": "__D1_ID__", "migrations_dir": "../migrations" }],
   "vars": {
     "ALLOWED_EMAILS": "ai.nomahub@gmail.com",
     "DAILY_USD_LIMIT": "0.3",
-    "MAX_CUSTOM_SOURCES": "10"
+    "MAX_CUSTOM_SOURCES": "10",
+    "MONTHLY_TARGET_USD": "1"
   },
   "observability": { "enabled": true }
 }

@@ -4,13 +4,14 @@ sys.path.insert(0, os.path.dirname(__file__))
 import daily, feeds
 
 MIG = open(os.path.join(os.path.dirname(__file__), "..", "migrations", "0001_init.sql"), encoding="utf-8").read()
+MIG2 = open(os.path.join(os.path.dirname(__file__), "..", "migrations", "0002_admin.sql"), encoding="utf-8").read()
 now = dt.datetime.now(dt.timezone.utc)
 rfc = lambda h: (now - dt.timedelta(hours=h)).strftime("%a, %d %b %Y %H:%M:%S +0000")
 
 
 class FakeD1:
     def __init__(self):
-        self.c = sqlite3.connect(":memory:"); self.c.row_factory = sqlite3.Row; self.c.executescript(MIG); self.calls = 0
+        self.c = sqlite3.connect(":memory:"); self.c.row_factory = sqlite3.Row; self.c.executescript(MIG); self.c.executescript(MIG2); self.calls = 0
 
     def q(self, sql, params=None):
         self.calls += 1
@@ -74,6 +75,16 @@ class T(unittest.TestCase):
         self.run_daily()
         self.assertEqual(self.gpt_calls, [1])
         self.assertIn("https://an/claude-moi", [a["url"] for a in self.db.q("SELECT url FROM articles")])
+
+    def test_admin_disabled_source_skipped_and_kept_after_sync(self):
+        self.pages["https://tc/feed"] = rss(("Tin A", "https://tc/a", rfc(2)))
+        self.pages["https://an/sitemap.xml"] = sitemap()
+        self.run_daily()
+        self.db.q("UPDATE sources SET admin_disabled=1 WHERE id='tc'")
+        self.pages["https://tc/feed"] = rss(("Tin B", "https://tc/b", rfc(1)))
+        self.run_daily()
+        self.assertNotIn("https://tc/b", [a["url"] for a in self.db.q("SELECT url FROM articles")])
+        self.assertEqual(self.db.q("SELECT admin_disabled FROM sources WHERE id='tc'")[0]["admin_disabled"], 1, "đồng bộ sources.json không ghi đè lựa chọn admin")
 
     def test_source_error_recorded_not_fatal(self):
         self.pages["https://an/sitemap.xml"] = sitemap()

@@ -42,6 +42,8 @@ jobs:
             return code,d,round(time.time()-t,2)
           try:
             c,d,s=call('/api/today');print('TODAY',c,s,'s, bài:',len(d.get('articles',[])),'lastRun:',d.get('lastRun'))
+            c,d,s=call('/api/admin/overview');print('ADMIN',c,s,'s cost=',d.get('cost'),'db=',d.get('db'),'sources=',[(x['id'],x['n7d'],x['total']) for x in d.get('sources',[])],'runs=',len(d.get('runs',[])))
+            print('ME admin=',call('/api/me')[1].get('user',{}).get('admin'))
             hist=[]
             for qs in ['Hôm nay có tin gì nổi bật về AI?','Kể kỹ hơn tin đầu tiên đi.','Giá vàng SJC hôm nay bao nhiêu?']:
               hist.append({'role':'user','content':qs})

@@ -69,7 +69,7 @@ jobs:
       - name: Áp migration D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
-        run: npx --yes $WRANGLER d1 execute nmh-news --remote --config news-app/worker/wrangler.generated.json --file news-app/migrations/0001_init.sql
+        run: cd news-app/worker && CI=1 npx --yes $WRANGLER d1 migrations apply nmh-news --remote --config wrangler.generated.json
       - name: Ghi phiên bản đang chạy (để rollback)
         id: prev
         env:
@@ -106,6 +106,8 @@ jobs:
           chk "health d1+google+allowlist" "$(python3 -c "import json;d=json.load(open('/tmp/health'));print(int(d['ok'] and d['d1'] and d['google'] and d['allowlist']>=1))" 2>&1)" 1
           chk "/api/today chưa đăng nhập" "$(curl -s -o /dev/null -w '%{http_code}' "$U/api/today")" 401
           chk "/api/ask chưa đăng nhập" "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "origin: $U" -H 'content-type: application/json' -d '{"messages":[{"role":"user","content":"x"}]}' "$U/api/ask")" 401
+          chk "/api/admin chưa đăng nhập" "$(curl -s -o /dev/null -w '%{http_code}' "$U/api/admin/overview")" 401
+          chk "trang có nhân vật + quản trị" "$(grep -c 'id="avatar"' /tmp/h)$(grep -c 'id="admin"' /tmp/h)" 11
           chk "POST khác origin" "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'origin: https://evil.example' -d '{}' "$U/api/prefs")" 403
           } | tee /tmp/smoke.txt
           grep -q '^FAIL' /tmp/smoke.txt && exit 1 || echo SMOKE_PASS

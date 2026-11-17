@@ -17,13 +17,14 @@ const mod = await import(join(tmp, 'worker.mjs'));
 const worker = mod.default;
 
 class D1 {
-  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec(readFileSync(join(here, '..', 'migrations', '0001_init.sql'), 'utf8')); }
+  constructor() { this.db = new DatabaseSync(':memory:'); for (const f of ['0001_init.sql', '0002_admin.sql']) this.db.exec(readFileSync(join(here, '..', 'migrations', f), 'utf8')); }
+  async batch(stmts) { return Promise.all(stmts.map(s => s.all())); }
   prepare(sql) {
     const db = this.db; let args = [];
     const st = { bind: (...a) => { args = a.map(x => x === undefined ? null : x); return st; },
       first: async () => db.prepare(sql).get(...args) ?? null,
       all: async () => ({ results: db.prepare(sql).all(...args) }),
-      run: async () => db.prepare(sql).run(...args) };
+      run: async () => { const r = db.prepare(sql).run(...args); return { meta: { changes: Number(r.changes) } }; } };
     return st;
   }
 }
@@ -152,4 +153,45 @@ test('thêm nguồn RSS riêng: kiểm tra là RSS thật, tự thêm vào lựa
 test('Google token giả bị từ chối', async () => {
   const r = await post(setup(), '/api/auth/google', { credential: 'a.b.c' }, H(false));
   assert.equal(r.status, 401);
+});
+
+test('quản trị: chỉ chủ app (email đầu tiên được phép) mới vào được', async () => {
+  const env = setup({ ALLOWED_EMAILS: 'chu@nmh.vn anh@nmh.vn' });
+  assert.equal((await (await get(env, '/api/me')).json()).user.admin, false);
+  assert.equal((await get(env, '/api/admin/overview')).status, 403);
+  const env2 = setup();
+  assert.equal((await (await get(env2, '/api/me')).json()).user.admin, true);
+});
+
+test('quản trị: tổng quan chi phí, nguồn, tài nguyên; tắt nguồn thì người dùng không thấy', async () => {
+  const env = setup();
+  const d = env.DB.db, now = Date.now();
+  d.prepare('INSERT INTO runs (id,started_at,finished_at,new_articles,est_usd) VALUES (?,?,?,?,?)').run('r1', now, now, 5, 0.01);
+  d.prepare("INSERT INTO usage (day,user_id,questions,est_usd) VALUES (?,?,?,?)").run(new Date(now + 7 * 3600e3).toISOString().slice(0, 10), 'u1', 2, 0.02);
+  const o = await (await get(env, '/api/admin/overview')).json();
+  assert.ok(Math.abs(o.cost.total_usd - 0.03) < 1e-9);
+  assert.equal(o.cost.questions, 2);
+  assert.equal(o.db.articles, 5);
+  assert.equal(o.sources.find(s => s.id === 'techcrunch').total, 3);
+  assert.equal(o.config.manual_run, false);
+  assert.ok(!JSON.stringify(o.config).includes('@'), 'không lộ danh sách email');
+  assert.equal((await post(env, '/api/admin/source', { id: 'genk', disabled: true })).status, 200);
+  const t = await (await get(env, '/api/today')).json();
+  assert.ok(!t.sources.some(s => s.id === 'genk') && !t.articles.some(a => a.url.startsWith('a2')));
+  assert.equal((await post(env, '/api/admin/source', { id: 'khong-co', disabled: true })).status, 404);
+  assert.equal((await post(env, '/api/admin/run', {})).status, 503, 'chưa có GITHUB_TOKEN');
+});
+
+test('quản trị: cập nhật ngay gọi GitHub workflow_dispatch khi có token', async () => {
+  const env = setup({ GITHUB_TOKEN: 'ghp_test' });
+  let call; globalThis.fetch = async (url, init) => { call = { url, init }; return new Response(null, { status: 204 }); };
+  const r = await post(env, '/api/admin/run', {});
+  assert.equal(r.status, 200);
+  assert.ok(call.url.endsWith('/actions/workflows/news-app-pipeline.yml/dispatches'));
+  assert.deepEqual(JSON.parse(call.init.body), { ref: 'main' });
+});
+
+test('giao diện: có nhân vật, miệng theo âm lượng, trang quản trị', async () => {
+  const html = await (await get(setup(), '/', false)).text();
+  for (const k of ['id="avatar"', 'avMouth', 'createAnalyser', 'id="admin"', '/api/admin/overview']) assert.ok(html.includes(k), k);
 });

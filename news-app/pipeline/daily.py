@@ -141,7 +141,7 @@ def main():
     run_id = NOW.strftime("%Y%m%d-%H%M") + "-" + uuid.uuid4().hex[:6]
     sync_sources(db, cfg)
     db.q("INSERT INTO runs (id,started_at,note) VALUES (?,?,?)", [run_id, NOW_MS, "dry" if dry else None])
-    sources = db.q("SELECT * FROM sources WHERE enabled=1")
+    sources = db.q("SELECT * FROM sources WHERE enabled=1 AND admin_disabled=0")
     pool, seen = [], set()
     for src in sources:
         if src["type"] == "sitemap":

@@ -24,6 +24,9 @@ const un64 = s => Uint8Array.from(atob(String(s).replace(/-/g, '+').replace(/_/g
 let jwks = null, jwksUntil = 0;
 const sha = async raw => [...new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(raw)))].map(x => x.toString(16).padStart(2, '0')).join('');
 const clientId = env => /^\d+-[a-z0-9-]+\.apps\.googleusercontent\.com$/.test(String(env.GOOGLE_CLIENT_ID || '')) ? env.GOOGLE_CLIENT_ID : '';
+// Quản trị viên: ADMIN_EMAILS; nếu chưa đặt thì là email đầu tiên trong ALLOWED_EMAILS (chủ app).
+const emailList = v => String(v || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
+const isAdmin = (env, email) => (emailList(env.ADMIN_EMAILS).length ? emailList(env.ADMIN_EMAILS) : emailList(env.ALLOWED_EMAILS).slice(0, 1)).includes(String(email || '').toLowerCase());
 const allowed = (env, email) => String(env.ALLOWED_EMAILS || '').toLowerCase().split(/[,\s]+/).filter(Boolean).includes(String(email || '').toLowerCase());
 
 export async function verifyGoogle(jwt, client, fetchImpl = fetch) {
@@ -58,7 +61,7 @@ async function currentUser(req, env) {
 // ---------- Dữ liệu tin ----------
 async function catalog(env, uid) {
   const [src, cat, pref] = await Promise.all([
-    env.DB.prepare('SELECT id,name,lang,type,is_default,created_by,last_ok_at,last_error FROM sources WHERE enabled=1 AND (is_default=1 OR created_by=?) ORDER BY is_default DESC,name').bind(uid).all(),
+    env.DB.prepare('SELECT id,name,lang,type,is_default,created_by,last_ok_at,last_error FROM sources WHERE enabled=1 AND admin_disabled=0 AND (is_default=1 OR created_by=?) ORDER BY is_default DESC,name').bind(uid).all(),
     env.DB.prepare("SELECT value FROM settings WHERE key='categories'").first(),
     env.DB.prepare('SELECT sources,categories FROM user_prefs WHERE user_id=?').bind(uid).first(),
   ]);
@@ -199,6 +202,42 @@ async function savePrefs(env, uid, sources, categories) {
     .bind(uid, JSON.stringify(sources), JSON.stringify(categories), Date.now()).run();
 }
 
+
+// ---------- Quản trị ----------
+const VN_DAY_SQL = col => `date(${col}/1000 + 7*3600, 'unixepoch')`;
+export async function adminOverview(env) {
+  const month = vnDay().slice(0, 7);
+  const q = (sql, ...b) => env.DB.prepare(sql).bind(...b);
+  const [pipeM, qaM, days, runs, sources, counts, users] = await env.DB.batch([
+    q(`SELECT COALESCE(SUM(est_usd),0) usd, COUNT(*) runs, COALESCE(SUM(new_articles),0) articles FROM runs WHERE ${VN_DAY_SQL('started_at')} LIKE ?`, month + '%'),
+    q('SELECT COALESCE(SUM(est_usd),0) usd, COALESCE(SUM(questions),0) questions, COALESCE(SUM(web_searches),0) web, COALESCE(SUM(tts_chars),0) tts FROM usage WHERE day LIKE ?', month + '%'),
+    q(`SELECT d, SUM(p) pipeline, SUM(a) qa FROM (SELECT ${VN_DAY_SQL('started_at')} d, est_usd p, 0 a FROM runs UNION ALL SELECT day d, 0 p, est_usd a FROM usage) GROUP BY d ORDER BY d DESC LIMIT 14`),
+    q('SELECT id,started_at,finished_at,new_articles,model,input_tokens,output_tokens,est_usd,note FROM runs ORDER BY started_at DESC LIMIT 15'),
+    q(`SELECT s.id,s.name,s.type,s.is_default,s.enabled,s.admin_disabled,s.last_ok_at,s.last_error,u.email created_by_email,
+        (SELECT COUNT(*) FROM articles a WHERE a.source_id=s.id AND a.published_at>=?) n7d,
+        (SELECT COUNT(*) FROM articles a WHERE a.source_id=s.id) total
+       FROM sources s LEFT JOIN users u ON u.id=s.created_by ORDER BY s.is_default DESC, s.name`, Date.now() - 7 * 86400e3),
+    q('SELECT (SELECT COUNT(*) FROM articles) articles, (SELECT COUNT(*) FROM seen_urls) seen_urls, (SELECT COUNT(*) FROM users) users, (SELECT COUNT(*) FROM sessions WHERE expires_at>?) sessions, (SELECT COUNT(*) FROM usage) usage_rows, (SELECT MIN(published_at) FROM articles) oldest', Date.now()),
+    q('SELECT u.email,u.name,u.created_at, COALESCE(SUM(g.questions),0) questions, COALESCE(SUM(g.est_usd),0) usd FROM users u LEFT JOIN usage g ON g.user_id=u.id AND g.day LIKE ? GROUP BY u.id ORDER BY usd DESC', month + '%'),
+  ]);
+  const p = pipeM.results[0], a = qaM.results[0];
+  return {
+    month, target_usd: Number(env.MONTHLY_TARGET_USD || 1),
+    cost: { pipeline_usd: p.usd, qa_usd: a.usd, total_usd: p.usd + a.usd, runs: p.runs, new_articles: p.articles, questions: a.questions, web_searches: a.web, tts_chars: a.tts },
+    days: days.results, runs: runs.results, sources: sources.results, db: counts.results[0], users: users.results,
+    config: { allowed_count: emailList(env.ALLOWED_EMAILS).length, daily_limit_usd: Number(env.DAILY_USD_LIMIT || 0.3), schedule: '00:00 giờ Việt Nam (GitHub Actions)', manual_run: !!env.GITHUB_TOKEN },
+  };
+}
+async function adminRunNow(env, fetchImpl = fetch) {
+  if (!env.GITHUB_TOKEN) return fail('Chưa bật: cần secret GITHUB_TOKEN (quyền Actions: write cho repo) trên Worker', 503);
+  const r = await fetchImpl(`https://api.github.com/repos/${env.GITHUB_REPO || 'hvnm1206/TikTak-Service'}/actions/workflows/news-app-pipeline.yml/dispatches`, {
+    method: 'POST', headers: { Authorization: 'Bearer ' + env.GITHUB_TOKEN, Accept: 'application/vnd.github+json', 'User-Agent': 'nmh-news', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ref: 'main' }),
+  });
+  if (r.status !== 204) return fail('GitHub từ chối (HTTP ' + r.status + ')', 502);
+  return json({ ok: true, note: 'Đã yêu cầu chạy. Thường mất 3-5 phút.' });
+}
+
 // ---------- Router ----------
 export default {
   async fetch(req, env) {
@@ -224,7 +263,7 @@ export default {
       } catch (e) { return fail('Đăng nhập không thành công: ' + String(e?.message || e).slice(0, 100), 401); }
     }
     const user = await currentUser(req, env);
-    if (u.pathname === '/api/me') return json(user ? { user: { email: user.email, name: user.name } } : { user: null });
+    if (u.pathname === '/api/me') return json(user ? { user: { email: user.email, name: user.name, admin: isAdmin(env, user.email) } } : { user: null });
     if (!user) return fail('Cần đăng nhập', 401);
     if (u.pathname === '/api/logout' && method === 'POST') {
       const m = (req.headers.get('cookie') || '').match(/__Host-nmhnews=([A-Za-z0-9_-]{43})/);
@@ -244,6 +283,16 @@ export default {
       const k = (Array.isArray(body?.categories) ? body.categories : []).filter(x => cats.has(x));
       await savePrefs(env, user.id, s, k);
       return json({ ok: true, sources: s, categories: k });
+    }
+    if (u.pathname.startsWith('/api/admin/')) {
+      if (!isAdmin(env, user.email)) return fail('Chỉ quản trị viên', 403);
+      if (u.pathname === '/api/admin/overview' && method === 'GET') return json(await adminOverview(env));
+      if (u.pathname === '/api/admin/source' && method === 'POST') {
+        const r = await env.DB.prepare('UPDATE sources SET admin_disabled=? WHERE id=?').bind(body?.disabled ? 1 : 0, String(body?.id || '')).run();
+        return r.meta?.changes ? json({ ok: true }) : fail('Không có nguồn này', 404);
+      }
+      if (u.pathname === '/api/admin/run' && method === 'POST') return adminRunNow(env);
+      return fail('Không tìm thấy', 404);
     }
     if (u.pathname === '/api/sources' && method === 'POST') return addSource(env, user, body);
     if (u.pathname === '/api/ask' && method === 'POST') return ask(env, user, body);
