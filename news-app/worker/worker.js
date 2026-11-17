@@ -170,10 +170,9 @@ async function tts(env, user, body, fetchImpl = fetch) {
       audioConfig: { audioEncoding: 'MP3', sampleRateHertz: 24000, speakingRate: playful ? 0.756 : 1 } }),
   });
   if (!r.ok) { const d = await r.json().catch(() => null); return fail('Google TTS HTTP ' + r.status + ' ' + String(d?.error?.message || '').slice(0, 100), 502); }
-  const d = await r.json();
-  if (!d?.audioContent) return fail('Google TTS không trả âm thanh', 502);
   await addUsage(env, user.id, { tts: text.length, usd: text.length * TTS_USD_PER_CHAR });
-  return json({ audio: d.audioContent, playbackRate: playful ? 1.455 : 1, chars: text.length });
+  // Chuyển thẳng JSON {audioContent} của Google cho trình duyệt, không parse/stringify ~100 KB base64 trên Worker (tiết kiệm CPU).
+  return new Response(r.body, { status: 200, headers: { ...HEADERS, 'x-playback-rate': playful ? '1.455' : '1', 'x-tts-chars': String(text.length) } });
 }
 
 // ---------- Nguồn riêng của người dùng ----------

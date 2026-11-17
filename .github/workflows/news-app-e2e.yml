@@ -50,9 +50,13 @@ jobs:
               if c==200:hist.append({'role':'assistant','content':d['answer']})
             text=(hist[1]['content'] if len(hist)>1 else 'Xin chào')[:220]
             for st in ['chem_gio','nghiem_tuc']:
-              c,d,s=call('/api/tts',{'text':text,'style':st})
+              t0=time.time();req=urllib.request.Request(U+'/api/tts',data=json.dumps({'text':text,'style':st}).encode(),method='POST',headers=H)
+              try:
+                with urllib.request.urlopen(req,timeout=60) as r:d=json.load(r);c=r.status;rate=r.headers.get('x-playback-rate')
+              except urllib.error.HTTPError as e:d={'error':e.read()[:300].decode()};c=e.code;rate=None
+              s=round(time.time()-t0,2)
               if c==200:
-                b=base64.b64decode(d['audio']);print('\nTTS',st,c,s,'s bytes=',len(b),'mp3_header=',b[:3]==b'ID3' or b[:2]==b'\xff\xf3' or b[:2]==b'\xff\xfb','rate=',d['playbackRate'],'chars=',d['chars'])
+                b=base64.b64decode(d['audioContent']);print('\nTTS',st,c,s,'s bytes=',len(b),'mp3_header=',b[:3]==b'ID3' or b[:2]==b'\xff\xf3' or b[:2]==b'\xff\xfb','rate=',rate)
                 open('/tmp/tts-'+st+'.mp3','wb').write(b)
               else:print('\nTTS',st,c,d)
             print('\nUSAGE_ROW',q('SELECT * FROM usage WHERE user_id=?',[uid]))

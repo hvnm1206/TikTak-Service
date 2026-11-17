@@ -125,13 +125,16 @@ test('đọc giọng: Leda, trả base64 nguyên vẹn, giọng nhí phát nhanh
   const env = setup();
   let body;
   globalThis.fetch = async (url, init) => { body = JSON.parse(init.body); return new Response(JSON.stringify({ audioContent: 'SUQzBAAAAAAA' }), { status: 200 }); };
-  const d = await (await post(env, '/api/tts', { text: 'Xin chào **anh**', style: 'danh_da' })).json();
+  const r = await post(env, '/api/tts', { text: 'Xin chào **anh**', style: 'danh_da' });
   assert.equal(body.voice.name, 'vi-VN-Chirp3-HD-Leda');
   assert.equal(body.input.text, 'Xin chào anh');
   assert.equal(body.audioConfig.speakingRate, 0.756);
-  assert.deepEqual(d, { audio: 'SUQzBAAAAAAA', playbackRate: 1.455, chars: 12 });
-  const n = await (await post(env, '/api/tts', { text: 'Chào', style: 'nghiem_tuc' })).json();
-  assert.equal(n.playbackRate, 1);
+  assert.equal(r.headers.get('x-playback-rate'), '1.455');
+  assert.deepEqual(await r.json(), { audioContent: 'SUQzBAAAAAAA' });
+  const n = await post(env, '/api/tts', { text: 'Chào', style: 'nghiem_tuc' });
+  assert.equal(n.headers.get('x-playback-rate'), '1');
+  const u = await env.DB.prepare('SELECT tts_chars FROM usage WHERE user_id=?').bind('u1').first();
+  assert.equal(u.tts_chars, 12 + 4);
 });
 
 test('thêm nguồn RSS riêng: kiểm tra là RSS thật, tự thêm vào lựa chọn', async () => {
