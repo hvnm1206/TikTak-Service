@@ -1,10 +1,10 @@
 {
- "checked_at": "2026-11-17T15:03:48.549092+00:00",
+ "checked_at": "2026-11-17T15:04:42.610709+00:00",
  "results": [
   {
    "url": "https://vnexpress.net/rss/so-hoa.rss",
    "http": 200,
-   "ms": 3730,
+   "ms": 2205,
    "bytes": 68840,
    "content_type": "application/xml; charset=utf-8",
    "items": 60,
@@ -72,7 +72,7 @@
   {
    "url": "https://vnexpress.net/rss/khoa-hoc-cong-nghe.rss",
    "http": 200,
-   "ms": 1858,
+   "ms": 1200,
    "bytes": 68840,
    "content_type": "application/xml; charset=utf-8",
    "items": 60,
@@ -140,7 +140,7 @@
   {
    "url": "https://genk.vn/rss/home.rss",
    "http": 200,
-   "ms": 2196,
+   "ms": 1475,
    "bytes": 69889,
    "content_type": "text/xml; charset=UTF-8",
    "items": 61,
@@ -148,7 +148,7 @@
    "with_summary": 61,
    "newest": "2026-11-17T21:31:00+07:00",
    "oldest": "2026-11-16T09:26:00+07:00",
-   "age_newest_h": 0.5,
+   "age_newest_h": 0.6,
    "last_24h": 37,
    "last_7d": 61,
    "sample": [
@@ -208,8 +208,8 @@
   {
    "url": "https://genk.vn/rss/ai.rss",
    "http": 200,
-   "ms": 1789,
-   "bytes": 70457,
+   "ms": 1273,
+   "bytes": 70427,
    "content_type": "text/xml; charset=UTF-8",
    "items": 61,
    "with_date": 61,
@@ -276,7 +276,7 @@
   {
    "url": "https://techcrunch.com/feed/",
    "http": 200,
-   "ms": 110,
+   "ms": 88,
    "bytes": 17810,
    "content_type": "application/rss+xml; charset=UTF-8",
    "items": 20,
@@ -344,24 +344,18 @@
   {
    "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
    "http": 200,
-   "ms": 56,
-   "bytes": 18071,
+   "ms": 28,
+   "bytes": 17866,
    "content_type": "application/rss+xml; charset=UTF-8",
    "items": 20,
    "with_date": 20,
    "with_summary": 20,
-   "newest": "2026-11-17T15:00:00+00:00",
-   "oldest": "2026-11-15T23:30:00+00:00",
-   "age_newest_h": 0.1,
-   "last_24h": 15,
+   "newest": "2026-11-17T14:50:58+00:00",
+   "oldest": "2026-11-15T21:56:35+00:00",
+   "age_newest_h": 0.2,
+   "last_24h": 14,
    "last_7d": 20,
    "sample": [
-    {
-     "title": "Voyage Labs raises $12 million for a specialized AI travel assistant",
-     "date": "2026-11-17T15:00:00+00:00",
-     "summary": "Planning a trip is a favorite demo for personal AI assistants: you can try it with Muse, or with Gemini or half a dozen other choices. But while most pitches us",
-     "lastmod": null
-    },
     {
      "title": "Isomorphic Labs raises $5B as it looks to take drug candidates to clinical trials",
      "date": "2026-11-17T14:50:58+00:00",
@@ -403,6 +397,12 @@
      "date": "2026-11-16T20:07:13+00:00",
      "summary": "The California lawsuit represents one of the first attempts to hold an AI lab legally accountable for a rogue agent incident.",
      "lastmod": null
+    },
+    {
+     "title": "Trump says ex-Nvidia CEO Jensen Huang’s affair with an alleged Chinese spy did not threaten national security",
+     "date": "2026-11-16T19:12:02+00:00",
+     "summary": "Trump contradicted his own government's intelligence officials, who reportedly concluded that Alice Huang is a Chinese spy.",
+     "lastmod": null
     }
    ],
    "ok": true,
@@ -412,18 +412,24 @@
   {
    "url": "https://www.theverge.com/rss/index.xml",
    "http": 200,
-   "ms": 83,
-   "bytes": 32863,
+   "ms": 59,
+   "bytes": 32073,
    "content_type": "application/xml; charset=UTF-8",
    "items": 10,
    "with_date": 10,
    "with_summary": 10,
-   "newest": "2026-11-17T10:01:00-05:00",
+   "newest": "2026-11-17T10:04:20-05:00",
    "oldest": "2026-11-16T15:42:51-05:00",
    "age_newest_h": 0.0,
    "last_24h": 10,
    "last_7d": 10,
    "sample": [
+    {
+     "title": "The aliens are coming in 3 Body Problem’s first season 2 trailer",
+     "date": "2026-11-17T10:04:20-05:00",
+     "summary": "The first season of Netflix's 3 Body Problem series ended with the remaining members of the Oxford Five disillusioned at the idea of humanity being utterly unpr",
+     "lastmod": null
+    },
     {
      "title": "The Verge Best of 2026",
      "date": "2026-11-17T10:01:00-05:00",
@@ -461,12 +467,6 @@
      "lastmod": null
     },
     {
-     "title": "United Airlines system outage disrupts departures just days after the big ground stop",
-     "date": "2026-11-16T20:02:40-05:00",
-     "summary": "Less than a week after an issue with air traffic control communications and radar caused the FAA to halt takeoffs nationwide, United Airlines departing flights ",
-     "lastmod": null
-    },
-    {
      "title": "Hacker behind 2022 GTA VI leaks pleads guilty",
      "date": "2026-11-16T18:35:58-05:00",
      "summary": "Arion Kurtaj, a member of the Lapsus$ cybercrime group who leaked 90 videos of Grand Theft Auto VI in 2022 and hacked other big companies, pleaded guilty on Mon",
@@ -480,18 +480,30 @@
   {
    "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
    "http": 200,
-   "ms": 70,
+   "ms": 27,
    "bytes": 28574,
    "content_type": "application/xml; charset=UTF-8",
    "items": 10,
    "with_date": 10,
    "with_summary": 10,
-   "newest": "2026-11-16T18:20:44-05:00",
+   "newest": "2026-11-17T09:45:26-05:00",
    "oldest": "2026-11-16T09:06:43-05:00",
-   "age_newest_h": 15.7,
+   "age_newest_h": 0.3,
    "last_24h": 9,
    "last_7d": 10,
    "sample": [
+    {
+     "title": "Sam Altman says he wants everyone ‘to have a lot of RAM’",
+     "date": "2026-11-17T09:45:26-05:00",
+     "summary": "OpenAI CEO Sam Altman is once again addressing his controversial comments on PC RAM purchases. \"I want to be clear, I want people to have a lot of RAM, I think ",
+     "lastmod": null
+    },
+    {
+     "title": "Nvidia’s board is reportedly ‘not considering’ hiring Jensen Huang back",
+     "date": "2026-11-17T09:32:46-05:00",
+     "summary": "Nvidia's board of directors \"isn't considering\" having Jensen Huang return as CEO, according to a report from CNBC. A source tells the outlet the board \"is focu",
+     "lastmod": null
+    },
     {
      "title": "Tech leaders are convinced that Jensen Huang’s exit was a plot against him",
      "date": "2026-11-16T18:20:44-05:00",
@@ -502,12 +514,6 @@
      "title": "California sues OpenAI over rogue AI hacking incidents",
      "date": "2026-11-16T18:04:02-05:00",
      "summary": "California is suing OpenAI after its AI agents broke out of their testing environment and hacked other companies, including Hugging Face. In a lawsuit filed Mon",
-     "lastmod": null
-    },
-    {
-     "title": "Sam Altman says he wants everyone ‘to have a lot of RAM’",
-     "date": "2026-11-16T17:47:14-05:00",
-     "summary": "OpenAI CEO Sam Altman is once again addressing his controversial comments on PC RAM purchases. \"I want to be clear, I want people to have a lot of RAM, I think ",
      "lastmod": null
     },
     {
@@ -533,12 +539,6 @@
      "date": "2026-11-16T14:23:45-05:00",
      "summary": "OpenAI is announcing a tool that it says will help child sexual abuse investigators cut through the noise to find harmful material they can act on quickly. At a",
      "lastmod": null
-    },
-    {
-     "title": "Nvidia’s board is reportedly ‘not considering’ hiring Jensen Huang back",
-     "date": "2026-11-16T13:43:35-05:00",
-     "summary": "Nvidia's board of directors \"isn't considering\" having Jensen Huang return as CEO, according to a report from CNBC. A source tells the outlet the board \"is focu",
-     "lastmod": null
     }
    ],
    "ok": true,
@@ -548,7 +548,7 @@
   {
    "url": "https://openai.com/news/rss.xml",
    "http": 200,
-   "ms": 138,
+   "ms": 78,
    "bytes": 852721,
    "content_type": "text/xml; charset=utf-8",
    "items": 1401,
@@ -616,7 +616,7 @@
   {
    "url": "https://openai.com/blog/rss.xml",
    "http": 200,
-   "ms": 259,
+   "ms": 136,
    "bytes": 852721,
    "content_type": "text/xml; charset=utf-8",
    "items": 1401,
@@ -684,28 +684,40 @@
   {
    "url": "https://www.anthropic.com/sitemap.xml",
    "http": 200,
-   "ms": 146,
+   "ms": 115,
    "bytes": 76491,
    "content_type": "application/xml",
    "sitemap_urls": 280,
-   "published_date_found": 45,
+   "published_date_found": 48,
    "meta_sources": [
     "{\"date_from\": \"article:published_time\", \"summary_from\": \"og:description\", \"title_from\": \"og:title\"}"
    ],
-   "items": 45,
-   "with_date": 45,
-   "with_summary": 45,
-   "newest": "2026-10-26T00:00:00+00:00",
-   "oldest": "2024-03-04T00:00:00+00:00",
-   "age_newest_h": 543.1,
+   "items": 48,
+   "with_date": 48,
+   "with_summary": 48,
+   "newest": "2026-11-10T00:00:00+00:00",
+   "oldest": "2023-09-19T00:00:00+00:00",
+   "age_newest_h": 183.1,
    "last_24h": 0,
    "last_7d": 0,
    "sample": [
+    {
+     "title": "Anthropic launches roadshow for proposed initial public offering",
+     "date": "2026-11-10T00:00:00+00:00",
+     "summary": "Today Anthropic, PBC launched the roadshow for its proposed initial public offering of its Class A common stock.",
+     "lastmod": "2026-11-10T11:32:16+00:00"
+    },
     {
      "title": "Anthropic files S-1 with the SEC for proposed initial public offering",
      "date": "2026-10-26T00:00:00+00:00",
      "summary": "Anthropic is an AI safety and research company that's working to build reliable, interpretable, and steerable AI systems.",
      "lastmod": "2026-11-12T16:11:50+00:00"
+    },
+    {
+     "title": "Open call for guest investigators in the life sciences",
+     "date": "2026-10-22T00:00:00+00:00",
+     "summary": "Today, we’re inviting members of the life sciences community to apply to work with us on special projects.",
+     "lastmod": "2026-11-06T10:22:49+00:00"
     },
     {
      "title": "Physicist Christopher Stubbs joins Anthropic's Long-Term Benefit Trust",
@@ -736,28 +748,16 @@
      "date": "2026-10-14T00:00:00+00:00",
      "summary": "Anthropic opens its fifth Asia-Pacific office in Singapore and signs an MOU with the government on AI safety, evaluation, and responsible adoption.",
      "lastmod": "2026-11-16T20:50:09.800000+00:00"
-    },
-    {
-     "title": "Claude Frontier Academy: $100M to train 10,000 engineers",
-     "date": "2026-10-02T00:00:00+00:00",
-     "summary": "Claude Frontier Academy trains Frontier Deployed Engineers to the standard of Anthropic’s own — a $100 million commitment to train 10,000 by the end of 2027.",
-     "lastmod": "2026-11-16T20:45:52.106000+00:00"
-    },
-    {
-     "title": "Barclays scales Claude to upgrade operations and improve client experience",
-     "date": "2026-10-01T00:00:00+00:00",
-     "summary": "Barclays, the British universal bank, is expanding its strategic collaboration with Anthropic to integrate secure, enterprise-grade AI systems across its global",
-     "lastmod": "2026-11-16T20:46:07.417000+00:00"
     }
    ],
    "ok": true,
    "source": "anthropic",
-   "verdict": "NGỪNG CẬP NHẬT"
+   "verdict": "ÍT CẬP NHẬT"
   },
   {
    "url": "https://blog.google/technology/ai/rss/",
    "http": 200,
-   "ms": 401,
+   "ms": 267,
    "bytes": 30392,
    "content_type": "application/xml; charset=utf-8",
    "items": 20,
@@ -825,7 +825,7 @@
   {
    "url": "https://research.google/blog/rss/",
    "http": 200,
-   "ms": 340,
+   "ms": 414,
    "bytes": 78700,
    "content_type": "application/rss+xml; charset=utf-8",
    "items": 100,
@@ -893,13 +893,70 @@
   {
    "url": "https://deepmind.google/blog/rss.xml",
    "http": 200,
-   "ms": 313,
-   "bytes": 18603,
+   "ms": 173,
+   "bytes": 68852,
    "content_type": "application/xml",
-   "ok": false,
-   "error": "ParseError: not well-formed (invalid token): line 1, column 0",
+   "items": 100,
+   "with_date": 100,
+   "with_summary": 68,
+   "newest": "2026-11-12T18:00:50+00:00",
+   "oldest": "2025-12-11T00:06:40+00:00",
+   "age_newest_h": 117.1,
+   "last_24h": 0,
+   "last_7d": 3,
+   "sample": [
+    {
+     "title": "Introducing Gemini 4 Hydrogen",
+     "date": "2026-11-12T18:00:50+00:00",
+     "summary": "",
+     "lastmod": null
+    },
+    {
+     "title": "AlphaGenome 2: Deciphering how cells read DNA to better understand disease",
+     "date": "2026-11-11T15:00:15+00:00",
+     "summary": "Predicting how DNA sequences and their variations impact specific human cell types and disease.",
+     "lastmod": null
+    },
+    {
+     "title": "Gemini 4 Carbon is now available",
+     "date": "2026-11-10T16:03:47+00:00",
+     "summary": "",
+     "lastmod": null
+    },
+    {
+     "title": "Introducing AlphaProof Code: a breakthrough in verifying complex software at depth",
+     "date": "2026-11-10T12:02:28+00:00",
+     "summary": "AlphaProof Code agents wrote three million lines of proofs in Lean to verify Signal’s core encryption.",
+     "lastmod": null
+    },
+    {
+     "title": "Opening the datasets behind our AI weather models",
+     "date": "2026-11-10T11:13:04+00:00",
+     "summary": "Foundational precipitation and geostationary satellite datasets to observe the planet clearly.",
+     "lastmod": null
+    },
+    {
+     "title": "Gemini Robotics 2.5 accelerates real-world general dexterity",
+     "date": "2026-11-09T19:51:47+00:00",
+     "summary": "Our most capable vision-language-action model enhances robot dexterity, reliability, and safety",
+     "lastmod": null
+    },
+    {
+     "title": "Gemini Omni 1.2 Flash: Fast and cost-effective with longer clips",
+     "date": "2026-11-05T17:05:16+00:00",
+     "summary": "",
+     "lastmod": null
+    },
+    {
+     "title": "Agentic cheminformatics with Google Antigravity",
+     "date": "2026-11-03T17:01:49+00:00",
+     "summary": "Learn how Google Antigravity and our Cheminformatics Skills accelerate drug discovery workflows, search compounds, and propose novel rigidified macrocycles.",
+     "lastmod": null
+    }
+   ],
+   "ok": true,
    "source": "google-ai",
-   "verdict": "HỎNG"
+   "verdict": "ÍT CẬP NHẬT"
   }
  ]
 }
