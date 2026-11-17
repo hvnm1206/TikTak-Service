@@ -1,5 +1,10 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 17/11/2026 — Chẩn đoán 'không tra web được'
+- 18:54 chủ app: vẫn không tra web. Không có nhật ký nên chưa có bằng chứng; không đoán.
+- Thêm: dòng '🔧 công cụ · tìm web ×n · model' dưới mỗi câu trả lời (cả đường nhanh và thường); log máy chủ mỗi lượt (tên công cụ, số lần tìm, model, lỗi đã che khóa; không nội dung); bật Workers observability. Test 194/194.
+- Production 9794f832-49b4-41b3-8b58-e27f34ed9c1d; rollback 25573d59-3c9c-4615-8949-811807b560fc.
+
 ## 17/11/2026 — Gỡ toàn bộ hướng dẫn hardcode vá lỗi
 - 13:58 chủ app phản đối bản vá liệt kê từ khóa (triển lãm, hội chợ…) — vi phạm quy tắc không hardcode. Gốc: quy tắc cắt phí tìm web 16/11 làm GPT ngại tìm.
 - Gỡ: quy tắc cắt phí + danh sách từ khóa (thay bằng 1 câu trung tính), các dòng ép tra đường/vị trí, dòng vá thời tiết 'ngày mai' (bản cũ), cụm 'mỗi chữ tốn phí'. Giữ mặc định trả lời ngắn. Chi phí kiểm soát bằng giới hạn kỹ thuật (1 lần gọi công cụ/lượt, web_search context low). Test 193/193.
