@@ -2,75 +2,51 @@
  "_note": "Ứng viên nguồn tin về ứng dụng AI thực tế — chỉ kiểm tra, chưa đưa vào app.",
  "sources": [
   {
-   "id": "venturebeat-ai",
-   "name": "VentureBeat AI",
+   "id": "hackernews-sec",
+   "name": "The Hacker News",
    "lang": "en",
    "urls": [
-    "https://venturebeat.com/category/ai/feed/"
+    "https://feeds.feedburner.com/TheHackersNews"
    ]
   },
   {
-   "id": "mit-tr-ai",
-   "name": "MIT Technology Review AI",
+   "id": "bleeping",
+   "name": "BleepingComputer",
    "lang": "en",
    "urls": [
-    "https://www.technologyreview.com/topic/artificial-intelligence/feed"
+    "https://www.bleepingcomputer.com/feed/"
    ]
   },
   {
-   "id": "the-decoder",
-   "name": "The Decoder",
+   "id": "darkreading",
+   "name": "Dark Reading",
    "lang": "en",
    "urls": [
-    "https://the-decoder.com/feed/"
+    "https://www.darkreading.com/rss.xml"
    ]
   },
   {
-   "id": "ai-news",
-   "name": "AI News",
+   "id": "securityweek-ai",
+   "name": "SecurityWeek AI",
    "lang": "en",
    "urls": [
-    "https://www.artificialintelligence-news.com/feed/"
+    "https://www.securityweek.com/category/artificial-intelligence/feed/"
    ]
   },
   {
-   "id": "wired-ai",
-   "name": "Wired AI",
+   "id": "krebs",
+   "name": "Krebs on Security",
    "lang": "en",
    "urls": [
-    "https://www.wired.com/feed/tag/ai/latest/rss"
+    "https://krebsonsecurity.com/feed/"
    ]
   },
   {
-   "id": "zdnet-ai",
-   "name": "ZDNET AI",
+   "id": "wired-security",
+   "name": "Wired Security",
    "lang": "en",
    "urls": [
-    "https://www.zdnet.com/topic/artificial-intelligence/rss.xml"
-   ]
-  },
-  {
-   "id": "techcrunch-ai",
-   "name": "TechCrunch AI",
-   "lang": "en",
-   "urls": [
-    "https://techcrunch.com/category/artificial-intelligence/feed/"
-   ]
-  },
-  {
-   "id": "verge-ai",
-   "name": "The Verge AI",
-   "lang": "en",
-   "urls": [
-    "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
-   ]
-  },
-  {
-   "id": "vietnamnet-cn",
-   "name": "VietNamNet Công nghệ",
-   "lang": "vi",
-   "urls": [
-    "https://vietnamnet.vn/rss/cong-nghe.rss"
+    "https://www.wired.com/feed/category/security/latest/rss"
    ]
   },
   {
@@ -79,30 +55,6 @@
    "lang": "vi",
    "urls": [
     "https://tuoitre.vn/rss/nhip-song-so.rss"
-   ]
-  },
-  {
-   "id": "dantri-sms",
-   "name": "Dân trí Sức mạnh số",
-   "lang": "vi",
-   "urls": [
-    "https://dantri.com.vn/rss/suc-manh-so.rss"
-   ]
-  },
-  {
-   "id": "thanhnien-cn",
-   "name": "Thanh Niên Công nghệ",
-   "lang": "vi",
-   "urls": [
-    "https://thanhnien.vn/rss/cong-nghe.rss"
-   ]
-  },
-  {
-   "id": "genk-ai",
-   "name": "Genk AI",
-   "lang": "vi",
-   "urls": [
-    "https://genk.vn/rss/ai.rss"
    ]
   }
  ],
