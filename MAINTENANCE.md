@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 18/11/2026 — Sửa "Phản hồi bị ngắt" trên Workers Free mà không nâng gói
+- Nguyên nhân (đo được): Worker giải mã base64 âm thanh Google tốn 35–186 ms CPU/câu, giới hạn gói Free là 10 ms → Cloudflare chặn (exceededResources 08:15 sáng 18/11).
+- Sửa gốc: client gửi `wire:"b64"`, Worker chuyển thẳng JSON của Google (≈0 CPU), iPhone tự giải mã. Client cũ (lời nhắc, trang cache) giữ đường cũ.
+- Phát hành: d1b89f5a-2b51-44f6-bdde-a3d069ed09a3 (rollback 42a2bfe1). Test 200/200. Probe: wire=google-b64, trang có client mới.
+- Còn theo dõi: số liệu exceededResources trong các ngày tới; nghiệm thu thực trên iPhone.
+
 ## 17/11/2026 — 'Phản hồi bị ngắt' + Ngố tự phủ định câu đúng
 - 20:19 ảnh: 'OpenAI: Phản hồi bị ngắt trước khi hoàn tất'. Analytics 20:15: 3 lượt exceededResources tại 10 ms CPU = giới hạn Workers Free; một lượt thường hiện ~20–24 ms CPU. Cần Workers Paid (chủ app quyết, 5 USD/tháng). Chưa đổi gì.
 - Phủ định: lịch sử chỉ gửi chữ, không có dấu vết công cụ/nguồn → model tưởng câu cũ chưa kiểm chứng. Sửa: lưu + gửi tools/web/sources của từng câu trả lời; agent gắn dòng dữ liệu nguồn gốc; câu cũ không rõ nguồn không gắn gì. Test 198/198.
