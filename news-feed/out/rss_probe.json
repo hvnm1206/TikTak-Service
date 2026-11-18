@@ -1,506 +1,419 @@
 {
- "checked_at": "2026-11-18T13:50:52.174257+00:00",
+ "checked_at": "2026-11-18T13:51:58.909768+00:00",
  "results": [
   {
-   "url": "https://venturebeat.com/category/ai/feed/",
-   "http": 429,
-   "ok": false,
-   "error": "HTTP Error 429: Too Many Requests",
-   "source": "venturebeat-ai",
-   "verdict": "HỎNG"
-  },
-  {
-   "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
+   "url": "https://feeds.feedburner.com/TheHackersNews",
    "http": 200,
-   "ms": 93,
-   "bytes": 117477,
-   "content_type": "application/rss+xml; charset=UTF-8",
-   "items": 10,
-   "with_date": 10,
-   "with_summary": 10,
-   "newest": "2026-11-18T10:20:30+00:00",
-   "oldest": "2026-11-06T10:00:00+00:00",
-   "age_newest_h": 3.5,
-   "last_24h": 2,
-   "last_7d": 6,
+   "ms": 184,
+   "bytes": 59764,
+   "content_type": "text/xml; charset=utf-8",
+   "items": 50,
+   "with_date": 50,
+   "with_summary": 50,
+   "newest": "2026-11-18T17:58:30+05:30",
+   "oldest": "2026-11-12T13:50:37+05:30",
+   "age_newest_h": 1.4,
+   "last_24h": 11,
+   "last_7d": 50,
    "sample": [
     {
-     "title": "This smell startup says its AI nose is as good as a human’s",
-     "date": "2026-11-18T10:20:30+00:00",
-     "summary": "In a lab near Newark Airport in New Jersey, a team of around 30 experienced human sniffers are slowly working their way through every odor on Earth. Their caref",
+     "title": "New Attack Bypasses TPM Lockout to Crack Windows Hello and BitLocker PINs in Days, Not Years",
+     "date": "2026-11-18T17:58:30+05:30",
+     "summary": "On AMD-based PCs and some Intel PCs, the TPM lockout for Windows Hello and BitLocker PINs can be reset by someone who opens the PC's case, researchers at Techni",
      "lastmod": null
     },
     {
-     "title": "Research Reports",
-     "date": "2026-11-17T14:39:46+00:00",
-     "summary": "To access a report, click on the corresponding image below.",
+     "title": "AI Pentesting Checklist for Web Apps: 15 Questions to Ask Before Choosing a Vendor",
+     "date": "2026-11-18T17:45:00+05:30",
+     "summary": "TL;DR Attackers move first. On average, exploitation now starts before a patch exists (Mandiant M-Trends 2026). In 1H 2026, 23% of vulnerabilities VulnCheck add",
      "lastmod": null
     },
     {
-     "title": "The open-source movement wants Jensen Huang back",
-     "date": "2026-11-16T18:38:47+00:00",
-     "summary": "This story originally appeared in The Algorithm, our weekly newsletter on AI. To get stories like this in your inbox first, sign up here. On Friday, a petition ",
+     "title": "Java4Shell Flaw (CVE-2026-114938) Enables Pre-Auth RCE in Jira, Jenkins, Keycloak and More",
+     "date": "2026-11-18T17:25:49+05:30",
+     "summary": "A Java flaw called Java4Shell can let attackers without an account run their own code on Jira, Jenkins, Keycloak, and three other widely used applications, says",
      "lastmod": null
     },
     {
-     "title": "Building trustworthy AI by fencing it in, not predicting it",
-     "date": "2026-11-16T16:04:28+00:00",
-     "summary": "In October this year, OpenAI disclosed that two of its AI agents had switched off the systems built to monitor them. One muted its own safety alerts after misre",
+     "title": "Quality Isn’t The Main Worry About AI Pentesting — Data Privacy and Production Safety Are",
+     "date": "2026-11-18T16:33:57+05:30",
+     "summary": "AI is speeding up how software is built, which means more code, more changes, and more chances for vulnerabilities to reach production. It's speeding up how att",
      "lastmod": null
     },
     {
-     "title": "Building AI that can work across the enterprise",
-     "date": "2026-11-16T13:00:00+00:00",
-     "summary": "For years, enterprises have approached AI as a series of discrete experiments. Now, as AI agents begin to move into the workflows that run the business, that mo",
+     "title": "Hackers Exploiting Critical Puppet RCE Flaw Affecting Enterprise Management Servers",
+     "date": "2026-11-18T13:54:31+05:30",
+     "summary": "The U.S. Cybersecurity and Infrastructure Security Agency (CISA) on Tuesday added a critical security flaw impacting Perforce Puppet, an enterprise infrastructu",
      "lastmod": null
     },
     {
-     "title": "Nvidia privately confirmed it could track chips to fight smuggling, even as industry publicly questioned feasibility",
-     "date": "2026-11-12T20:16:24+00:00",
-     "summary": "Representatives from Nvidia told Illinois representative Bill Foster that it would be technically possible to implement the anti-smuggling measures called for i",
+     "title": "CISA Urges Immediate Patching of Java4Shell Flaw That Could Allow Remote Code Execution",
+     "date": "2026-11-18T13:54:23+05:30",
+     "summary": "The U.S. Cybersecurity and Infrastructure Security Agency (CISA) has urged organizations to immediately patch a newly disclosed critical security flaw impacting",
      "lastmod": null
     },
     {
-     "title": "The backlash about data centers might really just be about electricity",
-     "date": "2026-11-09T19:35:33+00:00",
-     "summary": "This story originally appeared in The Algorithm, our weekly newsletter on AI. To get stories like this in your inbox first, sign up here. As voters went to the ",
+     "title": "Attackers Compromise Microsoft's Agent Framework PyPI Package to Steal Cloud Credentials",
+     "date": "2026-11-18T12:15:26+05:30",
+     "summary": "Threat actors have compromised Microsoft's agent-framework package to push a credential stealer, according to reports from Aikido, Chainguard, Endor Labs, OX Se",
      "lastmod": null
     },
     {
-     "title": "Nancy Pelosi’s replacement is ready to regulate AI",
-     "date": "2026-11-09T17:05:43+00:00",
-     "summary": "As a California state senator, Scott Wiener authored legislation aimed at curbing the risks of advanced AI. Now, after winning a tight congressional race for fo",
+     "title": "Russian COLD RELIC Hackers Use Stolen Google Workspace Data to Breach Second U.S. Organization",
+     "date": "2026-11-18T11:28:04+05:30",
+     "summary": "The Russia-linked cyber espionage group known as Cold Relic (formerly COLDRIVER and UNC4057) has been observed weaponizing a single cloud compromise into a laun",
      "lastmod": null
     }
    ],
    "ok": true,
-   "source": "mit-tr-ai",
+   "source": "hackernews-sec",
    "verdict": "DÙNG ĐƯỢC"
   },
   {
-   "url": "https://the-decoder.com/feed/",
+   "url": "https://www.bleepingcomputer.com/feed/",
    "http": 200,
-   "ms": 1562,
-   "bytes": 20170,
-   "content_type": "application/rss+xml; charset=UTF-8",
-   "items": 10,
-   "with_date": 10,
-   "with_summary": 10,
-   "newest": "2026-11-18T13:28:49+00:00",
-   "oldest": "2026-11-16T19:42:13+00:00",
-   "age_newest_h": 0.4,
-   "last_24h": 9,
-   "last_7d": 10,
+   "ms": 81,
+   "bytes": 12790,
+   "content_type": "text/xml; charset=utf-8",
+   "items": 15,
+   "with_date": 15,
+   "with_summary": 15,
+   "newest": "2026-11-18T06:50:25-05:00",
+   "oldest": "2026-11-17T03:35:42-05:00",
+   "age_newest_h": 2.0,
+   "last_24h": 12,
+   "last_7d": 15,
    "sample": [
     {
-     "title": "SEC probes Nvidia over undisclosed chip sales tied to China",
-     "date": "2026-11-18T13:28:49+00:00",
-     "summary": "The U.S. Securities and Exchange Commission (SEC) has launched a civil investigation into Nvidia. The article SEC probes Nvidia over undisclosed chip sales tied",
+     "title": "Dizigom illegal streaming service with 21M monthly visits shuts down",
+     "date": "2026-11-18T06:50:25-05:00",
+     "summary": "The Alliance for Creativity and Entertainment (ACE) has announced the shutdown of Dizigom, one of Turkey's largest piracy sites, after a settlement agreement wi",
      "lastmod": null
     },
     {
-     "title": "Suno's new Visuals feature pairs AI-generated music with AI-generated video",
-     "date": "2026-11-18T10:22:45+00:00",
-     "summary": "AI music generator Suno can now create images and video clips to go with its songs, thanks to a new feature called Visuals. The article Suno's new Visuals featu",
+     "title": "Apache warns of Roller RCE vulnerability exploited in attacks",
+     "date": "2026-11-18T05:35:05-05:00",
+     "summary": "Apache has released security updates to address a critical Roller flaw that threat actors are exploiting to gain code execution on vulnerable servers. [...]",
      "lastmod": null
     },
     {
-     "title": "OpenAI launches GPT-6.2 Astra and Sol with lower API prices and some benchmark gains",
-     "date": "2026-11-17T20:30:50+00:00",
-     "summary": "OpenAI releases GPT-6.2 Astra and Sol, two new models that are more capable and cheaper than their predecessors. In the independent Artificial Analysis Intellig",
+     "title": "Microsoft announces Windows Server 2028 with hardened security",
+     "date": "2026-11-18T04:24:31-05:00",
+     "summary": "Microsoft has announced Windows Server 2028, the next major release of its server operating system, at the Ignite 2026 conference on Tuesday. [...]",
      "lastmod": null
     },
     {
-     "title": "AI agents are starting to fill out medical forms and file insurance requests in place of human staff",
-     "date": "2026-11-17T16:55:47+00:00",
-     "summary": "OpenAI wants GPT-6 Astra and GPT-6 Luna to automate administrative tasks in US healthcare through computer-use agents that operate existing clinic software and ",
+     "title": "British Scattered Spider hacker sentenced to 6 years in prison",
+     "date": "2026-11-18T03:24:18-05:00",
+     "summary": "A leader of the Scattered Spider cybercrime collective has been sentenced to six years in prison in the United States for stealing millions in cryptocurrency an",
      "lastmod": null
     },
     {
-     "title": "The US wants to block China from renting AI power abroad but China already built a parallel supply chain from US AI outp",
-     "date": "2026-11-17T16:47:21+00:00",
-     "summary": "The US is tightening its chip export controls. Data centers in third countries like Singapore and Malaysia will soon need a US license to buy Nvidia chips, clos",
+     "title": "Critical Java4Shell flaw allows RCE attacks on major Java applications",
+     "date": "2026-11-17T18:04:21-05:00",
+     "summary": "A critical vulnerability dubbed Java4Shell in OpenJDK, the open-source implementation of Java, can allow unauthenticated attackers to remotely execute code on p",
      "lastmod": null
     },
     {
-     "title": "OpenAI opens its cybersecurity tool Daybreak to NATO and European governments",
-     "date": "2026-11-17T15:02:03+00:00",
-     "summary": "OpenAI is opening its cybersecurity tool Daybreak to NATO and several European governments, including Germany, France, and Poland. The EU's cybersecurity agency",
+     "title": "Cloud keys leaked in Docker Hub images are stolen within seconds",
+     "date": "2026-11-17T16:27:17-05:00",
+     "summary": "Credentials and access secrets exposed in public Docker Hub images are being extracted and exploited by attackers within as little as eight seconds of publicati",
      "lastmod": null
     },
     {
-     "title": "Reports of AI-generated child sexual abuse material have surged more than 8,400 percent in two years",
-     "date": "2026-11-17T14:59:50+00:00",
-     "summary": "Edinburgh's Childlight Institute reports a more than 8,400 percent increase in AI-generated child sexual abuse material over two years, from about 4,700 reports",
+     "title": "Japan takes Fugaku supercomputer offlline after cyberattack",
+     "date": "2026-11-17T15:51:21-05:00",
+     "summary": "The Fugaku supercomputer operated by Japan's RIKEN Center for Computational Science has been taken offline following a security breach. [...]",
      "lastmod": null
     },
     {
-     "title": "Isomorphic Labs raises $5 billion in its second mega-round within six months",
-     "date": "2026-11-17T14:57:02+00:00",
-     "summary": "Isomorphic Labs has raised $5 billion, just six months after a $2.1 billion round. Alphabet's AI drug discovery company, led by Demis Hassabis, plans to use the",
+     "title": "Apple reports outages affecting iCloud Mail, AppleCare and more",
+     "date": "2026-11-17T14:24:07-05:00",
+     "summary": "Apple is reporting service disruptions affecting several of its services, including iCloud Mail, iCloud Account & Sign In, Apple School Manager, and Schoolwork.",
      "lastmod": null
     }
    ],
    "ok": true,
-   "source": "the-decoder",
+   "source": "bleeping",
    "verdict": "DÙNG ĐƯỢC"
   },
   {
-   "url": "https://www.artificialintelligence-news.com/feed/",
+   "url": "https://www.darkreading.com/rss.xml",
    "http": 200,
-   "ms": 931,
-   "bytes": 561846,
-   "content_type": "text/html; charset=UTF-8",
-   "ok": false,
-   "error": "ParseError: syntax error: line 1, column 0",
-   "source": "ai-news",
-   "verdict": "HỎNG"
+   "ms": 813,
+   "bytes": 78761,
+   "content_type": "text/xml; charset=utf-8",
+   "items": 50,
+   "with_date": 50,
+   "with_summary": 50,
+   "newest": "2026-11-17T22:34:22+00:00",
+   "oldest": "2026-11-04T01:05:40+00:00",
+   "age_newest_h": 15.3,
+   "last_24h": 3,
+   "last_7d": 22,
+   "sample": [
+    {
+     "title": "Optimizely Malware Attacks Highlight Third-Party Vendor Risks",
+     "date": "2026-11-17T22:34:22+00:00",
+     "summary": "At least 178 organizations, including several major brands, unwittingly exposed website visitors to hydra-like malware via a third-party platform.",
+     "lastmod": null
+    },
+    {
+     "title": "'TheMailer' Phishing Kit Puts AI in the Driver's Seat",
+     "date": "2026-11-17T20:58:13+00:00",
+     "summary": "The commercial kit uses attacker-supplied AI models to personalize lures, evade spam filters, and scale campaigns to tens of thousands of targets.",
+     "lastmod": null
+    },
+    {
+     "title": "Cursor Traces Malicious Claude Code Extensions to Third-Party Breach",
+     "date": "2026-11-17T18:38:37+00:00",
+     "summary": "A compromised key issued to AI infrastructure provider Fireworks was used by threat actors to access Cursor data and credentials.",
+     "lastmod": null
+    },
+    {
+     "title": "Grok Bots Attempt to Access Corporate Data Without User Approval",
+     "date": "2026-11-17T13:12:56+00:00",
+     "summary": "Two AI agents, separately over a five-day period, autonomously tried to access connected applications, including Google Calendar, Gmail, Slack, and GitHub, with",
+     "lastmod": null
+    },
+    {
+     "title": "Google Project Zero Slashes Bug Disclosure Deadlines, Splitting Experts",
+     "date": "2026-11-16T22:08:20+00:00",
+     "summary": "One of the oldest running bug disclosure programs announced it would shorten public disclosure timelines to vendors from 120 days to 30 over the next 14 months.",
+     "lastmod": null
+    },
+    {
+     "title": "Ransomware Attacks Increase Behind AI, but Payments Decline",
+     "date": "2026-11-16T19:56:05+00:00",
+     "summary": "Large language models and other AI systems allow a growing number of ransomware groups to create convincing phishing emails and identify sensitive data quickly.",
+     "lastmod": null
+    },
+    {
+     "title": "'Sleeper Agent' Tactic Hides Payloads in Open-Weight AI Models",
+     "date": "2026-11-16T19:10:03+00:00",
+     "summary": "Malware can lurk inside just 0.00001% of a neural network. How, then, can any user tell it's there?",
+     "lastmod": null
+    },
+    {
+     "title": "China-Nexus Actors Breach 10 Organizations in AI-Driven Attacks",
+     "date": "2026-11-16T16:36:55+00:00",
+     "summary": "Attackers used Cairn once again in autonomous attacks that targeted advanced manufacturing and defense sectors, as well as civil and human rights organizations.",
+     "lastmod": null
+    }
+   ],
+   "ok": true,
+   "source": "darkreading",
+   "verdict": "DÙNG ĐƯỢC"
   },
   {
-   "url": "https://www.wired.com/feed/tag/ai/latest/rss",
+   "url": "https://www.securityweek.com/category/artificial-intelligence/feed/",
    "http": 200,
-   "ms": 114,
-   "bytes": 10157,
-   "content_type": "application/xml",
+   "ms": 65,
+   "bytes": 11930,
+   "content_type": "application/rss+xml; charset=UTF-8",
    "items": 10,
    "with_date": 10,
    "with_summary": 10,
-   "newest": "2026-11-18T10:00:00+00:00",
-   "oldest": "2026-11-15T11:00:00+00:00",
-   "age_newest_h": 3.8,
+   "newest": "2026-11-18T12:14:23+00:00",
+   "oldest": "2026-11-13T09:21:01+00:00",
+   "age_newest_h": 1.6,
    "last_24h": 3,
    "last_7d": 10,
    "sample": [
     {
-     "title": "Lovable Wants You to Vibe Code Your Dream Job",
-     "date": "2026-11-18T10:00:00+00:00",
-     "summary": "This Swedish startup dominated the vibe-coded app boom. Two years after launch, Lovable is shifting gears to help users run vibe-coded businesses.",
+     "title": "Microsoft Takes Perception Agentic Security Platform Out of Preview",
+     "date": "2026-11-18T12:14:23+00:00",
+     "summary": "Four blue team agents and the Recon Agent are now generally available, while integrations and vulnerability shielding are in preview. The post Microsoft Takes P",
      "lastmod": null
     },
     {
-     "title": "Over a Third of Gen Z-ers Rely on AI for Friendship",
-     "date": "2026-11-18T05:01:00+00:00",
-     "summary": "Young people who have online-only friends or use AI as a social companion face higher odds of loneliness than those who do not, a new Gallup report reveals.",
+     "title": "AI Framework Autonomously Weaponized Flaws in Real Attacks, Google Says",
+     "date": "2026-11-17T18:16:17+00:00",
+     "summary": "Threat actors are deploying multi-agent offensive frameworks to increase the velocity of multi-stage intrusions. The post AI Framework Autonomously Weaponized F",
      "lastmod": null
     },
     {
-     "title": "Nvidia’s Board Has No Plans to Bring Back Jensen Huang",
-     "date": "2026-11-17T22:19:19+00:00",
-     "summary": "Despite pressure from President Trump, Elon Musk, and Silicon Valley executives, Nvidia’s board says it “does not intend” to reinstate the company’s ousted CEO.",
+     "title": "Pretxt Emerges Stealth With $5M Seed and an AI Supervision Tool",
+     "date": "2026-11-17T14:00:00+00:00",
+     "summary": "Pretxt provides technology to prevent AI agents escaping their guardrails and causing unintended harm. The post Pretxt Emerges Stealth With $5M Seed and an AI S",
      "lastmod": null
     },
     {
-     "title": "Rogue Agents Hacked His Company. Why Is Clément Delangue So Optimistic About AI?",
-     "date": "2026-11-17T11:00:00+00:00",
-     "summary": "The French CEO of Hugging Face, a mega-hub of open-source AI software, says the attack by OpenAI models earlier this year proved one thing: Humanity can’t let A",
+     "title": "California Sues OpenAI, Seeking Court-Ordered Changes After the Hugging Face Hack",
+     "date": "2026-11-17T12:00:00+00:00",
+     "summary": "The lawsuit alleges that OpenAI misled and endangered the public and users by knowingly developing advanced AI models without necessary safeguards. The post Cal",
      "lastmod": null
     },
     {
-     "title": "The Apple Watch’s Live Rewind Can Record and Rewind Spoken Conversations. It’s Pretty Awkward",
-     "date": "2026-11-17T11:00:00+00:00",
-     "summary": "Live Rewind and Siri Recap can transcribe missed moments and summarize your day—if you don’t mind a little social clumsiness.",
+     "title": "Trump Administration Moves to Block China From Indirect Access to American AI Technology",
+     "date": "2026-11-16T20:00:00+00:00",
+     "summary": "Under the new rule, overseas data centers that serve companies in countries including China, Russia, Iran and Cuba are required to identify their end users. The",
      "lastmod": null
     },
     {
-     "title": "AI Told These Ex-Google Guys How to Build a Billion-Dollar Weapons Business",
-     "date": "2026-11-17T10:47:45+00:00",
-     "summary": "Google and Apple alumni Chad Steelberg and Andy Baynes are applying what they learned running software companies and designing iPhones to manufacturing lethal m",
+     "title": "Barracuda Hacked Amid Surge in Artex-Powered Cyberattacks",
+     "date": "2026-11-16T15:07:32+00:00",
+     "summary": "Chinese threat actors are broadly adopting the agentic AI penetration testing framework to accelerate their attacks. The post Barracuda Hacked Amid Surge in Art",
      "lastmod": null
     },
     {
-     "title": "Jensen Huang Is Gone. Now What?",
-     "date": "2026-11-16T16:12:51+00:00",
-     "summary": "After a shocking downfall, Nvidia’s CEO is out of a job. WIRED’s Lauren Goode explains what that means for the world’s most critical chip company, the AI indust",
+     "title": "Pentagon Renames CDAO ‘Super Intelligence Office’",
+     "date": "2026-11-15T12:51:33+00:00",
+     "summary": "The move follows President Trump’s order to replace “artificial intelligence” with “super intelligence” in executive branch communications. The post Pentagon Re",
      "lastmod": null
     },
     {
-     "title": "Nvidia Was Already in Trouble Before the Jensen Huang Mess",
-     "date": "2026-11-16T11:00:00+00:00",
-     "summary": "AI competitors are catching up to Nvidia—and poised to take advantage of the chaos.",
+     "title": "Is AI Making Us Worse at Cybersecurity?",
+     "date": "2026-11-14T14:00:00+00:00",
+     "summary": "Overreliance on AI could erode the creativity, clear communication, and critical thinking security teams need when there’s no playbook. The post Is AI Making Us",
      "lastmod": null
     }
    ],
    "ok": true,
-   "source": "wired-ai",
+   "source": "securityweek-ai",
    "verdict": "DÙNG ĐƯỢC"
   },
   {
-   "url": "https://www.zdnet.com/topic/artificial-intelligence/rss.xml",
+   "url": "https://krebsonsecurity.com/feed/",
    "http": 200,
-   "ms": 127,
-   "bytes": 25484,
-   "content_type": "application/atom+xml; charset=UTF-8",
-   "items": 25,
-   "with_date": 25,
-   "with_summary": 25,
-   "newest": "2026-11-18T12:56:53+00:00",
-   "oldest": "2026-11-12T17:11:16+00:00",
-   "age_newest_h": 0.9,
-   "last_24h": 11,
-   "last_7d": 25,
-   "sample": [
-    {
-     "title": "Microsoft’s new Licensed Weights lets businesses customize AI models with their own data",
-     "date": "2026-11-18T12:56:53+00:00",
-     "summary": "Microsoft is bridging the gap between proprietary and open-weight AI while targeting data-conscious businesses.",
-     "lastmod": null
-    },
-    {
-     "title": "Microsoft unveiled Copilot Workspaces at Ignite 2026, plus more AI workplace updates",
-     "date": "2026-11-17T23:14:05+00:00",
-     "summary": "The company also released new ROI tracking tools for companies monitoring their AI spend.",
-     "lastmod": null
-    },
-    {
-     "title": "Microsoft wants to put a dollar value on AI’s work – but can you trust the math?",
-     "date": "2026-11-17T23:05:48+00:00",
-     "summary": "With Agent 365 Business Analytics, Microsoft could reshape enterprise spending, but there’s a critical difference between estimated value and money saved.",
-     "lastmod": null
-    },
-    {
-     "title": "Microsoft says its new AI coding model rivals Claude Opus 5.5 at 5% of the cost",
-     "date": "2026-11-17T22:42:44+00:00",
-     "summary": "Microsoft announced two new AI models at Ignite 2026 that promise impressive performance for much lower cost. They could reshape its relationship with OpenAI an",
-     "lastmod": null
-    },
-    {
-     "title": "Goodbye, Gemini Gems: How to use Google’s new Skills – and share them",
-     "date": "2026-11-17T19:54:04+00:00",
-     "summary": "Google is retiring Gemini Gems. Here’s what to do to access the same tools as Skills.",
-     "lastmod": null
-    },
-    {
-     "title": "Your Googlebook just got a Chrome update – 5 new features",
-     "date": "2026-11-17T18:21:55+00:00",
-     "summary": "The Chrome update includes more useful vertical tabs, easier screen sharing, and some handy keyboard shortcuts.",
-     "lastmod": null
-    },
-    {
-     "title": "Google is making it easier to opt out of Gemini AI model training – here’s how",
-     "date": "2026-11-17T18:01:38+00:00",
-     "summary": "You’ll soon be able to turn off Gemini model training but still retain access to your previous chats with Google’s AI.",
-     "lastmod": null
-    },
-    {
-     "title": "I asked Gemini Notebook to ‘make me a site’ from my notes – it was satisfying",
-     "date": "2026-11-17T17:52:39+00:00",
-     "summary": "A new Gemini Notebook feature lets you create interactive sites from intricate data.",
-     "lastmod": null
-    }
-   ],
-   "ok": true,
-   "source": "zdnet-ai",
-   "verdict": "DÙNG ĐƯỢC"
-  },
-  {
-   "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
-   "http": 200,
-   "ms": 115,
-   "bytes": 17331,
-   "content_type": "application/rss+xml; charset=UTF-8",
-   "items": 20,
-   "with_date": 20,
-   "with_summary": 20,
-   "newest": "2026-11-18T13:00:00+00:00",
-   "oldest": "2026-11-17T16:32:55+00:00",
-   "age_newest_h": 0.8,
-   "last_24h": 20,
-   "last_7d": 20,
-   "sample": [
-    {
-     "title": "Nvidia clarifies when it will — and won’t —keep financing neoclouds",
-     "date": "2026-11-18T13:00:00+00:00",
-     "summary": "If Nvidia is backstopping a data center loan, it won't be on the hook unless the neocould has independent financing and gets the facility built, with Nvidia gea",
-     "lastmod": null
-    },
-    {
-     "title": "Felicis leads $7.5M bet on Unsiloed AI to make enterprise documents usable by AI agents",
-     "date": "2026-11-18T12:00:00+00:00",
-     "summary": "With a team of just seven, Unsiloed AI plans to compete with tech giants and specialized startups in the crowded AI document-processing market.",
-     "lastmod": null
-    },
-    {
-     "title": "India’s Humyn Labs raises $47M to feed U.S. robotics companies the data they need",
-     "date": "2026-11-18T11:30:00+00:00",
-     "summary": "Founded in February, Humyn Labs competes with startups including Mecka AI and XDOF, with about 90% of its revenue coming from the U.S.",
-     "lastmod": null
-    },
-    {
-     "title": "Nvidia’s startup stakes ballooned to $65B, but Huang’s exit puts future deals in doubt",
-     "date": "2026-11-18T01:44:21+00:00",
-     "summary": "The value of Nvidia’s private investments has nearly tripled over the past nine months, fueled by Jensen Huang’s aggressive dealmaking and rising valuations of ",
-     "lastmod": null
-    },
-    {
-     "title": "Nvidia promises that revenue will keep soaring — for now",
-     "date": "2026-11-18T00:16:50+00:00",
-     "summary": "Despite the turmoil Nvidia is in after the departure of its disgraced founder and CEO Jensen Huang, the company projected that its streak of record-breaking rev",
-     "lastmod": null
-    },
-    {
-     "title": "Nvidia is abandoning China after Jensen Huang’s ouster",
-     "date": "2026-11-17T23:37:48+00:00",
-     "summary": "Nvidia's interim CEO says the company is done selling chips to China. How much will that cost?",
-     "lastmod": null
-    },
-    {
-     "title": "Nvidia says its open source AI strategy remains intact after Jensen Huang’s exit",
-     "date": "2026-11-17T23:04:35+00:00",
-     "summary": "Nvidia's interim CEO reaffirmed its open source AI strategy and plans to acquire Hugging Face, despite Jensen Huang's sudden departure.",
-     "lastmod": null
-    },
-    {
-     "title": "Nvidia says it doesn’t plan to reappoint Jensen Huang as CEO",
-     "date": "2026-11-17T22:42:27+00:00",
-     "summary": "The former CEO offered to return to his top role at the company after his resignation last week.",
-     "lastmod": null
-    }
-   ],
-   "ok": true,
-   "source": "techcrunch-ai",
-   "verdict": "DÙNG ĐƯỢC"
-  },
-  {
-   "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
-   "http": 200,
-   "ms": 76,
-   "bytes": 28718,
-   "content_type": "application/xml; charset=UTF-8",
+   "ms": 123,
+   "bytes": 120397,
+   "content_type": "text/html; charset=UTF-8",
    "items": 10,
    "with_date": 10,
    "with_summary": 10,
-   "newest": "2026-11-18T08:11:48-05:00",
-   "oldest": "2026-11-16T18:04:02-05:00",
-   "age_newest_h": 0.7,
-   "last_24h": 8,
-   "last_7d": 10,
+   "newest": "2026-11-18T02:52:04+00:00",
+   "oldest": "2026-10-10T00:17:42+00:00",
+   "age_newest_h": 11.0,
+   "last_24h": 1,
+   "last_7d": 2,
    "sample": [
     {
-     "title": "Nvidia isn’t selling any more AI chips to China",
-     "date": "2026-11-18T08:11:48-05:00",
-     "summary": "Nvidia has stopped sending its advanced AI chips to China, despite the approval it received from the White House to do so in December last year. The announcemen",
+     "title": "Attackers Used Optimizely to A/B Test Malware on Top Websites",
+     "date": "2026-11-18T02:52:04+00:00",
+     "summary": "At least 178 top web destinations unwittingly served a variety of malware exploits against visitors over the past 24 hours thanks to a security vulnerability in",
      "lastmod": null
     },
     {
-     "title": "Suno now lets you make AI videos for your AI music",
-     "date": "2026-11-18T06:16:53-05:00",
-     "summary": "Suno has introduced image and video generation in its latest effort to expand beyond being an AI music platform. The new feature, called \"Visuals,\" allows users",
+     "title": "Who Runs the Ransomware Group Qilin?",
+     "date": "2026-11-11T18:06:01+00:00",
+     "summary": "The cybercrime group Qilin has emerged as the world's most active ransomware affiliate program, claiming at least 365 victim organizations in the past three mon",
      "lastmod": null
     },
     {
-     "title": "Satya Nadella says he’s AGI-pilled now",
-     "date": "2026-11-17T20:48:18-05:00",
-     "summary": "Microsoft CEO Satya Nadella says he's AGI-pilled, at least when it comes to how AI might make startling changes to the structure of the economy and how politics",
+     "title": "Microsoft Fixes Nearly 1,100 Security Vulnerabilities",
+     "date": "2026-11-10T21:55:03+00:00",
+     "summary": "Microsoft did another four-digit patch drop today, releasing updates to fix almost 1,100 security vulnerabilities in its Windows operating systems and supported",
      "lastmod": null
     },
     {
-     "title": "Not even Sam Altman is safe from AI deepfakes on Instagram",
-     "date": "2026-11-17T18:52:34-05:00",
-     "summary": "Instagram is filled with people posting deepfaked content - including, as of late, from one of Meta's most prominent executives. Earlier in November, Alexandr W",
+     "title": "Want to Rent an Internet Address at the White House?",
+     "date": "2026-11-05T04:36:17+00:00",
+     "summary": "Several staffers at the White House are using computers or mobile devices equipped with residential proxy services that render their internet address available ",
      "lastmod": null
     },
     {
-     "title": "Nvidia’s Q3 earnings hit the mark, without mentioning the whole Jensen Huang thing",
-     "date": "2026-11-17T17:50:29-05:00",
-     "summary": "Interim Nvidia CEO Colette Kress announced the company's Q3 earnings on Tuesday, without initially mentioning former CEO Jensen Huang or the details of his depa",
+     "title": "Tech Firms Dismantle Botnet That Turned 1.3M TV Boxes Into Proxies",
+     "date": "2026-11-03T02:24:31+00:00",
+     "summary": "Google said today it worked with industry partners to dismantle a botnet made up of more than 1.3 million Android TV set-top boxes that ship with malicious soft",
      "lastmod": null
     },
     {
-     "title": "Google’s Spark AI agent becomes ‘Tasks’ — and now it’s free",
-     "date": "2026-11-17T13:58:54-05:00",
-     "summary": "Google is rebranding its Spark AI agent as \"Tasks\" and making it free to use. The feature, which is powered by Google's new Gemini 4 Hydrogen AI model, can do t",
+     "title": "Widespread PHP Flaw May Cause Many Site Outages Today",
+     "date": "2026-10-21T15:26:07+00:00",
+     "summary": "Expect to see quite a few websites serving \"404\" or \"Page Not Found\" errors today: Nearly 70 percent of websites need to update their core software to fix a pai",
      "lastmod": null
     },
     {
-     "title": "Jensen Huang says he’s willing to return as Nvidia CEO",
-     "date": "2026-11-17T12:04:40-05:00",
-     "summary": "Jensen Huang, who resigned as Nvidia's CEO last week, would be willing to return as CEO if the company's board of directors wanted it, he said in a statement re",
+     "title": "Feds Suspect Ransom Negotiator Ran ShinyHunters Extortion Site",
+     "date": "2026-10-19T13:48:56+00:00",
+     "summary": "U.S. federal investigators pursuing the ShinyHunters hacking group that recently stole highly sensitive data from the FBI have identified executives at two diff",
      "lastmod": null
     },
     {
-     "title": "The DOJ says it’s investigating Megaspeed",
-     "date": "2026-11-17T11:19:03-05:00",
-     "summary": "The Justice and Commerce Departments said that they are investigating Megaspeed, the Singapore-based data center company intertwined with the resignation of Nvi",
+     "title": "U.K. Sanctions Cryptomus for RU Money Laundering",
+     "date": "2026-10-14T14:22:49+00:00",
+     "summary": "The United Kingdom has issued economic sanctions against Cryptomus, a chameleonic cryptocurrency platform that experts say serves as a major conduit for payment",
      "lastmod": null
     }
    ],
    "ok": true,
-   "source": "verge-ai",
-   "verdict": "DÙNG ĐƯỢC"
+   "source": "krebs",
+   "verdict": "ÍT CẬP NHẬT"
   },
   {
-   "url": "https://vietnamnet.vn/rss/cong-nghe.rss",
+   "url": "https://www.wired.com/feed/category/security/latest/rss",
    "http": 200,
-   "ms": 2945,
-   "bytes": 43116,
+   "ms": 65,
+   "bytes": 20668,
    "content_type": "application/xml",
-   "items": 36,
-   "with_date": 36,
-   "with_summary": 36,
-   "newest": "2025-05-06T17:11:33+07:00",
-   "oldest": "2025-02-03T13:23:08+07:00",
-   "age_newest_h": 13467.7,
-   "last_24h": 0,
-   "last_7d": 0,
+   "items": 20,
+   "with_date": 20,
+   "with_summary": 20,
+   "newest": "2026-11-17T19:40:57+00:00",
+   "oldest": "2026-10-30T20:38:46+00:00",
+   "age_newest_h": 18.2,
+   "last_24h": 1,
+   "last_7d": 7,
    "sample": [
     {
-     "title": "Đưa mạng bưu chính thành hạ tầng thiết yếu của kinh tế số Việt Nam",
-     "date": "2025-05-06T17:11:33+07:00",
-     "summary": "Là một hợp phần của hạ tầng TT&amp;TT, mạng bưu chính được quy hoạch theo hướng mở rộng phục vụ cả thương mại điện tử và logistics, dần trở thành một hạ tầng th",
+     "title": "How to Tell If It’s a Cyberattack or Just an Outage",
+     "date": "2026-11-17T19:40:57+00:00",
+     "summary": "Email, flights, banks; network failures are piling up. Here’s how WIRED investigates if they’re the result of hacker mayhem. (Hint: usually not.)",
      "lastmod": null
     },
     {
-     "title": "Sẽ có chính sách ưu đãi phát triển doanh nghiệp công nghệ số Việt Nam",
-     "date": "2025-05-06T15:39:14+07:00",
-     "summary": "Luật Công nghiệp công nghệ số sẽ tạo hành lang pháp lý thúc đẩy phát triển công nghiệp công nghệ số, biến đây thành một ngành kinh tế đóng góp lớn cho đất nước.",
+     "title": "The Bank Outage May Have Nothing to Do With Your Bank",
+     "date": "2026-11-16T21:45:45+00:00",
+     "summary": "Amid hundreds of reports of US banks experiencing outages, JPMorganChase says a technical “issue” with its “on-premise hardware systems” may be causing “slownes",
      "lastmod": null
     },
     {
-     "title": "CMC hãy nhận việc lớn để góp sức đưa Việt Nam vào kỷ nguyên mới",
-     "date": "2025-04-22T16:39:57+07:00",
-     "summary": "Nhận định đã đến lúc CMC cần tuyên bố mình là một doanh nghiệp công nghệ số đầu đàn, Bộ trưởng Bộ TT&amp;TT Nguyễn Mạnh Hùng chỉ rõ, cách duy nhất để CMC lớn lê",
+     "title": "Beware the New AI-Fueled Ransomware Boom",
+     "date": "2026-11-14T13:00:00+00:00",
+     "summary": "Fully automated ransomware hasn’t arrived—yet. But seemingly unsophisticated attackers are using AI tools to wreak havoc.",
      "lastmod": null
     },
     {
-     "title": "Ba thách thức của doanh nghiệp Việt để vận hành dựa trên dữ liệu",
-     "date": "2025-04-15T17:10:57+07:00",
-     "summary": "Trao đổi tại hội thảo chuyên đề về quản trị doanh nghiệp ngày 29/5, đại diện MISA chỉ ra 3 vấn đề chính trong chuyển đổi số, cũng là 3 thách thức để vận hành dự",
+     "title": "Microsoft 365 Crawls Back to Life After a 24-Hour Outage",
+     "date": "2026-11-13T19:08:57+00:00",
+     "summary": "The company says a bad update—not a cyberattack or AI—caused its servers around the world to crash.",
      "lastmod": null
     },
     {
-     "title": "Hành trình công nghệ số Việt Nam vươn ra chinh phục thế giới",
-     "date": "2025-04-09T15:17:01+07:00",
-     "summary": "Các doanh nghiệp TT&amp;TT đang từng bước hiện thực hóa khát vọng tự chủ công nghệ và vươn ra thế giới. Doanh thu quốc tế năm 2024 của doanh nghiệp công nghệ số",
+     "title": "The Microsoft Outage Is a Warning for the World",
+     "date": "2026-11-13T17:15:54+00:00",
+     "summary": "Countless businesses, schools, hospitals, and governments have found out the hard way what it means to rely on a single company’s systems to get things done. An",
      "lastmod": null
     },
     {
-     "title": "Doanh nghiệp IT Việt chuyển từ gia công sang thiết kế giải pháp cho đối tác Nhật",
-     "date": "2025-04-08T15:02:58+07:00",
-     "summary": "Khảo sát nhanh của VINASA với 20 doanh nghiệp IT Việt Nam đang hoạt động tại Nhật Bản cho thấy, các doanh nghiệp đang có xu hướng tiến lên làm các dự án tầng ca",
+     "title": "Major Microsoft Outlook Outage Leaves People With Email Jobs Unable to Email",
+     "date": "2026-11-12T20:01:33+00:00",
+     "summary": "Microsoft says its systems are experiencing “elevated loads” as the company races to end an outage impacting its business and enterprise customers.",
      "lastmod": null
     },
     {
-     "title": "Hợp tác đưa giải pháp an toàn thông tin ‘Make in Viet Nam’ ra thị trường quốc tế",
-     "date": "2025-04-03T16:52:34+07:00",
-     "summary": "BlueOC, công ty tư vấn và triển khai giải pháp phần mềm và doanh nghiệp an toàn thông tin mạng SafeGate cam kết hợp tác đưa sản phẩm, giải pháp an toàn thông ti",
+     "title": "Apple’s HomeView Tries Face Authentication Without FaceID",
+     "date": "2026-11-12T14:00:00+00:00",
+     "summary": "Apple’s FaceID has long provided robust authentication. But for its smart home device, HomeView, the company is betting on new “person recognition” technology t",
      "lastmod": null
     },
     {
-     "title": "Nhiều doanh nghiệp tại Việt Nam sẵn sàng trả lương cao cho nhân sự mảng AI",
-     "date": "2025-03-24T10:39:07+07:00",
-     "summary": "Theo khảo sát mới được Navigos Group thực hiện với gần 500 doanh nghiệp tại Việt Nam, có tới hơn 62% doanh nghiệp cho biết mức lương họ trả cho nhân sự mảng AI ",
+     "title": "Security Flaws Across UK Government Sites Exposed ‘God-Tier’ Information",
+     "date": "2026-11-10T07:00:00+00:00",
+     "summary": "A researcher’s trawl through publicly available code found private information was at risk across multiple departments.",
      "lastmod": null
     }
    ],
    "ok": true,
-   "source": "vietnamnet-cn",
-   "verdict": "NGỪNG CẬP NHẬT"
+   "source": "wired-security",
+   "verdict": "DÙNG ĐƯỢC"
   },
   {
    "url": "https://tuoitre.vn/rss/nhip-song-so.rss",
    "http": 200,
-   "ms": 1309,
-   "bytes": 39648,
+   "ms": 864,
+   "bytes": 39471,
    "content_type": "text/xml",
    "items": 50,
    "with_date": 0,
@@ -558,150 +471,6 @@
    "ok": false,
    "source": "tuoitre-nss",
    "verdict": "HỎNG"
-  },
-  {
-   "url": "https://dantri.com.vn/rss/suc-manh-so.rss",
-   "http": 404,
-   "ok": false,
-   "error": "HTTP Error 404: Not Found",
-   "source": "dantri-sms",
-   "verdict": "HỎNG"
-  },
-  {
-   "url": "https://thanhnien.vn/rss/cong-nghe.rss",
-   "http": 200,
-   "ms": 1534,
-   "bytes": 55244,
-   "content_type": "text/xml; charset=UTF-8",
-   "items": 50,
-   "with_date": 50,
-   "with_summary": 50,
-   "newest": "2026-11-18T20:01:00+07:00",
-   "oldest": "2026-11-14T17:35:00+07:00",
-   "age_newest_h": 0.8,
-   "last_24h": 9,
-   "last_7d": 50,
-   "sample": [
-    {
-     "title": "Điện thoại Galaxy A lại sắp tăng giá mạnh?",
-     "date": "2026-11-18T20:01:00+07:00",
-     "summary": "Samsung đang xem xét việc tăng giá cho một số mẫu điện thoại thông minh thuộc dòng Galaxy A, dự kiến sẽ có hiệu lực vào đầu năm 2027.",
-     "lastmod": null
-    },
-    {
-     "title": "AI tại Việt Nam chuyển dịch từ thử nghiệm sang vận hành",
-     "date": "2026-11-18T16:31:00+07:00",
-     "summary": "Sau giai đoạn thử nghiệm công nghệ rời rạc, thị trường trí tuệ nhân tạo (AI) trong nước đang bước vào chu kỳ vận hành thực chất dưới tác động của hành lang pháp",
-     "lastmod": null
-    },
-    {
-     "title": "One UI 9.5 lộ loạt tính năng mới, Galaxy AI sắp thay đổi lớn",
-     "date": "2026-11-18T16:02:00+07:00",
-     "summary": "One UI 9.5 được cho là bổ sung trợ lý Galaxy Claw, chia sẻ dữ liệu bằng cách chạm và nhiều tính năng AI mới.",
-     "lastmod": null
-    },
-    {
-     "title": "5 dấu hiệu cảnh báo điện thoại bị tấn công",
-     "date": "2026-11-18T14:06:00+07:00",
-     "summary": "Nhiều dấu hiệu điện thoại bị hack thường dễ bị nhầm lẫn với sự cố thông thường trên thiết bị cũ.",
-     "lastmod": null
-    },
-    {
-     "title": "Galaxy A38 với pin 6.000 mAh tiến gần đến ngày ra mắt",
-     "date": "2026-11-18T11:21:00+07:00",
-     "summary": "Galaxy A38 xuất hiện trên máy chủ Samsung với dấu hiệu nâng cấp pin đáng kể, hứa hẹn cải thiện thời lượng sử dụng hằng ngày.",
-     "lastmod": null
-    },
-    {
-     "title": "Samsung chuẩn bị tung điện thoại không viền trước Apple?",
-     "date": "2026-11-18T09:41:00+07:00",
-     "summary": "Không đợi iPhone kỷ niệm 20 năm ra mắt, Samsung có thể trình làng điện thoại Galaxy với màn hình có viền gần như 'vô hình'.",
-     "lastmod": null
-    },
-    {
-     "title": "Người dùng iPhone bất ngờ không thể đăng nhập Apple ID vì sự cố máy chủ",
-     "date": "2026-11-18T08:31:00+07:00",
-     "summary": "Nhiều người dùng iPhone bất ngờ bị đăng xuất tài khoản Apple, không thể tải ứng dụng hoặc kích hoạt thiết bị mới.",
-     "lastmod": null
-    },
-    {
-     "title": "Xiaomi mang smartphone 2 màn hình về Việt Nam",
-     "date": "2026-11-18T08:29:00+07:00",
-     "summary": "Xiaomi 18 Pro và 18 Pro Max được trang bị màn hình chính với công nghệ OLED, độ phân giải 1.5K, trong khi màn hình sau tích hợp AI, mang đến nhiều trải nghiệm m",
-     "lastmod": null
-    }
-   ],
-   "ok": true,
-   "source": "thanhnien-cn",
-   "verdict": "DÙNG ĐƯỢC"
-  },
-  {
-   "url": "https://genk.vn/rss/ai.rss",
-   "http": 200,
-   "ms": 2528,
-   "bytes": 70219,
-   "content_type": "text/xml; charset=UTF-8",
-   "items": 61,
-   "with_date": 61,
-   "with_summary": 61,
-   "newest": "2026-11-18T14:05:00+00:07",
-   "oldest": "2026-10-24T13:04:00+00:07",
-   "age_newest_h": -0.1,
-   "last_24h": 4,
-   "last_7d": 14,
-   "sample": [
-    {
-     "title": "Microsoft cho AI làm việc chung với nhân viên qua Copilot Workspaces",
-     "date": "2026-11-18T14:05:00+00:07",
-     "summary": "Tại Ignite 2026, Microsoft giới thiệu Copilot kiểu mới, nơi AI không chỉ trả lời câu hỏi mà còn nhận việc và theo đuổi dự án dài ngày.",
-     "lastmod": null
-    },
-    {
-     "title": "Làn sóng người ngoài hành tinh da xanh \"rởm\" gieo rắc ngụy khoa học làm khuynh đảo mạng xã hội Trung Quốc",
-     "date": "2026-11-18T12:01:00+00:07",
-     "summary": "Bắt nguồn từ một nhân vật trí tuệ nhân tạo thành công, hàng loạt kẻ lừa đảo tại Trung Quốc đã sao chép tạo hình người ngoài hành tinh da xanh để gieo rắc nỗi sợ",
-     "lastmod": null
-    },
-    {
-     "title": "Từ bàn phím vẽ trên giấy đến cuộc đua AI triệu đô",
-     "date": "2026-11-17T16:51:00+00:07",
-     "summary": "Người ta có thể choáng ngợp trước con số 1 triệu USD. Nhưng đằng sau giải thưởng hiện kim của Âu Lạc Grand Prize 2026 còn là những câu chuyện về những người “ng",
-     "lastmod": null
-    },
-    {
-     "title": "AMD ra mắt EPYC thế hệ 6: Tối đa 256 nhân, xung nhịp lên tới 5,3GHz, tăng tốc cho hệ thống AI",
-     "date": "2026-11-17T15:34:00+00:07",
-     "summary": "Dòng CPU máy chủ mới sử dụng kiến trúc Zen 6, hướng tới các trung tâm dữ liệu AI và ứng dụng doanh nghiệp.",
-     "lastmod": null
-    },
-    {
-     "title": "KOL Trung Quốc bị chỉ trích vì dùng AI \"hồi sinh\" người ông đã khuất trên mạng",
-     "date": "2026-11-16T19:33:00+00:07",
-     "summary": "Việc một tài khoản thời trang đình đám tại Trung Quốc bất ngờ đăng tải các video về người ông đã khuất được tái tạo bằng trí tuệ nhân tạo đang tạo ra những luồn",
-     "lastmod": null
-    },
-    {
-     "title": "Kẻ lừa đảo gặp chiêu bài đảo chiều: Bị hàng trăm nghìn bot AI “giả ngu” giăng bẫy ngược",
-     "date": "2026-11-16T13:08:00+00:07",
-     "summary": "Một công ty tại Úc đang dùng hàng trăm nghìn bot AI giả làm những người có thể mắc bẫy lừa đảo. Trong lúc đối phương tìm cách thuyết phục “nạn nhân” chuyển tiền",
-     "lastmod": null
-    },
-    {
-     "title": "OpenAI ra mắt ví 'ChatGPT Wallet', cho phép các trợ lý AI thực hiện các giao dịch mua sắm thay cho người dùng",
-     "date": "2026-11-16T07:59:00+00:07",
-     "summary": "Cuộc cách mạng \"thương mại tự động\" vừa bước sang một chương mới khi OpenAI chính thức giới thiệu ChatGPT Wallet. Tính năng đột phá này cho phép các trợ lý AI t",
-     "lastmod": null
-    },
-    {
-     "title": "Từ nay 15/11, bắt đầu áp dụng quy định mới liên quan chuyển tiền tự động trên 10 triệu đồng, 20 triệu, 50 triệu, 100 tri",
-     "date": "2026-11-15T17:43:00+00:07",
-     "summary": "Từ ngày 15/11/2026, Thông tư 53/2026/TT-NHNN của Ngân hàng Nhà nước Việt Nam (NHNN) chính thức có hiệu lực, đưa ra quy định mới về an toàn, quản lý rủi ro và đi",
-     "lastmod": null
-    }
-   ],
-   "ok": true,
-   "source": "genk-ai",
-   "verdict": "DÙNG ĐƯỢC"
   }
  ]
 }
