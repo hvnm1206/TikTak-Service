@@ -1,6 +1,6 @@
-run=44141693081 sha=6751ba7bb8feee32ddfb68c77c11db9cdb57978a job=success
+run=44318941149 sha=3e4bae72db7f7740327e1e21a2745218b39f9b49 job=success
 url=https://nmh-news.magical-budget.workers.dev
-prev_version=1ad0cafa-134b-4ff2-8700-ec99ea4790a3
+prev_version=7a2b616a-f346-4cf3-98ea-695d9a9681f2
 PASS GET / (200)
 PASS Google Client ID trong trang (1)
 PASS có nhận giọng (1)
@@ -11,6 +11,6 @@ PASS /api/ask chưa đăng nhập (401)
 PASS /api/admin chưa đăng nhập (401)
 PASS trang có nhân vật + quản trị (11)
 PASS POST khác origin (403)
-Uploaded nmh-news (2.31 sec)
-Deployed nmh-news triggers (0.82 sec)
-Current Version ID: 7a2b616a-f346-4cf3-98ea-695d9a9681f2
+Uploaded nmh-news (1.86 sec)
+Deployed nmh-news triggers (0.89 sec)
+Current Version ID: 7de734c6-dbd7-450f-878c-1b76174b03f7
