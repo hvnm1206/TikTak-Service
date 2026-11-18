@@ -218,3 +218,11 @@ test('lựa chọn cũ: nguồn và nhóm thêm sau tự bật, cái người d�
   assert.deepEqual(t.chosenSources.sort(), ['bleeping', 'techcrunch']);
   assert.deepEqual(t.chosenCategories.sort(), ['Bảo mật & an toàn AI', 'Mô hình & nghiên cứu AI'].sort());
 });
+
+test('ngân sách tháng toàn app (cập nhật tin + hỏi đáp) chặn hỏi đáp khi chạm trần', async () => {
+  const env = setup({ MONTHLY_USD_LIMIT: '0.05', DAILY_USD_LIMIT: '1' });
+  env.DB.db.prepare('INSERT INTO runs (id,started_at,est_usd) VALUES (?,?,?)').run('r', Date.now(), 0.05);
+  const r = await post(env, '/api/ask', { messages: [{ role: 'user', content: 'x' }] });
+  assert.equal(r.status, 429);
+  assert.ok((await r.json()).error.includes('ngân sách'));
+});

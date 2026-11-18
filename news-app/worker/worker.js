@@ -102,9 +102,16 @@ async function addUsage(env, uid, d) {
     tts_chars=tts_chars+excluded.tts_chars,est_usd=est_usd+excluded.est_usd`)
     .bind(vnDay(), uid, d.q || 0, d.in || 0, d.cached || 0, d.out || 0, d.web || 0, d.tts || 0, d.usd || 0).run();
 }
-async function overDailyLimit(env, uid) {
-  const r = await env.DB.prepare('SELECT est_usd FROM usage WHERE day=? AND user_id=?').bind(vnDay(), uid).first();
-  return (r?.est_usd || 0) >= Number(env.DAILY_USD_LIMIT || 0.3);
+// Ngân sách: trần THÁNG cho toàn app (cập nhật tin + hỏi đáp mọi người dùng) và trần NGÀY mỗi người để không tiêu hết trong một đêm.
+export async function budgetBlock(env, uid) {
+  const day = vnDay(), month = day.slice(0, 7);
+  const [u, m] = await env.DB.batch([
+    env.DB.prepare('SELECT est_usd FROM usage WHERE day=? AND user_id=?').bind(day, uid),
+    env.DB.prepare(`SELECT (SELECT COALESCE(SUM(est_usd),0) FROM usage WHERE day LIKE ?) + (SELECT COALESCE(SUM(est_usd),0) FROM runs WHERE date(started_at/1000 + 7*3600, 'unixepoch') LIKE ?) AS usd`).bind(month + '%', month + '%'),
+  ]);
+  if ((m.results[0]?.usd || 0) >= Number(env.MONTHLY_USD_LIMIT || 3)) return 'Tháng này app đã dùng hết ngân sách. Đầu tháng sau tôi trả lời tiếp nhé.';
+  if ((u.results[0]?.est_usd || 0) >= Number(env.DAILY_USD_LIMIT || 0.1)) return 'Hôm nay đã dùng hết hạn mức hỏi đáp. Mai anh hỏi tiếp nhé.';
+  return null;
 }
 
 // ---------- Hỏi đáp ----------
@@ -132,11 +139,12 @@ export async function ask(env, user, body, fetchImpl = fetch) {
     .map(m => ({ role: m.role, content: m.content.slice(0, 2000) }));
   if (!msgs.length || msgs.at(-1).role !== 'user') return fail('Thiếu câu hỏi');
   if (!env.OPENAI_API_KEY) return fail('Chưa cấu hình OPENAI_API_KEY trên Worker', 503);
-  if (await overDailyLimit(env, user.id)) return fail('Hôm nay đã dùng hết hạn mức chi phí hỏi đáp. Mai anh hỏi tiếp nhé.', 429);
+  const blocked = await budgetBlock(env, user.id);
+  if (blocked) return fail(blocked, 429);
   const { articles } = await userArticles(env, user.id);
   const style = Object.hasOwn(STYLES, body?.style) ? body.style : 'danh_da';
   const today = await env.DB.prepare('SELECT web_searches FROM usage WHERE day=? AND user_id=?').bind(vnDay(), user.id).first();
-  const webAllowed = (today?.web_searches || 0) < Number(env.WEB_DAILY_LIMIT || 10);
+  const webAllowed = (today?.web_searches || 0) < Number(env.WEB_DAILY_LIMIT || 5);
   const req = {
     model: MODEL, reasoning: { effort: 'low' }, instructions: buildInstructions(style, articles, webAllowed), input: msgs,
     max_output_tokens: 1200, store: false,
@@ -242,11 +250,11 @@ export async function adminOverview(env) {
   ]);
   const p = pipeM.results[0], a = qaM.results[0];
   return {
-    month, target_usd: Number(env.MONTHLY_TARGET_USD || 1),
+    month, target_usd: Number(env.MONTHLY_USD_LIMIT || 3),
     cost: { pipeline_usd: p.usd, qa_usd: a.usd, total_usd: p.usd + a.usd, runs: p.runs, new_articles: p.articles, questions: a.questions, web_searches: a.web, tts_chars: a.tts },
     days: days.results, runs: runs.results, sources: sources.results, db: counts.results[0], users: users.results,
     tts_free_chars: TTS_FREE_CHARS,
-    config: { allowed_count: emailList(env.ALLOWED_EMAILS).length, daily_limit_usd: Number(env.DAILY_USD_LIMIT || 0.3), schedule: '00:00 giờ Việt Nam (GitHub Actions)', manual_run: !!env.GITHUB_TOKEN },
+    config: { allowed_count: emailList(env.ALLOWED_EMAILS).length, daily_limit_usd: Number(env.DAILY_USD_LIMIT || 0.1), web_daily_limit: Number(env.WEB_DAILY_LIMIT || 5), schedule: '00:00 giờ Việt Nam (GitHub Actions)', manual_run: !!env.GITHUB_TOKEN },
   };
 }
 async function adminRunNow(env, fetchImpl = fetch) {

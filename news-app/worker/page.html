@@ -153,7 +153,7 @@ async function loadAdmin(){const B=$("adminBody");B.replaceChildren("Đang tải
  B.append(el("h3",{},"Nguồn tin"),table(["Nguồn","7 ngày / tổng","Lần đọc tốt","Bật"],d.sources.map(s=>{const cb=el("input",{type:"checkbox"});cb.checked=!s.admin_disabled&&!!s.enabled;cb.disabled=!s.enabled;cb.onchange=async()=>{cb.disabled=true;try{await api("/api/admin/source",{id:s.id,disabled:!cb.checked})}catch(e){cb.checked=!cb.checked;alertBox(e.message)}cb.disabled=false};
   return [el("div",{},s.name+(s.is_default?"":" (riêng"+(s.created_by_email?": "+s.created_by_email:"")+")"),s.last_error?el("div",{class:"bad"},String(s.last_error).slice(0,120)):""),s.n7d+" / "+s.total,dt(s.last_ok_at),cb]})));
  const db=d.db;B.append(el("h3",{},"Tài nguyên D1"),kv("Bài viết",db.articles,"URL đã ghi nhận (sitemap)",db.seen_urls,"Người dùng",db.users,"Phiên đăng nhập còn hạn",db.sessions,"Bài cũ nhất",dt(db.oldest)),
-  el("h3",{},"Người dùng tháng này"),table(["Tài khoản","Câu hỏi","Phí"],d.users.map(u=>[u.email||u.name,u.questions,usd(u.usd)])),el("p",{class:"hint"},"Hạn mức mỗi người/ngày: "+d.config.daily_limit_usd+" USD · "+d.config.allowed_count+" email được phép"));
+  el("h3",{},"Người dùng tháng này"),table(["Tài khoản","Câu hỏi","Phí"],d.users.map(u=>[u.email||u.name,u.questions,usd(u.usd)])),el("p",{class:"hint"},"Trần tháng (cả app): "+d.target_usd+" USD · mỗi người/ngày: "+d.config.daily_limit_usd+" USD · tra web: "+d.config.web_daily_limit+" lần/ngày · "+d.config.allowed_count+" email được phép"));
  }catch(e){B.replaceChildren("Lỗi: "+e.message)}}
 function alertBox(m){$("err").textContent=m}
 $("adminBtn").onclick=()=>{if(active)$("stop").onclick();show("admin");loadAdmin()};$("adminBack").onclick=()=>show("talk");$("adminRefresh").onclick=loadAdmin;
