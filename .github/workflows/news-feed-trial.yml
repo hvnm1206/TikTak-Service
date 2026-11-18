@@ -43,7 +43,7 @@ jobs:
           } | tee news-feed/out/secrets_presence.txt
           for v in K1 K2 K3 K4; do if [ -n "${!v}" ]; then echo "key_var=$v" >> "$GITHUB_OUTPUT"; break; fi; done
       - name: 2) Chạy thử bản tin bằng GPT (chỉ khi đã có secret OpenAI)
-        if: steps.keys.outputs.key_var != ''
+        if: false  # chỉ kiểm tra nguồn, không gọi GPT
         env:
           K1: ${{ secrets.OPENAI_API_KEY }}
           K2: ${{ secrets.NMH_OPENAI_API_KEY }}
