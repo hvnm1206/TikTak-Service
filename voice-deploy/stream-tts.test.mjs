@@ -87,3 +87,15 @@ test('SETUP switch off sends playback back to the old whole-file MP3 path',async
  await assert.rejects(h.ctx.run('x',"danh_da",new AbortController().signal,1,()=>{},()=>true,null),/STREAM_VOICE_OFF/);
  assert.equal(h.requests.length,0);
 });
+test('18/11: Google base64 JSON is decoded on the phone, WAV header stripped, every PCM sample played once',async()=>{
+ const whole=pcm(2);const head=new Uint8Array(44),v=new DataView(head.buffer);head.set([82,73,70,70]);v.setUint32(4,36+whole.length,true);head.set([87,65,86,69,102,109,116,32],8);v.setUint32(16,16,true);head.set([100,97,116,97],36);v.setUint32(40,whole.length,true);
+ const wavBytes=new Uint8Array(44+whole.length);wavBytes.set(head);wavBytes.set(whole,44);
+ const h=await harness({chunks:[]});h.ctx.atob=s=>Buffer.from(s,'base64').toString('latin1');
+ h.ctx.fetch=async(url,opt)=>{h.requests.push(JSON.parse(opt.body));return {ok:true,body:{},headers:{get:k=>({'x-nmh-tts-wire':'google-b64','x-nmh-tts-source':'google-chirp3-leda'})[k]||null},json:async()=>({audioContent:Buffer.from(wavBytes).toString('base64')})}};
+ const first=await h.ctx.run('Xin chào',"danh_da",new AbortController().signal,1,()=>{},()=>true,null);
+ assert.equal(first.stream,true);assert.equal(h.requests[0].wire,'b64');
+ await new Promise(r=>setTimeout(r,30));
+ const total=h.started.reduce((a,s)=>a+s.buffer.length,0);
+ const expected=whole.length/2*2+Math.round(48000*.25); // 24k->48k, + limiter flush and silent tail (header bytes not played)
+ assert.ok(Math.abs(total-expected)<=2,'samples '+total+' vs '+expected);
+});

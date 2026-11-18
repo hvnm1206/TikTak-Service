@@ -58,3 +58,14 @@ test('long route sentence: arrows -> commas and split into short sentences for G
  const fb=await tts({GOOGLE_TTS_KEY:'g'},{apiKey:KEY,text:'Xin chào.',style:'danh_da'},u=>u.includes('googleapis')?Response.json({error:{message:'This request contains sentences that are too long.'}},{status:400}):new Response(new Uint8Array(300),{headers:{'content-type':'audio/mpeg'}}));
  assert.equal(fb.r.headers.get('x-nmh-tts-source'),'openai-marin');assert.match(fb.r.headers.get('x-nmh-tts-google-error'),/HTTP 400 This request contains sentences/);
 });
+test('18/11 CPU fix: wire b64 passes Google JSON through untouched (no server decode); old clients keep binary',async()=>{
+ const {h}=wav(2400);const payload=JSON.stringify({audioContent:b64(h)});
+ const orig=globalThis.fetch;globalThis.fetch=async()=>new Response(payload,{headers:{'content-type':'application/json'}});
+ try{
+  const r=await worker.fetch(new Request('https://voice.example/api/tts',{method:'POST',headers:{origin:'https://voice.example','content-type':'application/json'},body:JSON.stringify({apiKey:KEY,text:'Xin chào',format:'pcm',wire:'b64'})}),{GOOGLE_TTS_KEY:'g'},{});
+  assert.equal(r.status,200);assert.equal(r.headers.get('x-nmh-tts-wire'),'google-b64');assert.equal(r.headers.get('x-nmh-tts-source'),'google-chirp3-leda');
+  assert.equal(await r.text(),payload);
+  const old=await worker.fetch(new Request('https://voice.example/api/tts',{method:'POST',headers:{origin:'https://voice.example','content-type':'application/json'},body:JSON.stringify({apiKey:KEY,text:'Xin chào',format:'pcm'})}),{GOOGLE_TTS_KEY:'g'},{});
+  assert.equal(old.headers.get('content-type'),'audio/L16;rate=24000;channels=1');assert.equal(old.headers.get('x-nmh-tts-wire'),null);
+ }finally{globalThis.fetch=orig}
+});

@@ -113,6 +113,10 @@ if(u.pathname==="/api/tts"){
   try{
    const gr=await fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key="+encodeURIComponent(env.GOOGLE_TTS_KEY),{method:"POST",headers:{"Content-Type":"application/json"},signal:gctl.signal,
     body:JSON.stringify({input:{text:gtext},voice:{languageCode:"vi-VN",name:env.NGO_GOOGLE_VOICE||"vi-VN-Chirp3-HD-Leda"},audioConfig:{audioEncoding:pcm?"LINEAR16":"MP3",sampleRateHertz:24000,speakingRate:speakingSpeed}})});
+   // 18/11/2026: exceededResources on Workers Free. Decoding Google's base64 audio here cost 35-186 ms CPU per sentence
+   // (measured), far over the 10 ms limit. Clients that ask for wire "b64" get Google's JSON untouched (zero CPU) and
+   // decode on the iPhone; older clients (reminders player, cached pages) keep the binary path below.
+   if(gr.ok&&body?.wire==="b64")return new Response(gr.body,{status:200,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff","x-nmh-tts-source":"google-chirp3-leda","x-nmh-tts-wire":"google-b64"}});
    if(gr.ok){
     const gj=await gr.json();let bytes=Uint8Array.from(atob(String(gj?.audioContent||"")),c=>c.charCodeAt(0));
     if(pcm&&bytes.length>44&&String.fromCharCode(...bytes.subarray(0,4))==="RIFF"){

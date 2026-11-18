@@ -54,16 +54,26 @@ const client=String.raw`
    return Float32Array.from(out);
   };
  }
+ function ngoPcmFromGoogleJson(j){
+  const bin=atob(String(j?.audioContent||""));let bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  if(bytes.length>44&&bytes[0]===82&&bytes[1]===73&&bytes[2]===70&&bytes[3]===70){
+   for(let i=12;i+8<=bytes.length;){const id=String.fromCharCode(bytes[i],bytes[i+1],bytes[i+2],bytes[i+3]),size=(bytes[i+4]|bytes[i+5]<<8|bytes[i+6]<<16|bytes[i+7]<<24)>>>0;if(id==="data"){bytes=bytes.subarray(i+8,Math.min(bytes.length,i+8+size));break}i+=8+size+(size&1)}
+  }
+  if(bytes.length<128)throw Error("TTS_EMPTY_AUDIO");
+  const step=16384;let o=0;
+  return {read:async()=>{if(o>=bytes.length)return {done:true};const v=bytes.subarray(o,o+step);o+=step;return {value:v,done:false}},cancel:async()=>{},releaseLock(){}};
+ }
  async function ngoStreamSpeech(text,voiceStyle,signal,playbackSpeed,onDone,valid,onFirstByte){
   if(typeof ngoStreamVoice!=="undefined"&&!ngoStreamVoice)throw Error("STREAM_VOICE_OFF");
   if(!audioCtx)throw Error("AUDIO_STREAM_NOT_UNLOCKED");
   ngoAudioSessionSafe("playback");
   if(audioCtx.state!=="running")await audioCtx.resume();
   if(audioCtx.state!=="running")throw Error("AUDIO_CONTEXT_SUSPENDED");
-  const r=await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},cache:"no-store",body:JSON.stringify({apiKey:key,text,style:voiceStyle,format:"pcm"}),signal});
+  const r=await fetch("/api/tts",{method:"POST",headers:{"Content-Type":"application/json"},cache:"no-store",body:JSON.stringify({apiKey:key,text,style:voiceStyle,format:"pcm",wire:"b64"}),signal});
   if(!r.ok||!r.body)throw Error("TTS_STREAM_HTTP_"+r.status);
   globalThis.ngoTtsSource=r.headers.get("x-nmh-tts-source")||"";
-  const reader=r.body.getReader(),inRate=24000,outRate=audioCtx.sampleRate;
+  // 18/11/2026: Google audio arrives as base64 JSON and is decoded here on the phone (server CPU limit); OpenAI Marin stays raw PCM.
+  const reader=r.headers.get("x-nmh-tts-wire")==="google-b64"?ngoPcmFromGoogleJson(await r.json()):r.body.getReader(),inRate=24000,outRate=audioCtx.sampleRate;
   const resample=ngoMakeResampler(inRate*playbackSpeed/outRate),limiter=ngoMakeLimiter(outRate);
   const meter=audioCtx.createAnalyser();meter.fftSize=256;meter.connect(audioCtx.destination);
   let odd=null,queue=[],queued=0,nextTime=0,gain=0,measure=[],measured=0,total=0,started=false,firstByte=false,last=null,resolveStart,rejectStart;
