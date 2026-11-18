@@ -16,6 +16,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '769c2ab4af5ad50700039d473a72d48e'
     steps:
       - uses: actions/checkout@v4
+      - name: Mẫu XML Tuổi Trẻ
+        run: mkdir -p news-feed/out; curl -sL -A 'NMH-NewsFeed/0.1' https://tuoitre.vn/rss/nhip-song-so.rss | head -c 2500 > news-feed/out/tuoitre_head.xml
       - name: 1) Kiểm tra từng nguồn RSS
         run: python3 news-feed/probe_rss.py news-feed/sources.json news-feed/out
       - name: Secret OpenAI có sẵn ở đâu? (chỉ in có/không, không in giá trị)
