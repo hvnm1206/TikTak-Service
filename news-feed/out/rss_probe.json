@@ -1,1033 +1,707 @@
 {
- "checked_at": "2026-11-17T15:15:41.790305+00:00",
+ "checked_at": "2026-11-18T13:50:52.174257+00:00",
  "results": [
   {
-   "url": "https://vnexpress.net/rss/so-hoa.rss",
-   "http": 200,
-   "ms": 1998,
-   "bytes": 68840,
-   "content_type": "application/xml; charset=utf-8",
-   "items": 60,
-   "with_date": 60,
-   "with_summary": 60,
-   "newest": "2026-11-17T19:11:43+07:00",
-   "oldest": "2026-11-13T00:00:00+07:00",
-   "age_newest_h": 3.1,
-   "last_24h": 15,
-   "last_7d": 60,
-   "sample": [
-    {
-     "title": "Việt Nam nghiên cứu chung, hợp tác khoa học công nghệ với Trung Quốc",
-     "date": "2026-11-17T19:11:43+07:00",
-     "summary": "Việt Nam và Trung Quốc công bố các nhiệm vụ nghiên cứu chung, đồng thời ký 16 văn kiện hợp tác giữa cơ quan, trường đại học và doanh nghiệp về khoa học và công ",
-     "lastmod": null
-    },
-    {
-     "title": "TP HCM lấy hiệu quả kinh doanh làm thước đo chuyển đổi số doanh nghiệp nhỏ",
-     "date": "2026-11-17T16:53:27+07:00",
-     "summary": "Lãnh đạo UBND TP HCM khẳng định chuyển đổi số chỉ thành công khi lan tỏa tới từng cửa hàng, hộ kinh doanh và lấy hiệu quả thực tế làm tiêu chí đánh giá chính.",
-     "lastmod": null
-    },
-    {
-     "title": "'Việt Nam cần dồn lực cho chip chuyên dụng'",
-     "date": "2026-11-17T16:08:13+07:00",
-     "summary": "Việt Nam sẽ tập trung phát triển chip bán dẫn ở phân khúc chuyên dụng, gắn với công nghệ chiến lược, thay vì cạnh tranh trực diện trong lĩnh vực chip đa dụng, t",
-     "lastmod": null
-    },
-    {
-     "title": "Bình chọn máy lọc nước RO Hydrogen được yêu thích",
-     "date": "2026-11-17T15:29:57+07:00",
-     "summary": "Số bình chọn thứ 7 của Sản phẩm tôi yêu 2026 có chủ đề máy lọc nước RO Hydrogen được yêu thích nhất, bắt đầu từ 12h ngày 17-26/11.",
-     "lastmod": null
-    },
-    {
-     "title": "Elon Musk tiết lộ siêu tên lửa Starship V4 sẽ lớn và mạnh hơn",
-     "date": "2026-11-17T14:35:21+07:00",
-     "summary": "Elon Musk, nhà sáng lập kiêm CEO SpaceX, cho biết phiên bản mới của tên lửa Starship sẽ dài 70 m, tăng 40% kích thước và chứa nhiều nhiên liệu đẩy hơn 60% so vớ",
-     "lastmod": null
-    },
-    {
-     "title": "Viettel được cấp phép kinh doanh viễn thông tại Cộng hòa Dominica",
-     "date": "2026-11-17T14:17:30+07:00",
-     "summary": "Viettel được quyền triển khai mạng 4G/5G tại Cộng hòa Dominica sau khi ký hợp đồng nhượng quyền viễn thông tại đây.",
-     "lastmod": null
-    },
-    {
-     "title": "Sam Altman nói về Jensen Huang: 'Người hùng cũng có khuyết điểm'",
-     "date": "2026-11-17T12:00:00+07:00",
-     "summary": "CEO OpenAI Sam Altman nói \"đồng cảm sâu sắc\" với Jensen Huang, nhưng từ chối bình luận về khả năng cựu CEO Nvidia quay lại công ty.",
-     "lastmod": null
-    },
-    {
-     "title": "Giá tiền ảo Pi xuống mức thấp nhất từ khi mở mạng",
-     "date": "2026-11-17T11:00:00+07:00",
-     "summary": "Giá tiền ảo Pi lần đầu chạm mốc 0,05 USD, giảm 98% giá trị so với mức đỉnh 3 USD, trong bối cảnh dự án không chuyển biến tích cực.",
-     "lastmod": null
-    }
-   ],
-   "ok": true,
-   "source": "vnexpress-sohoa",
-   "verdict": "DÙNG ĐƯỢC"
+   "url": "https://venturebeat.com/category/ai/feed/",
+   "http": 429,
+   "ok": false,
+   "error": "HTTP Error 429: Too Many Requests",
+   "source": "venturebeat-ai",
+   "verdict": "HỎNG"
   },
   {
-   "url": "https://vnexpress.net/rss/khoa-hoc-cong-nghe.rss",
+   "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
    "http": 200,
-   "ms": 1151,
-   "bytes": 68840,
-   "content_type": "application/xml; charset=utf-8",
-   "items": 60,
-   "with_date": 60,
-   "with_summary": 60,
-   "newest": "2026-11-17T19:11:43+07:00",
-   "oldest": "2026-11-13T00:00:00+07:00",
-   "age_newest_h": 3.1,
-   "last_24h": 15,
-   "last_7d": 60,
-   "sample": [
-    {
-     "title": "Việt Nam nghiên cứu chung, hợp tác khoa học công nghệ với Trung Quốc",
-     "date": "2026-11-17T19:11:43+07:00",
-     "summary": "Việt Nam và Trung Quốc công bố các nhiệm vụ nghiên cứu chung, đồng thời ký 16 văn kiện hợp tác giữa cơ quan, trường đại học và doanh nghiệp về khoa học và công ",
-     "lastmod": null
-    },
-    {
-     "title": "TP HCM lấy hiệu quả kinh doanh làm thước đo chuyển đổi số doanh nghiệp nhỏ",
-     "date": "2026-11-17T16:53:27+07:00",
-     "summary": "Lãnh đạo UBND TP HCM khẳng định chuyển đổi số chỉ thành công khi lan tỏa tới từng cửa hàng, hộ kinh doanh và lấy hiệu quả thực tế làm tiêu chí đánh giá chính.",
-     "lastmod": null
-    },
-    {
-     "title": "'Việt Nam cần dồn lực cho chip chuyên dụng'",
-     "date": "2026-11-17T16:08:13+07:00",
-     "summary": "Việt Nam sẽ tập trung phát triển chip bán dẫn ở phân khúc chuyên dụng, gắn với công nghệ chiến lược, thay vì cạnh tranh trực diện trong lĩnh vực chip đa dụng, t",
-     "lastmod": null
-    },
-    {
-     "title": "Bình chọn máy lọc nước RO Hydrogen được yêu thích",
-     "date": "2026-11-17T15:29:57+07:00",
-     "summary": "Số bình chọn thứ 7 của Sản phẩm tôi yêu 2026 có chủ đề máy lọc nước RO Hydrogen được yêu thích nhất, bắt đầu từ 12h ngày 17-26/11.",
-     "lastmod": null
-    },
-    {
-     "title": "Elon Musk tiết lộ siêu tên lửa Starship V4 sẽ lớn và mạnh hơn",
-     "date": "2026-11-17T14:35:21+07:00",
-     "summary": "Elon Musk, nhà sáng lập kiêm CEO SpaceX, cho biết phiên bản mới của tên lửa Starship sẽ dài 70 m, tăng 40% kích thước và chứa nhiều nhiên liệu đẩy hơn 60% so vớ",
-     "lastmod": null
-    },
-    {
-     "title": "Viettel được cấp phép kinh doanh viễn thông tại Cộng hòa Dominica",
-     "date": "2026-11-17T14:17:30+07:00",
-     "summary": "Viettel được quyền triển khai mạng 4G/5G tại Cộng hòa Dominica sau khi ký hợp đồng nhượng quyền viễn thông tại đây.",
-     "lastmod": null
-    },
-    {
-     "title": "Sam Altman nói về Jensen Huang: 'Người hùng cũng có khuyết điểm'",
-     "date": "2026-11-17T12:00:00+07:00",
-     "summary": "CEO OpenAI Sam Altman nói \"đồng cảm sâu sắc\" với Jensen Huang, nhưng từ chối bình luận về khả năng cựu CEO Nvidia quay lại công ty.",
-     "lastmod": null
-    },
-    {
-     "title": "Giá tiền ảo Pi xuống mức thấp nhất từ khi mở mạng",
-     "date": "2026-11-17T11:00:00+07:00",
-     "summary": "Giá tiền ảo Pi lần đầu chạm mốc 0,05 USD, giảm 98% giá trị so với mức đỉnh 3 USD, trong bối cảnh dự án không chuyển biến tích cực.",
-     "lastmod": null
-    }
-   ],
-   "ok": true,
-   "source": "vnexpress-sohoa",
-   "verdict": "DÙNG ĐƯỢC"
-  },
-  {
-   "url": "https://genk.vn/rss/home.rss",
-   "http": 200,
-   "ms": 1424,
-   "bytes": 69889,
-   "content_type": "text/xml; charset=UTF-8",
-   "items": 61,
-   "with_date": 61,
-   "with_summary": 61,
-   "newest": "2026-11-17T21:31:00+07:00",
-   "oldest": "2026-11-16T09:26:00+07:00",
-   "age_newest_h": 0.7,
-   "last_24h": 37,
-   "last_7d": 61,
-   "sample": [
-    {
-     "title": "Đây là Xiaomi 18 Pro Max: Màu xanh quá đẹp, màn hình phụ có AI, camera Leica chụp chân dung đã ngon hơn nhiều, giá lại c",
-     "date": "2026-11-17T21:31:00+07:00",
-     "summary": "Máy nhẹ hơn iPhone 18 Pro Max, chụp chân dung tự nhiên hơn đời trước, còn màn hình chống nhìn trộm chưa được như kỳ vọng nhưng giá lại hợp lý hơn nhiều so với v",
-     "lastmod": null
-    },
-    {
-     "title": "Đừng xem thường 2 món đồ giá vài chục này: Quen mà lạ, có cả tá công dụng, ai không biết thì quá phí!",
-     "date": "2026-11-17T20:12:00+07:00",
-     "summary": "Từ khử mùi giày, vệ sinh đồ thể thao đến chăm sóc cơ thể sau khi cạo râu, đây là hai món đồ nhỏ mà cánh mày râu nên biết để tiết kiệm cả thời gian lẫn tiền bạc.",
-     "lastmod": null
-    },
-    {
-     "title": "Microsoft 365 sập hàng chục tiếng mới khôi phục được, nguyên nhân từ một lỗi tồn tại suốt 3 tháng nay",
-     "date": "2026-11-17T20:01:00+07:00",
-     "summary": "Vào lúc đỉnh điểm, 80% máy chủ dành cho các dịch vụ Microsoft 365 đã không thể hoạt động được.",
-     "lastmod": null
-    },
-    {
-     "title": "Xiaomi đưa máy giặt, tủ lạnh cao cấp về Việt Nam: Phép thử cho dài hạn?",
-     "date": "2026-11-17T19:30:00+07:00",
-     "summary": "Sau hơn một năm bước chân vào mảng gia dụng lớn tại Việt Nam, Xiaomi giới thiệu dòng thiết bị cao cấp - Mijia Pro Series với máy giặt sấy 3 lồng giặt và tủ lạnh",
-     "lastmod": null
-    },
-    {
-     "title": "Huawei sắp giải quyết nếp gấp smartphone gập mà không cần màn hình nhám như iPhone Duo?",
-     "date": "2026-11-17T18:50:00+07:00",
-     "summary": "Video giới thiệu Mate X8 hé lộ màn hình gần như hoàn toàn phẳng, làm dấy lên kỳ vọng Huawei có thể xử lý nếp gấp theo cách khác với Apple.",
-     "lastmod": null
-    },
-    {
-     "title": "Đứng top 1 Google vẫn vô hình trước AI: 62% đường link mà AI gợi ý nằm ngoài top 10 tìm kiếm",
-     "date": "2026-11-17T17:59:00+07:00",
-     "summary": "Suốt hai thập kỷ, thắng trên Google gần như là thắng khách hàng. Nhưng một lớp trung gian mới vừa chen vào giữa thương hiệu và người mua, và nó chơi theo một bộ",
-     "lastmod": null
-    },
-    {
-     "title": "Loạt ngân hàng lớn tại Mỹ gặp sự cố hệ thống, hàng nghìn người dùng không thể đăng nhập",
-     "date": "2026-11-17T17:10:00+07:00",
-     "summary": "JPMorgan Chase, ngân hàng lớn nhất Mỹ, cho biết lỗi phần mềm trên hệ thống phần cứng nội bộ đã làm gián đoạn quá trình xử lý một số giao dịch. Sự cố cũng có thể",
-     "lastmod": null
-    },
-    {
-     "title": "Từ bàn phím vẽ trên giấy đến cuộc đua AI triệu đô",
-     "date": "2026-11-17T16:51:00+07:00",
-     "summary": "Người ta có thể choáng ngợp trước con số 1 triệu USD. Nhưng đằng sau giải thưởng hiện kim của Âu Lạc Grand Prize 2026 còn là những câu chuyện về những người “ng",
-     "lastmod": null
-    }
-   ],
-   "ok": true,
-   "source": "genk",
-   "verdict": "DÙNG ĐƯỢC"
-  },
-  {
-   "url": "https://genk.vn/rss/ai.rss",
-   "http": 200,
-   "ms": 1261,
-   "bytes": 70457,
-   "content_type": "text/xml; charset=UTF-8",
-   "items": 61,
-   "with_date": 61,
-   "with_summary": 61,
-   "newest": "2026-11-17T16:51:00+07:00",
-   "oldest": "2026-10-24T08:22:00+07:00",
-   "age_newest_h": 5.4,
-   "last_24h": 2,
-   "last_7d": 15,
-   "sample": [
-    {
-     "title": "Từ bàn phím vẽ trên giấy đến cuộc đua AI triệu đô",
-     "date": "2026-11-17T16:51:00+07:00",
-     "summary": "Người ta có thể choáng ngợp trước con số 1 triệu USD. Nhưng đằng sau giải thưởng hiện kim của Âu Lạc Grand Prize 2026 còn là những câu chuyện về những người “ng",
-     "lastmod": null
-    },
-    {
-     "title": "AMD ra mắt EPYC thế hệ 6: Tối đa 256 nhân, xung nhịp lên tới 5,3GHz, tăng tốc cho hệ thống AI",
-     "date": "2026-11-17T15:34:00+07:00",
-     "summary": "Dòng CPU máy chủ mới sử dụng kiến trúc Zen 6, hướng tới các trung tâm dữ liệu AI và ứng dụng doanh nghiệp.",
-     "lastmod": null
-    },
-    {
-     "title": "KOL Trung Quốc bị chỉ trích vì dùng AI \"hồi sinh\" người ông đã khuất trên mạng",
-     "date": "2026-11-16T19:33:00+07:00",
-     "summary": "Việc một tài khoản thời trang đình đám tại Trung Quốc bất ngờ đăng tải các video về người ông đã khuất được tái tạo bằng trí tuệ nhân tạo đang tạo ra những luồn",
-     "lastmod": null
-    },
-    {
-     "title": "Kẻ lừa đảo gặp chiêu bài đảo chiều: Bị hàng trăm nghìn bot AI “giả ngu” giăng bẫy ngược",
-     "date": "2026-11-16T13:08:00+07:00",
-     "summary": "Một công ty tại Úc đang dùng hàng trăm nghìn bot AI giả làm những người có thể mắc bẫy lừa đảo. Trong lúc đối phương tìm cách thuyết phục “nạn nhân” chuyển tiền",
-     "lastmod": null
-    },
-    {
-     "title": "OpenAI ra mắt ví 'ChatGPT Wallet', cho phép các trợ lý AI thực hiện các giao dịch mua sắm thay cho người dùng",
-     "date": "2026-11-16T07:59:00+07:00",
-     "summary": "Cuộc cách mạng \"thương mại tự động\" vừa bước sang một chương mới khi OpenAI chính thức giới thiệu ChatGPT Wallet. Tính năng đột phá này cho phép các trợ lý AI t",
-     "lastmod": null
-    },
-    {
-     "title": "Từ nay 15/11, bắt đầu áp dụng quy định mới liên quan chuyển tiền tự động trên 10 triệu đồng, 20 triệu, 50 triệu, 100 tri",
-     "date": "2026-11-15T17:43:00+07:00",
-     "summary": "Từ ngày 15/11/2026, Thông tư 53/2026/TT-NHNN của Ngân hàng Nhà nước Việt Nam (NHNN) chính thức có hiệu lực, đưa ra quy định mới về an toàn, quản lý rủi ro và đi",
-     "lastmod": null
-    },
-    {
-     "title": "Hóa ra \"đạo quân AI Agent bay lượn\" được các thầy dạy AI dùng là tiện ích Chrome rẻ tiền này",
-     "date": "2026-11-15T15:41:00+07:00",
-     "summary": "Sự thật đằng sau “đội quân AI Agent” có khả năng làm việc suốt ngày đêm, không ăn không uống chỉ tốn tiền điện và tiền token có thể khiến bạn bất ngờ.",
-     "lastmod": null
-    },
-    {
-     "title": "Nvidia dưới thời Jensen Huang: Từ chip đồ họa đến hạ tầng AI",
-     "date": "2026-11-15T15:00:00+07:00",
-     "summary": "VTV.vn - Trong 33 năm dưới thời Jensen Huang, Nvidia từ một hãng chip đồ họa cho trò chơi điện tử trở thành nhà cung cấp hạ tầng trí tuệ nhân tạo hàng đầu.",
-     "lastmod": null
-    }
-   ],
-   "ok": true,
-   "source": "genk",
-   "verdict": "DÙNG ĐƯỢC"
-  },
-  {
-   "url": "https://techcrunch.com/feed/",
-   "http": 200,
-   "ms": 88,
-   "bytes": 17879,
+   "ms": 93,
+   "bytes": 117477,
    "content_type": "application/rss+xml; charset=UTF-8",
-   "items": 20,
-   "with_date": 20,
-   "with_summary": 20,
-   "newest": "2026-11-17T15:07:06+00:00",
-   "oldest": "2026-11-16T18:54:18+00:00",
-   "age_newest_h": 0.1,
-   "last_24h": 20,
-   "last_7d": 20,
+   "items": 10,
+   "with_date": 10,
+   "with_summary": 10,
+   "newest": "2026-11-18T10:20:30+00:00",
+   "oldest": "2026-11-06T10:00:00+00:00",
+   "age_newest_h": 3.5,
+   "last_24h": 2,
+   "last_7d": 6,
    "sample": [
     {
-     "title": "Uber and Zipline’s drone delivery service takes off in Texas, with dozens of cities to follow",
-     "date": "2026-11-17T15:07:06+00:00",
-     "summary": "The two companies want to make one million deliveries per day using Zipline drones by the end of 2029.",
+     "title": "This smell startup says its AI nose is as good as a human’s",
+     "date": "2026-11-18T10:20:30+00:00",
+     "summary": "In a lab near Newark Airport in New Jersey, a team of around 30 experienced human sniffers are slowly working their way through every odor on Earth. Their caref",
      "lastmod": null
     },
     {
-     "title": "Meta launches Direct, a standalone messaging app for Instagram",
-     "date": "2026-11-17T15:01:46+00:00",
-     "summary": "Direct is launching in Turkey and Thailand, and can be used with or without an Instagram account.",
+     "title": "Research Reports",
+     "date": "2026-11-17T14:39:46+00:00",
+     "summary": "To access a report, click on the corresponding image below.",
      "lastmod": null
     },
     {
-     "title": "Voyage Labs raises $12 million for a specialized AI travel assistant",
-     "date": "2026-11-17T15:00:00+00:00",
-     "summary": "Planning a trip is a favorite demo for personal AI assistants: you can try it with Muse, or with Gemini or half a dozen other choices. But while most pitches us",
+     "title": "The open-source movement wants Jensen Huang back",
+     "date": "2026-11-16T18:38:47+00:00",
+     "summary": "This story originally appeared in The Algorithm, our weekly newsletter on AI. To get stories like this in your inbox first, sign up here. On Friday, a petition ",
      "lastmod": null
     },
     {
-     "title": "Instagram’s new tool for creators targets unauthorized reposts and AI-modified videos",
-     "date": "2026-11-17T15:00:00+00:00",
-     "summary": "The announcement likely comes in response to creators' concerns over how easily original content can be copied and redistributed across social media platforms, ",
+     "title": "Building trustworthy AI by fencing it in, not predicting it",
+     "date": "2026-11-16T16:04:28+00:00",
+     "summary": "In October this year, OpenAI disclosed that two of its AI agents had switched off the systems built to monitor them. One muted its own safety alerts after misre",
      "lastmod": null
     },
     {
-     "title": "Isomorphic Labs raises $5B as it looks to take drug candidates to clinical trials",
-     "date": "2026-11-17T14:50:58+00:00",
-     "summary": "Isomorphic Labs, the AI drug-discovery platform that was spun out of Google’s DeepMind in 2021, has raised $5 Billion in a Series C funding round.",
+     "title": "Building AI that can work across the enterprise",
+     "date": "2026-11-16T13:00:00+00:00",
+     "summary": "For years, enterprises have approached AI as a series of discrete experiments. Now, as AI agents begin to move into the workflows that run the business, that mo",
      "lastmod": null
     },
     {
-     "title": "Science Corporation’s brain tech is worth $3.5 billion after new funding",
-     "date": "2026-11-17T14:26:46+00:00",
-     "summary": "Science Corp raised a $400 million Series D to scale up its anti-blindness business.",
+     "title": "Nvidia privately confirmed it could track chips to fight smuggling, even as industry publicly questioned feasibility",
+     "date": "2026-11-12T20:16:24+00:00",
+     "summary": "Representatives from Nvidia told Illinois representative Bill Foster that it would be technically possible to implement the anti-smuggling measures called for i",
      "lastmod": null
     },
     {
-     "title": "Nvidia’s first big move after Jensen Huang’s exit targets national security",
-     "date": "2026-11-17T14:05:30+00:00",
-     "summary": "The new standing committee will give board-level oversight of national security policies, export control compliance, and global trade risks, the company said.",
+     "title": "The backlash about data centers might really just be about electricity",
+     "date": "2026-11-09T19:35:33+00:00",
+     "summary": "This story originally appeared in The Algorithm, our weekly newsletter on AI. To get stories like this in your inbox first, sign up here. As voters went to the ",
      "lastmod": null
     },
     {
-     "title": "Spotify’s new tool aims to stop deepfakes from being attributed to real artists",
-     "date": "2026-11-17T14:00:00+00:00",
-     "summary": "The update comes as Billboard reported last month that Sony Music had requested the removal of more than 260,000 deepfake songs from digital platforms, nearly d",
+     "title": "Nancy Pelosi’s replacement is ready to regulate AI",
+     "date": "2026-11-09T17:05:43+00:00",
+     "summary": "As a California state senator, Scott Wiener authored legislation aimed at curbing the risks of advanced AI. Now, after winning a tight congressional race for fo",
      "lastmod": null
     }
    ],
    "ok": true,
-   "source": "techcrunch",
+   "source": "mit-tr-ai",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://the-decoder.com/feed/",
+   "http": 200,
+   "ms": 1562,
+   "bytes": 20170,
+   "content_type": "application/rss+xml; charset=UTF-8",
+   "items": 10,
+   "with_date": 10,
+   "with_summary": 10,
+   "newest": "2026-11-18T13:28:49+00:00",
+   "oldest": "2026-11-16T19:42:13+00:00",
+   "age_newest_h": 0.4,
+   "last_24h": 9,
+   "last_7d": 10,
+   "sample": [
+    {
+     "title": "SEC probes Nvidia over undisclosed chip sales tied to China",
+     "date": "2026-11-18T13:28:49+00:00",
+     "summary": "The U.S. Securities and Exchange Commission (SEC) has launched a civil investigation into Nvidia. The article SEC probes Nvidia over undisclosed chip sales tied",
+     "lastmod": null
+    },
+    {
+     "title": "Suno's new Visuals feature pairs AI-generated music with AI-generated video",
+     "date": "2026-11-18T10:22:45+00:00",
+     "summary": "AI music generator Suno can now create images and video clips to go with its songs, thanks to a new feature called Visuals. The article Suno's new Visuals featu",
+     "lastmod": null
+    },
+    {
+     "title": "OpenAI launches GPT-6.2 Astra and Sol with lower API prices and some benchmark gains",
+     "date": "2026-11-17T20:30:50+00:00",
+     "summary": "OpenAI releases GPT-6.2 Astra and Sol, two new models that are more capable and cheaper than their predecessors. In the independent Artificial Analysis Intellig",
+     "lastmod": null
+    },
+    {
+     "title": "AI agents are starting to fill out medical forms and file insurance requests in place of human staff",
+     "date": "2026-11-17T16:55:47+00:00",
+     "summary": "OpenAI wants GPT-6 Astra and GPT-6 Luna to automate administrative tasks in US healthcare through computer-use agents that operate existing clinic software and ",
+     "lastmod": null
+    },
+    {
+     "title": "The US wants to block China from renting AI power abroad but China already built a parallel supply chain from US AI outp",
+     "date": "2026-11-17T16:47:21+00:00",
+     "summary": "The US is tightening its chip export controls. Data centers in third countries like Singapore and Malaysia will soon need a US license to buy Nvidia chips, clos",
+     "lastmod": null
+    },
+    {
+     "title": "OpenAI opens its cybersecurity tool Daybreak to NATO and European governments",
+     "date": "2026-11-17T15:02:03+00:00",
+     "summary": "OpenAI is opening its cybersecurity tool Daybreak to NATO and several European governments, including Germany, France, and Poland. The EU's cybersecurity agency",
+     "lastmod": null
+    },
+    {
+     "title": "Reports of AI-generated child sexual abuse material have surged more than 8,400 percent in two years",
+     "date": "2026-11-17T14:59:50+00:00",
+     "summary": "Edinburgh's Childlight Institute reports a more than 8,400 percent increase in AI-generated child sexual abuse material over two years, from about 4,700 reports",
+     "lastmod": null
+    },
+    {
+     "title": "Isomorphic Labs raises $5 billion in its second mega-round within six months",
+     "date": "2026-11-17T14:57:02+00:00",
+     "summary": "Isomorphic Labs has raised $5 billion, just six months after a $2.1 billion round. Alphabet's AI drug discovery company, led by Demis Hassabis, plans to use the",
+     "lastmod": null
+    }
+   ],
+   "ok": true,
+   "source": "the-decoder",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://www.artificialintelligence-news.com/feed/",
+   "http": 200,
+   "ms": 931,
+   "bytes": 561846,
+   "content_type": "text/html; charset=UTF-8",
+   "ok": false,
+   "error": "ParseError: syntax error: line 1, column 0",
+   "source": "ai-news",
+   "verdict": "HỎNG"
+  },
+  {
+   "url": "https://www.wired.com/feed/tag/ai/latest/rss",
+   "http": 200,
+   "ms": 114,
+   "bytes": 10157,
+   "content_type": "application/xml",
+   "items": 10,
+   "with_date": 10,
+   "with_summary": 10,
+   "newest": "2026-11-18T10:00:00+00:00",
+   "oldest": "2026-11-15T11:00:00+00:00",
+   "age_newest_h": 3.8,
+   "last_24h": 3,
+   "last_7d": 10,
+   "sample": [
+    {
+     "title": "Lovable Wants You to Vibe Code Your Dream Job",
+     "date": "2026-11-18T10:00:00+00:00",
+     "summary": "This Swedish startup dominated the vibe-coded app boom. Two years after launch, Lovable is shifting gears to help users run vibe-coded businesses.",
+     "lastmod": null
+    },
+    {
+     "title": "Over a Third of Gen Z-ers Rely on AI for Friendship",
+     "date": "2026-11-18T05:01:00+00:00",
+     "summary": "Young people who have online-only friends or use AI as a social companion face higher odds of loneliness than those who do not, a new Gallup report reveals.",
+     "lastmod": null
+    },
+    {
+     "title": "Nvidia’s Board Has No Plans to Bring Back Jensen Huang",
+     "date": "2026-11-17T22:19:19+00:00",
+     "summary": "Despite pressure from President Trump, Elon Musk, and Silicon Valley executives, Nvidia’s board says it “does not intend” to reinstate the company’s ousted CEO.",
+     "lastmod": null
+    },
+    {
+     "title": "Rogue Agents Hacked His Company. Why Is Clément Delangue So Optimistic About AI?",
+     "date": "2026-11-17T11:00:00+00:00",
+     "summary": "The French CEO of Hugging Face, a mega-hub of open-source AI software, says the attack by OpenAI models earlier this year proved one thing: Humanity can’t let A",
+     "lastmod": null
+    },
+    {
+     "title": "The Apple Watch’s Live Rewind Can Record and Rewind Spoken Conversations. It’s Pretty Awkward",
+     "date": "2026-11-17T11:00:00+00:00",
+     "summary": "Live Rewind and Siri Recap can transcribe missed moments and summarize your day—if you don’t mind a little social clumsiness.",
+     "lastmod": null
+    },
+    {
+     "title": "AI Told These Ex-Google Guys How to Build a Billion-Dollar Weapons Business",
+     "date": "2026-11-17T10:47:45+00:00",
+     "summary": "Google and Apple alumni Chad Steelberg and Andy Baynes are applying what they learned running software companies and designing iPhones to manufacturing lethal m",
+     "lastmod": null
+    },
+    {
+     "title": "Jensen Huang Is Gone. Now What?",
+     "date": "2026-11-16T16:12:51+00:00",
+     "summary": "After a shocking downfall, Nvidia’s CEO is out of a job. WIRED’s Lauren Goode explains what that means for the world’s most critical chip company, the AI indust",
+     "lastmod": null
+    },
+    {
+     "title": "Nvidia Was Already in Trouble Before the Jensen Huang Mess",
+     "date": "2026-11-16T11:00:00+00:00",
+     "summary": "AI competitors are catching up to Nvidia—and poised to take advantage of the chaos.",
+     "lastmod": null
+    }
+   ],
+   "ok": true,
+   "source": "wired-ai",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://www.zdnet.com/topic/artificial-intelligence/rss.xml",
+   "http": 200,
+   "ms": 127,
+   "bytes": 25484,
+   "content_type": "application/atom+xml; charset=UTF-8",
+   "items": 25,
+   "with_date": 25,
+   "with_summary": 25,
+   "newest": "2026-11-18T12:56:53+00:00",
+   "oldest": "2026-11-12T17:11:16+00:00",
+   "age_newest_h": 0.9,
+   "last_24h": 11,
+   "last_7d": 25,
+   "sample": [
+    {
+     "title": "Microsoft’s new Licensed Weights lets businesses customize AI models with their own data",
+     "date": "2026-11-18T12:56:53+00:00",
+     "summary": "Microsoft is bridging the gap between proprietary and open-weight AI while targeting data-conscious businesses.",
+     "lastmod": null
+    },
+    {
+     "title": "Microsoft unveiled Copilot Workspaces at Ignite 2026, plus more AI workplace updates",
+     "date": "2026-11-17T23:14:05+00:00",
+     "summary": "The company also released new ROI tracking tools for companies monitoring their AI spend.",
+     "lastmod": null
+    },
+    {
+     "title": "Microsoft wants to put a dollar value on AI’s work – but can you trust the math?",
+     "date": "2026-11-17T23:05:48+00:00",
+     "summary": "With Agent 365 Business Analytics, Microsoft could reshape enterprise spending, but there’s a critical difference between estimated value and money saved.",
+     "lastmod": null
+    },
+    {
+     "title": "Microsoft says its new AI coding model rivals Claude Opus 5.5 at 5% of the cost",
+     "date": "2026-11-17T22:42:44+00:00",
+     "summary": "Microsoft announced two new AI models at Ignite 2026 that promise impressive performance for much lower cost. They could reshape its relationship with OpenAI an",
+     "lastmod": null
+    },
+    {
+     "title": "Goodbye, Gemini Gems: How to use Google’s new Skills – and share them",
+     "date": "2026-11-17T19:54:04+00:00",
+     "summary": "Google is retiring Gemini Gems. Here’s what to do to access the same tools as Skills.",
+     "lastmod": null
+    },
+    {
+     "title": "Your Googlebook just got a Chrome update – 5 new features",
+     "date": "2026-11-17T18:21:55+00:00",
+     "summary": "The Chrome update includes more useful vertical tabs, easier screen sharing, and some handy keyboard shortcuts.",
+     "lastmod": null
+    },
+    {
+     "title": "Google is making it easier to opt out of Gemini AI model training – here’s how",
+     "date": "2026-11-17T18:01:38+00:00",
+     "summary": "You’ll soon be able to turn off Gemini model training but still retain access to your previous chats with Google’s AI.",
+     "lastmod": null
+    },
+    {
+     "title": "I asked Gemini Notebook to ‘make me a site’ from my notes – it was satisfying",
+     "date": "2026-11-17T17:52:39+00:00",
+     "summary": "A new Gemini Notebook feature lets you create interactive sites from intricate data.",
+     "lastmod": null
+    }
+   ],
+   "ok": true,
+   "source": "zdnet-ai",
    "verdict": "DÙNG ĐƯỢC"
   },
   {
    "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
    "http": 200,
-   "ms": 42,
-   "bytes": 17866,
+   "ms": 115,
+   "bytes": 17331,
    "content_type": "application/rss+xml; charset=UTF-8",
    "items": 20,
    "with_date": 20,
    "with_summary": 20,
-   "newest": "2026-11-17T14:50:58+00:00",
-   "oldest": "2026-11-15T21:56:35+00:00",
-   "age_newest_h": 0.4,
-   "last_24h": 14,
+   "newest": "2026-11-18T13:00:00+00:00",
+   "oldest": "2026-11-17T16:32:55+00:00",
+   "age_newest_h": 0.8,
+   "last_24h": 20,
    "last_7d": 20,
    "sample": [
     {
-     "title": "Isomorphic Labs raises $5B as it looks to take drug candidates to clinical trials",
-     "date": "2026-11-17T14:50:58+00:00",
-     "summary": "Isomorphic Labs, the AI drug-discovery platform that was spun out of Google’s DeepMind in 2021, has raised $5 Billion in a Series C funding round.",
+     "title": "Nvidia clarifies when it will — and won’t —keep financing neoclouds",
+     "date": "2026-11-18T13:00:00+00:00",
+     "summary": "If Nvidia is backstopping a data center loan, it won't be on the hook unless the neocould has independent financing and gets the facility built, with Nvidia gea",
      "lastmod": null
     },
     {
-     "title": "Science Corporation’s brain tech is worth $3.5 billion after new funding",
-     "date": "2026-11-17T14:26:46+00:00",
-     "summary": "Science Corp raised a $400 million Series D to scale up its anti-blindness business.",
+     "title": "Felicis leads $7.5M bet on Unsiloed AI to make enterprise documents usable by AI agents",
+     "date": "2026-11-18T12:00:00+00:00",
+     "summary": "With a team of just seven, Unsiloed AI plans to compete with tech giants and specialized startups in the crowded AI document-processing market.",
      "lastmod": null
     },
     {
-     "title": "Nvidia’s first big move after Jensen Huang’s exit targets national security",
-     "date": "2026-11-17T14:05:30+00:00",
-     "summary": "The new standing committee will give board-level oversight of national security policies, export control compliance, and global trade risks, the company said.",
+     "title": "India’s Humyn Labs raises $47M to feed U.S. robotics companies the data they need",
+     "date": "2026-11-18T11:30:00+00:00",
+     "summary": "Founded in February, Humyn Labs competes with startups including Mecka AI and XDOF, with about 90% of its revenue coming from the U.S.",
      "lastmod": null
     },
     {
-     "title": "Spotify’s new tool aims to stop deepfakes from being attributed to real artists",
-     "date": "2026-11-17T14:00:00+00:00",
-     "summary": "The update comes as Billboard reported last month that Sony Music had requested the removal of more than 260,000 deepfake songs from digital platforms, nearly d",
+     "title": "Nvidia’s startup stakes ballooned to $65B, but Huang’s exit puts future deals in doubt",
+     "date": "2026-11-18T01:44:21+00:00",
+     "summary": "The value of Nvidia’s private investments has nearly tripled over the past nine months, fueled by Jensen Huang’s aggressive dealmaking and rising valuations of ",
      "lastmod": null
     },
     {
-     "title": "Cybersecurity AI startup Corma reaches $1B valuation in about 3 months",
-     "date": "2026-11-16T23:32:32+00:00",
-     "summary": "Three months since introducing its product, AI cybersecurity startup Corba has raised a $125 million Series A at a $1 billion valuation led by NEA.",
+     "title": "Nvidia promises that revenue will keep soaring — for now",
+     "date": "2026-11-18T00:16:50+00:00",
+     "summary": "Despite the turmoil Nvidia is in after the departure of its disgraced founder and CEO Jensen Huang, the company projected that its streak of record-breaking rev",
      "lastmod": null
     },
     {
-     "title": "All the questions Nvidia should answer on Tuesday — but probably won’t",
-     "date": "2026-11-16T22:03:02+00:00",
-     "summary": "Nvidia interim CEO and longtime CFO Colette Kress is about to have one of the biggest days of her career on Tuesday when the company reports its third-quarter r",
+     "title": "Nvidia is abandoning China after Jensen Huang’s ouster",
+     "date": "2026-11-17T23:37:48+00:00",
+     "summary": "Nvidia's interim CEO says the company is done selling chips to China. How much will that cost?",
      "lastmod": null
     },
     {
-     "title": "California state AG sues OpenAI over rogue agent incidents",
-     "date": "2026-11-16T20:07:13+00:00",
-     "summary": "The California lawsuit represents one of the first attempts to hold an AI lab legally accountable for a rogue agent incident.",
+     "title": "Nvidia says its open source AI strategy remains intact after Jensen Huang’s exit",
+     "date": "2026-11-17T23:04:35+00:00",
+     "summary": "Nvidia's interim CEO reaffirmed its open source AI strategy and plans to acquire Hugging Face, despite Jensen Huang's sudden departure.",
      "lastmod": null
     },
     {
-     "title": "Trump says ex-Nvidia CEO Jensen Huang’s affair with an alleged Chinese spy did not threaten national security",
-     "date": "2026-11-16T19:12:02+00:00",
-     "summary": "Trump contradicted his own government's intelligence officials, who reportedly concluded that Alice Huang is a Chinese spy.",
+     "title": "Nvidia says it doesn’t plan to reappoint Jensen Huang as CEO",
+     "date": "2026-11-17T22:42:27+00:00",
+     "summary": "The former CEO offered to return to his top role at the company after his resignation last week.",
      "lastmod": null
     }
    ],
    "ok": true,
-   "source": "techcrunch",
-   "verdict": "DÙNG ĐƯỢC"
-  },
-  {
-   "url": "https://www.theverge.com/rss/index.xml",
-   "http": 200,
-   "ms": 62,
-   "bytes": 32073,
-   "content_type": "application/xml; charset=UTF-8",
-   "items": 10,
-   "with_date": 10,
-   "with_summary": 10,
-   "newest": "2026-11-17T10:06:37-05:00",
-   "oldest": "2026-11-16T15:42:51-05:00",
-   "age_newest_h": 0.2,
-   "last_24h": 10,
-   "last_7d": 10,
-   "sample": [
-    {
-     "title": "The aliens are coming in 3 Body Problem’s first season 2 trailer",
-     "date": "2026-11-17T10:06:37-05:00",
-     "summary": "The first season of Netflix's 3 Body Problem series ended with the remaining members of the Oxford Five disillusioned at the idea of humanity being utterly unpr",
-     "lastmod": null
-    },
-    {
-     "title": "The Verge Best of 2026",
-     "date": "2026-11-17T10:01:00-05:00",
-     "summary": "Hundreds of gadgets pass across our desks each year. Some leave their mark and get a full review or make it to the top of a buying guide. It's harder than it so",
-     "lastmod": null
-    },
-    {
-     "title": "This E Ink photo frame can double as your family’s digital dashboard",
-     "date": "2026-11-17T09:49:21-05:00",
-     "summary": "Trmnl, a company best known for its highly customizable E Ink dashboards that can function as anything from a desktop calendar to a stock tracker, has introduce",
-     "lastmod": null
-    },
-    {
-     "title": "Windows 11 actually runs better on 8GB of RAM now",
-     "date": "2026-11-17T09:44:09-05:00",
-     "summary": "As recently as the beginning of the year, 16GB of RAM was common on sub-$800 Windows laptops, which helped compensate for an increasingly bloated-feeling Window",
-     "lastmod": null
-    },
-    {
-     "title": "Get ready for a nationwide emergency alert test at 2:20PM ET today",
-     "date": "2026-11-17T09:28:24-05:00",
-     "summary": "Radio and TV broadcasts will be interrupted for about one minute at 2:20PM ET on Tuesday while FEMA and the FCC test the country's Emergency Alert System. Unlik",
-     "lastmod": null
-    },
-    {
-     "title": "The Fire TV Stick 4K Plus is on sale for less than Amazon’s entry-level streamer",
-     "date": "2026-11-17T09:25:07-05:00",
-     "summary": "Amazon no longer considers the midrange Fire TV Stick 4K Plus as part of its official lineup following the launch of it latest Fire TV Stick 4K, but that doesn’",
-     "lastmod": null
-    },
-    {
-     "title": "Disney Plus and Hulu’s fully unified app arrives next month",
-     "date": "2026-11-17T08:46:02-05:00",
-     "summary": "Disney Plus and Hulu will officially become one app next month. As part of its earnings report released on Tuesday, Disney announced that bundle subscribers \"wi",
-     "lastmod": null
-    },
-    {
-     "title": "Hacker behind 2022 GTA VI leaks pleads guilty",
-     "date": "2026-11-16T18:35:58-05:00",
-     "summary": "Arion Kurtaj, a member of the Lapsus$ cybercrime group who leaked 90 videos of Grand Theft Auto VI in 2022 and hacked other big companies, pleaded guilty on Mon",
-     "lastmod": null
-    }
-   ],
-   "ok": true,
-   "source": "theverge",
+   "source": "techcrunch-ai",
    "verdict": "DÙNG ĐƯỢC"
   },
   {
    "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
    "http": 200,
-   "ms": 33,
-   "bytes": 28574,
+   "ms": 76,
+   "bytes": 28718,
    "content_type": "application/xml; charset=UTF-8",
    "items": 10,
    "with_date": 10,
    "with_summary": 10,
-   "newest": "2026-11-17T09:32:46-05:00",
-   "oldest": "2026-11-16T09:06:43-05:00",
+   "newest": "2026-11-18T08:11:48-05:00",
+   "oldest": "2026-11-16T18:04:02-05:00",
    "age_newest_h": 0.7,
-   "last_24h": 9,
+   "last_24h": 8,
    "last_7d": 10,
    "sample": [
     {
-     "title": "Nvidia’s board is reportedly ‘not considering’ hiring Jensen Huang back",
-     "date": "2026-11-17T09:32:46-05:00",
-     "summary": "Nvidia's board of directors \"isn't considering\" having Jensen Huang return as CEO, according to a report from CNBC. A source tells the outlet the board \"is focu",
+     "title": "Nvidia isn’t selling any more AI chips to China",
+     "date": "2026-11-18T08:11:48-05:00",
+     "summary": "Nvidia has stopped sending its advanced AI chips to China, despite the approval it received from the White House to do so in December last year. The announcemen",
      "lastmod": null
     },
     {
-     "title": "Tech leaders are convinced that Jensen Huang’s exit was a plot against him",
-     "date": "2026-11-16T18:20:44-05:00",
-     "summary": "Jensen Huang's stunning resignation from Nvidia after more than 33 years has sent shockwaves throughout the tech industry. Now prominent figures are calling for",
+     "title": "Suno now lets you make AI videos for your AI music",
+     "date": "2026-11-18T06:16:53-05:00",
+     "summary": "Suno has introduced image and video generation in its latest effort to expand beyond being an AI music platform. The new feature, called \"Visuals,\" allows users",
      "lastmod": null
     },
     {
-     "title": "California sues OpenAI over rogue AI hacking incidents",
-     "date": "2026-11-16T18:04:02-05:00",
-     "summary": "California is suing OpenAI after its AI agents broke out of their testing environment and hacked other companies, including Hugging Face. In a lawsuit filed Mon",
+     "title": "Satya Nadella says he’s AGI-pilled now",
+     "date": "2026-11-17T20:48:18-05:00",
+     "summary": "Microsoft CEO Satya Nadella says he's AGI-pilled, at least when it comes to how AI might make startling changes to the structure of the economy and how politics",
      "lastmod": null
     },
     {
-     "title": "Sam Altman says he wants everyone ‘to have a lot of RAM’",
-     "date": "2026-11-16T17:47:14-05:00",
-     "summary": "OpenAI CEO Sam Altman is once again addressing his controversial comments on PC RAM purchases. \"I want to be clear, I want people to have a lot of RAM, I think ",
+     "title": "Not even Sam Altman is safe from AI deepfakes on Instagram",
+     "date": "2026-11-17T18:52:34-05:00",
+     "summary": "Instagram is filled with people posting deepfaked content - including, as of late, from one of Meta's most prominent executives. Earlier in November, Alexandr W",
      "lastmod": null
     },
     {
-     "title": "Big Nuclear isn’t worried about the Democrats stopping data centers",
-     "date": "2026-11-16T15:32:51-05:00",
-     "summary": "Constellation Energy - America's largest operator of nuclear power plants - does not share Wall Street's concerns that the Democrats will slow down data center ",
+     "title": "Nvidia’s Q3 earnings hit the mark, without mentioning the whole Jensen Huang thing",
+     "date": "2026-11-17T17:50:29-05:00",
+     "summary": "Interim Nvidia CEO Colette Kress announced the company's Q3 earnings on Tuesday, without initially mentioning former CEO Jensen Huang or the details of his depa",
      "lastmod": null
     },
     {
-     "title": "US data centers now burn more electricity than a midsized country",
-     "date": "2026-11-16T15:27:58-05:00",
-     "summary": "Fossil fuels are still the biggest source of electricity for hyperscale data centers in the US, a new paper published in the journal Nature Sustainability shows",
+     "title": "Google’s Spark AI agent becomes ‘Tasks’ — and now it’s free",
+     "date": "2026-11-17T13:58:54-05:00",
+     "summary": "Google is rebranding its Spark AI agent as \"Tasks\" and making it free to use. The feature, which is powered by Google's new Gemini 4 Hydrogen AI model, can do t",
      "lastmod": null
     },
     {
-     "title": "Apple is testing daily usage limits for more complex Siri AI interactions",
-     "date": "2026-11-16T14:25:42-05:00",
-     "summary": "Apple released betas of iOS 27.3, iPadOS 27.3, and macOS 27.3 today, and the company is using the update to test new per device daily usage limits for some Siri",
+     "title": "Jensen Huang says he’s willing to return as Nvidia CEO",
+     "date": "2026-11-17T12:04:40-05:00",
+     "summary": "Jensen Huang, who resigned as Nvidia's CEO last week, would be willing to return as CEO if the company's board of directors wanted it, he said in a statement re",
      "lastmod": null
     },
     {
-     "title": "OpenAI wants to stop deepfakes from overwhelming child abuse tiplines",
-     "date": "2026-11-16T14:23:45-05:00",
-     "summary": "OpenAI is announcing a tool that it says will help child sexual abuse investigators cut through the noise to find harmful material they can act on quickly. At a",
+     "title": "The DOJ says it’s investigating Megaspeed",
+     "date": "2026-11-17T11:19:03-05:00",
+     "summary": "The Justice and Commerce Departments said that they are investigating Megaspeed, the Singapore-based data center company intertwined with the resignation of Nvi",
      "lastmod": null
     }
    ],
    "ok": true,
-   "source": "theverge",
+   "source": "verge-ai",
    "verdict": "DÙNG ĐƯỢC"
   },
   {
-   "url": "https://openai.com/news/rss.xml",
+   "url": "https://vietnamnet.vn/rss/cong-nghe.rss",
    "http": 200,
-   "ms": 91,
-   "bytes": 852721,
-   "content_type": "text/xml; charset=utf-8",
-   "items": 1401,
-   "with_date": 1401,
-   "with_summary": 1275,
-   "newest": "2026-11-17T00:00:00+00:00",
-   "oldest": "2015-12-11T08:00:00+00:00",
-   "age_newest_h": 15.3,
-   "last_24h": 4,
-   "last_7d": 23,
-   "sample": [
-    {
-     "title": "Strengthening NATO and allied cyber defenses with AI",
-     "date": "2026-11-17T00:00:00+00:00",
-     "summary": "How OpenAI is working with NATO and allied cyber agencies to help trusted defenders find vulnerabilities, test fixes and protect essential systems.",
-     "lastmod": null
-    },
-    {
-     "title": "Introducing OpenAI for Chile",
-     "date": "2026-11-17T00:00:00+00:00",
-     "summary": "OpenAI and the Government of Chile are partnering to support responsible AI adoption, build public-sector skills and help local startups develop AI applications",
-     "lastmod": null
-    },
-    {
-     "title": "Broadening access to AI for scientists",
-     "date": "2026-11-16T17:00:00+00:00",
-     "summary": "We’re expanding our ChatGPT for Academic Researchers program to offer 200,000 researchers worldwide free access to our frontier models.",
-     "lastmod": null
-    },
-    {
-     "title": "Strengthening the fight against online child sexual abuse with new tools and support",
-     "date": "2026-11-16T17:00:00+00:00",
-     "summary": "New tools, practical guidance, and partnerships will help prevent, detect and respond to online child sexual exploitation and abuse.",
-     "lastmod": null
-    },
-    {
-     "title": "Science at the Frontier: How scientists use ChatGPT",
-     "date": "2026-11-16T12:00:00+00:00",
-     "summary": "Explore how more than 1,800 scientists use ChatGPT in research. See findings on daily workflows, reported productivity, and expectations for discovery.",
-     "lastmod": null
-    },
-    {
-     "title": "How Revolut raises ambition without lowering the bar",
-     "date": "2026-11-16T09:30:00+00:00",
-     "summary": "Discover how Revolut uses OpenAI models and Codex to cut coding time by 30–60%, scale financial crime investigations, and innovate without compromising security",
-     "lastmod": null
-    },
-    {
-     "title": "LVMH’s Media Division announces strategic partnership with OpenAI",
-     "date": "2026-11-16T09:00:00+00:00",
-     "summary": "LVMH’s Media Division and OpenAI announce a partnership to support journalism with AI and make its publications more accessible through ChatGPT.",
-     "lastmod": null
-    },
-    {
-     "title": "Our first phase of embedded assessments",
-     "date": "2026-11-16T08:00:00+00:00",
-     "summary": "OpenAI begins embedded assessments with Apollo Research, METR, and Transluce, and Goodfire to independently evaluate model alignment, safeguards, and monitoring",
-     "lastmod": null
-    }
-   ],
-   "ok": true,
-   "source": "openai",
-   "verdict": "DÙNG ĐƯỢC"
-  },
-  {
-   "url": "https://openai.com/blog/rss.xml",
-   "http": 200,
-   "ms": 128,
-   "bytes": 852721,
-   "content_type": "text/xml; charset=utf-8",
-   "items": 1401,
-   "with_date": 1401,
-   "with_summary": 1275,
-   "newest": "2026-11-17T00:00:00+00:00",
-   "oldest": "2015-12-11T08:00:00+00:00",
-   "age_newest_h": 15.3,
-   "last_24h": 4,
-   "last_7d": 23,
-   "sample": [
-    {
-     "title": "Strengthening NATO and allied cyber defenses with AI",
-     "date": "2026-11-17T00:00:00+00:00",
-     "summary": "How OpenAI is working with NATO and allied cyber agencies to help trusted defenders find vulnerabilities, test fixes and protect essential systems.",
-     "lastmod": null
-    },
-    {
-     "title": "Introducing OpenAI for Chile",
-     "date": "2026-11-17T00:00:00+00:00",
-     "summary": "OpenAI and the Government of Chile are partnering to support responsible AI adoption, build public-sector skills and help local startups develop AI applications",
-     "lastmod": null
-    },
-    {
-     "title": "Broadening access to AI for scientists",
-     "date": "2026-11-16T17:00:00+00:00",
-     "summary": "We’re expanding our ChatGPT for Academic Researchers program to offer 200,000 researchers worldwide free access to our frontier models.",
-     "lastmod": null
-    },
-    {
-     "title": "Strengthening the fight against online child sexual abuse with new tools and support",
-     "date": "2026-11-16T17:00:00+00:00",
-     "summary": "New tools, practical guidance, and partnerships will help prevent, detect and respond to online child sexual exploitation and abuse.",
-     "lastmod": null
-    },
-    {
-     "title": "Science at the Frontier: How scientists use ChatGPT",
-     "date": "2026-11-16T12:00:00+00:00",
-     "summary": "Explore how more than 1,800 scientists use ChatGPT in research. See findings on daily workflows, reported productivity, and expectations for discovery.",
-     "lastmod": null
-    },
-    {
-     "title": "How Revolut raises ambition without lowering the bar",
-     "date": "2026-11-16T09:30:00+00:00",
-     "summary": "Discover how Revolut uses OpenAI models and Codex to cut coding time by 30–60%, scale financial crime investigations, and innovate without compromising security",
-     "lastmod": null
-    },
-    {
-     "title": "LVMH’s Media Division announces strategic partnership with OpenAI",
-     "date": "2026-11-16T09:00:00+00:00",
-     "summary": "LVMH’s Media Division and OpenAI announce a partnership to support journalism with AI and make its publications more accessible through ChatGPT.",
-     "lastmod": null
-    },
-    {
-     "title": "Our first phase of embedded assessments",
-     "date": "2026-11-16T08:00:00+00:00",
-     "summary": "OpenAI begins embedded assessments with Apollo Research, METR, and Transluce, and Goodfire to independently evaluate model alignment, safeguards, and monitoring",
-     "lastmod": null
-    }
-   ],
-   "ok": true,
-   "source": "openai",
-   "verdict": "DÙNG ĐƯỢC"
-  },
-  {
-   "url": "https://www.anthropic.com/sitemap.xml",
-   "http": 200,
-   "ms": 111,
-   "bytes": 76491,
+   "ms": 2945,
+   "bytes": 43116,
    "content_type": "application/xml",
-   "sitemap_urls": 592,
-   "published_date_found": 111,
-   "dropped_no_pubdate": [
-    {
-     "url": "https://www.anthropic.com/",
-     "lastmod": "2026-11-12T18:04:55+00:00",
-     "title": "Home",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    },
-    {
-     "url": "https://www.anthropic.com/beneficial-deployments",
-     "lastmod": "2026-11-05T23:23:41.295000+00:00",
-     "title": "Beneficial Deployments",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    },
-    {
-     "url": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
-     "lastmod": "2026-11-09T21:21:39+00:00",
-     "title": "Introducing Claude Fable 5.1 and Claude Mythos 5.1",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    },
-    {
-     "url": "https://www.anthropic.com/claude-fable-and-mythos-5-2",
-     "lastmod": "2026-11-11T18:10:20.077000+00:00",
-     "title": "Introducing Claude Fable 5.2 and Claude Mythos 5.2",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    },
-    {
-     "url": "https://www.anthropic.com/features/81k-interviews",
-     "lastmod": "2026-11-06T03:37:34+00:00",
-     "title": "What 81,000 people want from AI",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    },
-    {
-     "url": "https://www.anthropic.com/features/project-deal",
-     "lastmod": "2026-11-06T03:37:34+00:00",
-     "title": "Project Deal: our Claude-run marketplace experiment | Anthropic",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    },
-    {
-     "url": "https://www.anthropic.com/institute/measuring-pace-of-ai-development",
-     "lastmod": "2026-11-13T22:37:05.675000+00:00",
-     "title": "Measurements for understanding the pace of AI development inside frontier labs",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    },
-    {
-     "url": "https://www.anthropic.com/institute/recursive-self-improvement",
-     "lastmod": "2026-11-13T22:37:05.676000+00:00",
-     "title": "When AI builds itself",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    },
-    {
-     "url": "https://www.anthropic.com/legal/consumer-credit-terms",
-     "lastmod": "2026-11-06T15:47:56.030000+00:00",
-     "title": "Supplemental Consumer Credit Terms",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    },
-    {
-     "url": "https://www.anthropic.com/legal/guest-pass-terms",
-     "lastmod": "2026-11-05T20:58:31.521000+00:00",
-     "title": "Guest Pass Terms",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    },
-    {
-     "url": "https://www.anthropic.com/legal/self-hosted-managed-agents-license",
-     "lastmod": "2026-11-12T17:16:02.127000+00:00",
-     "title": "Software License Agreement: Claude Managed Agents Server",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    },
-    {
-     "url": "https://www.anthropic.com/policy-on-the-ai-exponential",
-     "lastmod": "2026-11-13T22:37:05.579000+00:00",
-     "title": "Policy on the AI Exponential",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    },
-    {
-     "url": "https://www.anthropic.com/science",
-     "lastmod": "2026-11-04T18:49:41+00:00",
-     "title": "Science",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    },
-    {
-     "url": "https://www.anthropic.com/transparency",
-     "lastmod": "2026-11-13T22:37:05.671000+00:00",
-     "title": "Anthropic’s Transparency Hub",
-     "meta_keys": [
-      "summary",
-      "title"
-     ]
-    }
-   ],
-   "meta_sources": [
-    "{\"date_from\": \"article:published_time\", \"summary_from\": \"og:description\", \"title_from\": \"og:title\"}"
-   ],
-   "items": 111,
-   "with_date": 111,
-   "with_summary": 111,
-   "newest": "2026-11-16T00:00:00+00:00",
-   "oldest": "2023-09-19T00:00:00+00:00",
-   "age_newest_h": 39.3,
+   "items": 36,
+   "with_date": 36,
+   "with_summary": 36,
+   "newest": "2025-05-06T17:11:33+07:00",
+   "oldest": "2025-02-03T13:23:08+07:00",
+   "age_newest_h": 13467.7,
    "last_24h": 0,
-   "last_7d": 2,
+   "last_7d": 0,
    "sample": [
     {
-     "title": "Updating our coordinated vulnerability disclosure policy timelines",
-     "date": "2026-11-16T00:00:00+00:00",
-     "summary": "We’re shortening our vulnerability disclosure window from 90 days to 30 days for high- and critical-severity issues, and to 45 days for all other issues.",
-     "lastmod": "2026-11-16T14:32:08.228000+00:00"
-    },
-    {
-     "title": "Building strong safety evaluations",
-     "date": "2026-11-13T00:00:00+00:00",
-     "summary": "Recommendations for designing, running, and reporting safety evaluations, based on our own experiences.",
-     "lastmod": "2026-11-17T13:46:19.009000+00:00"
-    },
-    {
-     "title": "Anthropic launches roadshow for proposed initial public offering",
-     "date": "2026-11-10T00:00:00+00:00",
-     "summary": "Today Anthropic, PBC launched the roadshow for its proposed initial public offering of its Class A common stock.",
-     "lastmod": "2026-11-10T11:32:16+00:00"
-    },
-    {
-     "title": "Claude can design electronic prototypes from start to finish",
-     "date": "2026-11-09T00:00:00+00:00",
-     "summary": "We asked Claude to design three electronic devices: a speakerphone, a voice-assistant hub, and a handheld virtual pet. The prototypes worked without any fixes t",
-     "lastmod": "2026-11-09T18:51:01+00:00"
-    },
-    {
-     "title": "The components of agent memory",
-     "date": "2026-11-06T00:00:00+00:00",
-     "summary": "For Claude to learn from experience, it has to decide what’s worth remembering before it knows what’s next. Here’s how “dreaming” helps it organize memory and c",
-     "lastmod": "2026-11-06T21:15:32+00:00"
-    },
-    {
-     "title": "Project EVE: Claude plays MMORPGs",
-     "date": "2026-11-06T00:00:00+00:00",
-     "summary": "We put Claude in two EVE games to study how AI agents handle markets and teamwork, where they break down, and what safeguards they might need.",
-     "lastmod": "2026-11-06T17:09:29+00:00"
-    },
-    {
-     "title": "Teaching AI to build scientific models",
-     "date": "2026-11-06T00:00:00+00:00",
-     "summary": "AI for Science grantees Jakob Macke, Daniel Gedon, and Stefan Wahl on how AI is starting to change how scientific models are built and interpreted.",
-     "lastmod": "2026-11-07T23:12:43+00:00"
-    },
-    {
-     "title": "How scientists use Claude",
-     "date": "2026-11-05T00:00:00+00:00",
-     "summary": "We analyzed 207,000 research sessions to learn how Claude is used in science, why some tasks get more use than others, and how AI could speed up discovery.",
-     "lastmod": "2026-11-13T17:02:43.413000+00:00"
-    }
-   ],
-   "ok": true,
-   "source": "anthropic",
-   "verdict": "ÍT CẬP NHẬT"
-  },
-  {
-   "url": "https://blog.google/technology/ai/rss/",
-   "http": 200,
-   "ms": 308,
-   "bytes": 30392,
-   "content_type": "application/xml; charset=utf-8",
-   "items": 20,
-   "with_date": 20,
-   "with_summary": 13,
-   "newest": "2026-11-16T14:00:00+00:00",
-   "oldest": "2026-09-17T20:00:00+00:00",
-   "age_newest_h": 25.3,
-   "last_24h": 0,
-   "last_7d": 6,
-   "sample": [
-    {
-     "title": "New Ask Maps features to help with holiday travel and prep",
-     "date": "2026-11-16T14:00:00+00:00",
-     "summary": "tbd",
+     "title": "Đưa mạng bưu chính thành hạ tầng thiết yếu của kinh tế số Việt Nam",
+     "date": "2025-05-06T17:11:33+07:00",
+     "summary": "Là một hợp phần của hạ tầng TT&amp;TT, mạng bưu chính được quy hoạch theo hướng mở rộng phục vụ cả thương mại điện tử và logistics, dần trở thành một hạ tầng th",
      "lastmod": null
     },
     {
-     "title": "Google Search gets a major upgrade with Gemini 4 Hydrogen",
-     "date": "2026-11-12T18:00:00+00:00",
-     "summary": "Rotating carousel of cards with text \"Gemini 4 Hydrogen\" \"Now in Google Search\" and examples from the Google Search UI",
+     "title": "Sẽ có chính sách ưu đãi phát triển doanh nghiệp công nghệ số Việt Nam",
+     "date": "2025-05-06T15:39:14+07:00",
+     "summary": "Luật Công nghiệp công nghệ số sẽ tạo hành lang pháp lý thúc đẩy phát triển công nghiệp công nghệ số, biến đây thành một ngành kinh tế đóng góp lớn cho đất nước.",
      "lastmod": null
     },
     {
-     "title": "Gemini Decisions API: Fast, calibrated multimodal decisions",
-     "date": "2026-11-11T18:00:00+00:00",
-     "summary": "Meet the Gemini Decisions API, powered by our state-of-the-art model Gemini Decision for fast, calibrated multimodal decisions.",
+     "title": "CMC hãy nhận việc lớn để góp sức đưa Việt Nam vào kỷ nguyên mới",
+     "date": "2025-04-22T16:39:57+07:00",
+     "summary": "Nhận định đã đến lúc CMC cần tuyên bố mình là một doanh nghiệp công nghệ số đầu đàn, Bộ trưởng Bộ TT&amp;TT Nguyễn Mạnh Hùng chỉ rõ, cách duy nhất để CMC lớn lê",
      "lastmod": null
     },
     {
-     "title": "Try Tabletop: Customizable, collaborative spaces for groups to plan, play and do more together.",
-     "date": "2026-11-11T16:00:00+00:00",
-     "summary": "Tabletop is a new Google Labs experiment for group collaboration. Build interactive itineraries, polls, and brackets with your team. Join the waitlist.",
+     "title": "Ba thách thức của doanh nghiệp Việt để vận hành dựa trên dữ liệu",
+     "date": "2025-04-15T17:10:57+07:00",
+     "summary": "Trao đổi tại hội thảo chuyên đề về quản trị doanh nghiệp ngày 29/5, đại diện MISA chỉ ra 3 vấn đề chính trong chuyển đổi số, cũng là 3 thách thức để vận hành dự",
      "lastmod": null
     },
     {
-     "title": "Experience the art and legacy of Dr. Esther Mahlangu",
-     "date": "2026-11-11T09:00:00+00:00",
-     "summary": "A portrait of Dr Nontobeko Ntombela, Senior Lecturer, Department of Curatorial, Public and Visual Cultures, Wits School of Arts, University of the Witwatersrand",
+     "title": "Hành trình công nghệ số Việt Nam vươn ra chinh phục thế giới",
+     "date": "2025-04-09T15:17:01+07:00",
+     "summary": "Các doanh nghiệp TT&amp;TT đang từng bước hiện thực hóa khát vọng tự chủ công nghệ và vươn ra thế giới. Doanh thu quốc tế năm 2024 của doanh nghiệp công nghệ số",
      "lastmod": null
     },
     {
-     "title": "Gemini Intelligence: New features, on more devices",
-     "date": "2026-11-10T19:00:00+00:00",
-     "summary": "A man speaks into a phone. Text on the screen reads 'Gemini Intelligence'",
+     "title": "Doanh nghiệp IT Việt chuyển từ gia công sang thiết kế giải pháp cho đối tác Nhật",
+     "date": "2025-04-08T15:02:58+07:00",
+     "summary": "Khảo sát nhanh của VINASA với 20 doanh nghiệp IT Việt Nam đang hoạt động tại Nhật Bản cho thấy, các doanh nghiệp đang có xu hướng tiến lên làm các dự án tầng ca",
      "lastmod": null
     },
     {
-     "title": "We’re bringing Adobe’s creative and productivity tools closer to your everyday Google apps.",
-     "date": "2026-11-10T14:00:00+00:00",
-     "summary": "Google and Adobe are integrating creative and productivity tools. Edit PDFs in Drive and use Adobe AI in Gemini. See what’s new in this partnership.",
+     "title": "Hợp tác đưa giải pháp an toàn thông tin ‘Make in Viet Nam’ ra thị trường quốc tế",
+     "date": "2025-04-03T16:52:34+07:00",
+     "summary": "BlueOC, công ty tư vấn và triển khai giải pháp phần mềm và doanh nghiệp an toàn thông tin mạng SafeGate cam kết hợp tác đưa sản phẩm, giải pháp an toàn thông ti",
      "lastmod": null
     },
     {
-     "title": "Google Cloud launches Gemini for healthcare.",
-     "date": "2026-11-10T13:00:00+00:00",
-     "summary": "Google Cloud launches Gemini for healthcare to unify clinical data and automate workflows. Reduce administrative burnout. See how it works.",
+     "title": "Nhiều doanh nghiệp tại Việt Nam sẵn sàng trả lương cao cho nhân sự mảng AI",
+     "date": "2025-03-24T10:39:07+07:00",
+     "summary": "Theo khảo sát mới được Navigos Group thực hiện với gần 500 doanh nghiệp tại Việt Nam, có tới hơn 62% doanh nghiệp cho biết mức lương họ trả cho nhân sự mảng AI ",
      "lastmod": null
     }
    ],
    "ok": true,
-   "source": "google-ai",
-   "verdict": "DÙNG ĐƯỢC"
+   "source": "vietnamnet-cn",
+   "verdict": "NGỪNG CẬP NHẬT"
   },
   {
-   "url": "https://research.google/blog/rss/",
+   "url": "https://tuoitre.vn/rss/nhip-song-so.rss",
    "http": 200,
-   "ms": 600,
-   "bytes": 78700,
-   "content_type": "application/rss+xml; charset=utf-8",
-   "items": 100,
-   "with_date": 100,
-   "with_summary": 3,
-   "newest": "2026-11-13T20:47:18+00:00",
-   "oldest": "2025-12-04T19:26:09+00:00",
-   "age_newest_h": 90.5,
-   "last_24h": 0,
-   "last_7d": 2,
+   "ms": 1309,
+   "bytes": 39648,
+   "content_type": "text/xml",
+   "items": 50,
+   "with_date": 0,
+   "with_summary": 50,
    "sample": [
     {
-     "title": "Advancing science & engineering with Antigravity’s /teamwork",
-     "date": "2026-11-13T20:47:18+00:00",
-     "summary": "Education Innovation",
+     "title": "Ra mắt sổ tay AI hướng dẫn giáo viên soạn bài, quản lý lớp học",
+     "date": null,
+     "summary": "Sổ tay điện tử cung cấp các hướng dẫn, câu lệnh mẫu và tình huống thực tế, giúp giáo viên ứng dụng trí tuệ nhân tạo (AI) vào soạn bài, kiểm tra đánh giá, xây dự",
      "lastmod": null
     },
     {
-     "title": "Using wearables to enable cardiovascular-kidney-metabolic (CKM) risk profiling for personalized coaching",
-     "date": "2026-11-11T19:54:00+00:00",
-     "summary": "Health & Bioscience",
+     "title": "Những 'điểm mù' công nghệ đằng sau sự cố dừng bay toàn nước Mỹ",
+     "date": null,
+     "summary": "Lệnh dừng bay toàn nước Mỹ phơi bày những điểm yếu của hạ tầng công nghệ: từ lỗi phần mềm, đứt cáp quang đến hệ thống dự phòng cũng có thể tê liệt.",
      "lastmod": null
     },
     {
-     "title": "Exploring the world's languages with Language Explorer",
-     "date": "2026-11-09T20:29:39+00:00",
-     "summary": "Natural Language Processing",
+     "title": "Microsoft xin lỗi sau sự cố dịch vụ tại 74 quốc gia và vùng lãnh thổ, công bố nguyên nhân",
+     "date": null,
+     "summary": "Sự cố kéo dài hơn 24 giờ khiến Outlook, Teams và Copilot gián đoạn trên diện rộng, với hơn 7,4 triệu lượt báo cáo trên toàn cầu.",
      "lastmod": null
     },
     {
-     "title": "Detecting signs of hypertension using wearable sensors",
-     "date": "2026-11-05T16:01:08+00:00",
-     "summary": "Health & Bioscience",
+     "title": "Microsoft gặp sự cố toàn cầu, kéo theo cả nền tảng AI của OpenAI và Anthropic",
+     "date": null,
+     "summary": "Sự cố Microsoft khiến hàng chục nghìn người dùng không thể truy cập Outlook, Teams, Microsoft 365, đồng thời ảnh hưởng đến các nền tảng AI.",
      "lastmod": null
     },
     {
-     "title": "Agile Deliberation: How AI helps humans define the gray areas",
-     "date": "2026-11-04T18:07:05+00:00",
-     "summary": "Data Mining & Modeling",
+     "title": "'Mẹ đẻ' giọng đọc AI review phim chia sẻ cách đưa nghiên cứu khoa học ra thị trường",
+     "date": null,
+     "summary": "Tiến sĩ Nguyễn Thị Thu Trang, giảng viên Đại học Bách khoa Hà Nội, người phát triển giọng đọc AI 'quốc dân' review phim, chia sẻ với sinh viên cách đưa nghiên c",
      "lastmod": null
     },
     {
-     "title": "The sleep framework: A new way for LLMs to retain knowledge in continual learning",
-     "date": "2026-10-27T17:35:00+00:00",
-     "summary": "Education Innovation",
+     "title": "Trung Quốc có thực sự cần Nvidia để chạy đua AI?",
+     "date": null,
+     "summary": "DeepSeek, Huawei và các hãng công nghệ Trung Quốc đang phát triển chip AI nội địa, nhưng Nvidia vẫn giữ vai trò quan trọng trong cuộc đua này.",
      "lastmod": null
     },
     {
-     "title": "Bringing foundational models to the front lines of TB screening",
-     "date": "2026-10-23T18:51:33+00:00",
-     "summary": "Generative AI",
+     "title": "Việt Nam - Nhật Bản rót gần 500 tỉ đồng cho 11 dự án bán dẫn",
+     "date": null,
+     "summary": "Việt Nam và Nhật Bản đồng tài trợ gần 500 tỉ đồng cho 11 dự án nghiên cứu bán dẫn, đồng thời lên kế hoạch đào tạo 100 tiến sĩ AI từ năm 2027.",
      "lastmod": null
     },
     {
-     "title": "Empowering frontline maternal care with AI-assisted ultrasound",
-     "date": "2026-10-21T16:23:53+00:00",
-     "summary": "Health & Bioscience",
+     "title": "Cách dùng AI tìm bằng chứng khoa học trước khi viết khóa luận",
+     "date": null,
+     "summary": "Câu 'nhiều nghiên cứu đã chứng minh' xuất hiện rất thường xuyên trong khóa luận, luận văn, thậm chí trong bài báo đại chúng. Không ít trường hợp người viết chưa",
      "lastmod": null
     }
    ],
-   "ok": true,
-   "source": "google-ai",
-   "verdict": "ÍT CẬP NHẬT"
-  },
-  {
-   "url": "https://deepmind.google/blog/rss.xml",
-   "http": 200,
-   "ms": 163,
-   "bytes": 18603,
-   "content_type": "application/xml",
    "ok": false,
-   "error": "ParseError: not well-formed (invalid token): line 1, column 0",
-   "source": "google-ai",
+   "source": "tuoitre-nss",
    "verdict": "HỎNG"
+  },
+  {
+   "url": "https://dantri.com.vn/rss/suc-manh-so.rss",
+   "http": 404,
+   "ok": false,
+   "error": "HTTP Error 404: Not Found",
+   "source": "dantri-sms",
+   "verdict": "HỎNG"
+  },
+  {
+   "url": "https://thanhnien.vn/rss/cong-nghe.rss",
+   "http": 200,
+   "ms": 1534,
+   "bytes": 55244,
+   "content_type": "text/xml; charset=UTF-8",
+   "items": 50,
+   "with_date": 50,
+   "with_summary": 50,
+   "newest": "2026-11-18T20:01:00+07:00",
+   "oldest": "2026-11-14T17:35:00+07:00",
+   "age_newest_h": 0.8,
+   "last_24h": 9,
+   "last_7d": 50,
+   "sample": [
+    {
+     "title": "Điện thoại Galaxy A lại sắp tăng giá mạnh?",
+     "date": "2026-11-18T20:01:00+07:00",
+     "summary": "Samsung đang xem xét việc tăng giá cho một số mẫu điện thoại thông minh thuộc dòng Galaxy A, dự kiến sẽ có hiệu lực vào đầu năm 2027.",
+     "lastmod": null
+    },
+    {
+     "title": "AI tại Việt Nam chuyển dịch từ thử nghiệm sang vận hành",
+     "date": "2026-11-18T16:31:00+07:00",
+     "summary": "Sau giai đoạn thử nghiệm công nghệ rời rạc, thị trường trí tuệ nhân tạo (AI) trong nước đang bước vào chu kỳ vận hành thực chất dưới tác động của hành lang pháp",
+     "lastmod": null
+    },
+    {
+     "title": "One UI 9.5 lộ loạt tính năng mới, Galaxy AI sắp thay đổi lớn",
+     "date": "2026-11-18T16:02:00+07:00",
+     "summary": "One UI 9.5 được cho là bổ sung trợ lý Galaxy Claw, chia sẻ dữ liệu bằng cách chạm và nhiều tính năng AI mới.",
+     "lastmod": null
+    },
+    {
+     "title": "5 dấu hiệu cảnh báo điện thoại bị tấn công",
+     "date": "2026-11-18T14:06:00+07:00",
+     "summary": "Nhiều dấu hiệu điện thoại bị hack thường dễ bị nhầm lẫn với sự cố thông thường trên thiết bị cũ.",
+     "lastmod": null
+    },
+    {
+     "title": "Galaxy A38 với pin 6.000 mAh tiến gần đến ngày ra mắt",
+     "date": "2026-11-18T11:21:00+07:00",
+     "summary": "Galaxy A38 xuất hiện trên máy chủ Samsung với dấu hiệu nâng cấp pin đáng kể, hứa hẹn cải thiện thời lượng sử dụng hằng ngày.",
+     "lastmod": null
+    },
+    {
+     "title": "Samsung chuẩn bị tung điện thoại không viền trước Apple?",
+     "date": "2026-11-18T09:41:00+07:00",
+     "summary": "Không đợi iPhone kỷ niệm 20 năm ra mắt, Samsung có thể trình làng điện thoại Galaxy với màn hình có viền gần như 'vô hình'.",
+     "lastmod": null
+    },
+    {
+     "title": "Người dùng iPhone bất ngờ không thể đăng nhập Apple ID vì sự cố máy chủ",
+     "date": "2026-11-18T08:31:00+07:00",
+     "summary": "Nhiều người dùng iPhone bất ngờ bị đăng xuất tài khoản Apple, không thể tải ứng dụng hoặc kích hoạt thiết bị mới.",
+     "lastmod": null
+    },
+    {
+     "title": "Xiaomi mang smartphone 2 màn hình về Việt Nam",
+     "date": "2026-11-18T08:29:00+07:00",
+     "summary": "Xiaomi 18 Pro và 18 Pro Max được trang bị màn hình chính với công nghệ OLED, độ phân giải 1.5K, trong khi màn hình sau tích hợp AI, mang đến nhiều trải nghiệm m",
+     "lastmod": null
+    }
+   ],
+   "ok": true,
+   "source": "thanhnien-cn",
+   "verdict": "DÙNG ĐƯỢC"
+  },
+  {
+   "url": "https://genk.vn/rss/ai.rss",
+   "http": 200,
+   "ms": 2528,
+   "bytes": 70219,
+   "content_type": "text/xml; charset=UTF-8",
+   "items": 61,
+   "with_date": 61,
+   "with_summary": 61,
+   "newest": "2026-11-18T14:05:00+00:07",
+   "oldest": "2026-10-24T13:04:00+00:07",
+   "age_newest_h": -0.1,
+   "last_24h": 4,
+   "last_7d": 14,
+   "sample": [
+    {
+     "title": "Microsoft cho AI làm việc chung với nhân viên qua Copilot Workspaces",
+     "date": "2026-11-18T14:05:00+00:07",
+     "summary": "Tại Ignite 2026, Microsoft giới thiệu Copilot kiểu mới, nơi AI không chỉ trả lời câu hỏi mà còn nhận việc và theo đuổi dự án dài ngày.",
+     "lastmod": null
+    },
+    {
+     "title": "Làn sóng người ngoài hành tinh da xanh \"rởm\" gieo rắc ngụy khoa học làm khuynh đảo mạng xã hội Trung Quốc",
+     "date": "2026-11-18T12:01:00+00:07",
+     "summary": "Bắt nguồn từ một nhân vật trí tuệ nhân tạo thành công, hàng loạt kẻ lừa đảo tại Trung Quốc đã sao chép tạo hình người ngoài hành tinh da xanh để gieo rắc nỗi sợ",
+     "lastmod": null
+    },
+    {
+     "title": "Từ bàn phím vẽ trên giấy đến cuộc đua AI triệu đô",
+     "date": "2026-11-17T16:51:00+00:07",
+     "summary": "Người ta có thể choáng ngợp trước con số 1 triệu USD. Nhưng đằng sau giải thưởng hiện kim của Âu Lạc Grand Prize 2026 còn là những câu chuyện về những người “ng",
+     "lastmod": null
+    },
+    {
+     "title": "AMD ra mắt EPYC thế hệ 6: Tối đa 256 nhân, xung nhịp lên tới 5,3GHz, tăng tốc cho hệ thống AI",
+     "date": "2026-11-17T15:34:00+00:07",
+     "summary": "Dòng CPU máy chủ mới sử dụng kiến trúc Zen 6, hướng tới các trung tâm dữ liệu AI và ứng dụng doanh nghiệp.",
+     "lastmod": null
+    },
+    {
+     "title": "KOL Trung Quốc bị chỉ trích vì dùng AI \"hồi sinh\" người ông đã khuất trên mạng",
+     "date": "2026-11-16T19:33:00+00:07",
+     "summary": "Việc một tài khoản thời trang đình đám tại Trung Quốc bất ngờ đăng tải các video về người ông đã khuất được tái tạo bằng trí tuệ nhân tạo đang tạo ra những luồn",
+     "lastmod": null
+    },
+    {
+     "title": "Kẻ lừa đảo gặp chiêu bài đảo chiều: Bị hàng trăm nghìn bot AI “giả ngu” giăng bẫy ngược",
+     "date": "2026-11-16T13:08:00+00:07",
+     "summary": "Một công ty tại Úc đang dùng hàng trăm nghìn bot AI giả làm những người có thể mắc bẫy lừa đảo. Trong lúc đối phương tìm cách thuyết phục “nạn nhân” chuyển tiền",
+     "lastmod": null
+    },
+    {
+     "title": "OpenAI ra mắt ví 'ChatGPT Wallet', cho phép các trợ lý AI thực hiện các giao dịch mua sắm thay cho người dùng",
+     "date": "2026-11-16T07:59:00+00:07",
+     "summary": "Cuộc cách mạng \"thương mại tự động\" vừa bước sang một chương mới khi OpenAI chính thức giới thiệu ChatGPT Wallet. Tính năng đột phá này cho phép các trợ lý AI t",
+     "lastmod": null
+    },
+    {
+     "title": "Từ nay 15/11, bắt đầu áp dụng quy định mới liên quan chuyển tiền tự động trên 10 triệu đồng, 20 triệu, 50 triệu, 100 tri",
+     "date": "2026-11-15T17:43:00+00:07",
+     "summary": "Từ ngày 15/11/2026, Thông tư 53/2026/TT-NHNN của Ngân hàng Nhà nước Việt Nam (NHNN) chính thức có hiệu lực, đưa ra quy định mới về an toàn, quản lý rủi ro và đi",
+     "lastmod": null
+    }
+   ],
+   "ok": true,
+   "source": "genk-ai",
+   "verdict": "DÙNG ĐƯỢC"
   }
  ]
 }
