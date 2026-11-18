@@ -9,7 +9,7 @@
   "d1_databases": [{ "binding": "DB", "database_name": "nmh-news", "database_id": "__D1_ID__", "migrations_dir": "../migrations" }],
   "vars": {
     "ALLOWED_EMAILS": "ai.nomahub@gmail.com",
-    "DAILY_USD_LIMIT": "1",
+    "DAILY_USD_LIMIT": "0.3",
     "MAX_CUSTOM_SOURCES": "10",
     "MONTHLY_TARGET_USD": "1",
     "WEB_DAILY_LIMIT": "10"
