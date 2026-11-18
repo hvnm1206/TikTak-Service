@@ -67,12 +67,18 @@ async function catalog(env, uid) {
   const [src, cat, pref] = await Promise.all([
     env.DB.prepare('SELECT id,name,lang,type,is_default,created_by,last_ok_at,last_error FROM sources WHERE enabled=1 AND admin_disabled=0 AND (is_default=1 OR created_by=?) ORDER BY is_default DESC,name').bind(uid).all(),
     env.DB.prepare("SELECT value FROM settings WHERE key='categories'").first(),
-    env.DB.prepare('SELECT sources,categories FROM user_prefs WHERE user_id=?').bind(uid).first(),
+    env.DB.prepare('SELECT sources,categories,sources_known,categories_known FROM user_prefs WHERE user_id=?').bind(uid).first(),
   ]);
   const categories = cat ? JSON.parse(cat.value) : [];
   const sources = src.results || [];
-  const chosenSources = pref?.sources ? JSON.parse(pref.sources) : sources.filter(s => s.is_default).map(s => s.id);
-  const chosenCategories = pref?.categories ? JSON.parse(pref.categories) : categories;
+  // Nguồn/nhóm xuất hiện SAU lần lưu lựa chọn gần nhất thì mặc định bật (người dùng chưa từng thấy để tắt).
+  const merge = (chosenJson, knownJson, all) => {
+    if (!chosenJson) return all;
+    const chosen = JSON.parse(chosenJson), known = new Set(knownJson ? JSON.parse(knownJson) : all);
+    return [...new Set([...chosen.filter(x => all.includes(x)), ...all.filter(x => !known.has(x))])];
+  };
+  const chosenSources = merge(pref?.sources, pref?.sources_known, sources.filter(s => s.is_default || s.created_by === uid).map(s => s.id));
+  const chosenCategories = merge(pref?.categories, pref?.categories_known, categories);
   return { sources, categories, chosenSources, chosenCategories };
 }
 
@@ -210,8 +216,10 @@ async function addSource(env, user, body, fetchImpl = fetch) {
   return json({ ok: true, id, name, note: 'Nguồn sẽ có bài từ lượt cập nhật buổi sáng kế tiếp.' });
 }
 async function savePrefs(env, uid, sources, categories) {
-  await env.DB.prepare('INSERT INTO user_prefs (user_id,sources,categories,updated_at) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET sources=excluded.sources,categories=excluded.categories,updated_at=excluded.updated_at')
-    .bind(uid, JSON.stringify(sources), JSON.stringify(categories), Date.now()).run();
+  const c = await catalog(env, uid);
+  await env.DB.prepare(`INSERT INTO user_prefs (user_id,sources,categories,sources_known,categories_known,updated_at) VALUES (?,?,?,?,?,?)
+    ON CONFLICT(user_id) DO UPDATE SET sources=excluded.sources,categories=excluded.categories,sources_known=excluded.sources_known,categories_known=excluded.categories_known,updated_at=excluded.updated_at`)
+    .bind(uid, JSON.stringify(sources), JSON.stringify(categories), JSON.stringify(c.sources.map(s => s.id)), JSON.stringify(c.categories), Date.now()).run();
 }
 
 

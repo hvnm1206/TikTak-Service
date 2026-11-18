@@ -44,12 +44,12 @@ def norm_url(u):
 
 def sync_sources(db, cfg):
     for s in cfg["sources"]:
-        db.q("""INSERT INTO sources (id,name,lang,type,urls,wallclock_tz,sitemap_prefix,is_default,enabled,created_at)
-                VALUES (?,?,?,?,?,?,?,1,?,?)
+        db.q("""INSERT INTO sources (id,name,lang,type,urls,wallclock_tz,sitemap_prefix,date_format,is_default,enabled,created_at)
+                VALUES (?,?,?,?,?,?,?,?,1,?,?)
                 ON CONFLICT(id) DO UPDATE SET name=excluded.name, lang=excluded.lang, type=excluded.type, urls=excluded.urls,
-                  wallclock_tz=excluded.wallclock_tz, sitemap_prefix=excluded.sitemap_prefix, is_default=1, enabled=excluded.enabled""",
+                  wallclock_tz=excluded.wallclock_tz, sitemap_prefix=excluded.sitemap_prefix, date_format=excluded.date_format, is_default=1, enabled=excluded.enabled""",
              [s["id"], s["name"], s.get("lang", "en"), s.get("type", "rss"), json.dumps(s["urls"]), s.get("wallclock_tz"),
-              s.get("sitemap_prefix"), 1 if s.get("enabled", True) else 0, NOW_MS])
+              s.get("sitemap_prefix"), s.get("date_format"), 1 if s.get("enabled", True) else 0, NOW_MS])
     db.q("INSERT INTO settings (key,value,updated_at) VALUES ('categories',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at",
          [json.dumps(cfg["categories"], ensure_ascii=False), NOW_MS])
 
@@ -59,7 +59,7 @@ def collect_rss(src, window_h):
     for u in json.loads(src["urls"]):
         try:
             _, body, _, _ = fetch(u)
-            items = parse_feed(body, src.get("wallclock_tz"))
+            items = parse_feed(body, src.get("wallclock_tz"), None, src.get("date_format"))
         except Exception as e:
             errors.append(f"{u}: {type(e).__name__} {str(e)[:120]}")
             continue
@@ -107,21 +107,25 @@ Với MỖI bài (tiếng Anh hoặc tiếng Việt), viết bằng tiếng Vi�
 - tom_tat: 2-3 câu nêu sự kiện chính, con số quan trọng và ý nghĩa. Chỉ dùng thông tin có trong bài; không bịa.
 - nhom: đúng một nhóm trong danh sách được cho.
 - muc_do: 1-5 theo giá trị tin tức với người theo dõi công nghệ và AI (5 = rất quan trọng; khuyến mãi, quảng cáo, mẹo đời sống, giải trí = 1).
-- trung_voi: id của bài khác trong danh sách nói cùng sự kiện (chọn bài đầy đủ hơn làm bài chính), nếu không có thì null.
+- trung_voi: id của bài khác trong "Các bài" nói cùng sự kiện (chọn bài đầy đủ hơn làm bài chính), nếu không có thì null.
+- trung_voi_bai_cu: nếu bài nói cùng sự kiện với một bài trong "Bài đã có" thì ghi id bài cũ đó, nếu không thì null.
+Ưu tiên giá trị thực tiễn: ứng dụng AI vào công việc và đời sống thực tế, sự cố/lỗ hổng/tấn công bảo mật (nhất là liên quan AI) có ảnh hưởng tới người dùng hay doanh nghiệp là tin có giá trị cao.
 Trả về đủ mọi bài theo đúng cấu trúc yêu cầu."""
 
 
-def gpt_batch(items, cfg):
+def gpt_batch(items, cfg, recent=None):
     d = cfg["digest"]
     schema = {"type": "object", "additionalProperties": False, "required": ["bai"], "properties": {
         "bai": {"type": "array", "items": {"type": "object", "additionalProperties": False,
-                "required": ["id", "tieu_de", "tom_tat", "nhom", "muc_do", "trung_voi"],
+                "required": ["id", "tieu_de", "tom_tat", "nhom", "muc_do", "trung_voi", "trung_voi_bai_cu"],
                 "properties": {"id": {"type": "integer"}, "tieu_de": {"type": "string"}, "tom_tat": {"type": "string"},
                                "nhom": {"type": "string", "enum": cfg["categories"]}, "muc_do": {"type": "integer"},
-                               "trung_voi": {"type": ["integer", "null"]}}}}}}
+                               "trung_voi": {"type": ["integer", "null"]}, "trung_voi_bai_cu": {"type": ["integer", "null"]}}}}}}
     payload = [{"id": n, "nguon": p["source_name"], "tieu_de_goc": p["title"], "noi_dung": p["summary"][:600]} for n, p in enumerate(items, 1)]
     body = {"model": d["model"], "reasoning": {"effort": d["reasoning"]}, "instructions": SYSTEM,
-            "input": "Các nhóm: " + json.dumps(cfg["categories"], ensure_ascii=False) + "\nCác bài:\n" + json.dumps(payload, ensure_ascii=False),
+            "input": "Các nhóm: " + json.dumps(cfg["categories"], ensure_ascii=False)
+                     + "\nBài đã có (36 giờ gần nhất, chỉ để nhận biết trùng sự kiện):\n" + json.dumps(recent or [], ensure_ascii=False)
+                     + "\nCác bài:\n" + json.dumps(payload, ensure_ascii=False),
             "text": {"format": {"type": "json_schema", "name": "ban_tin", "strict": True, "schema": schema}}}
     req = urllib.request.Request("https://api.openai.com/v1/responses", data=json.dumps(body).encode(), method="POST",
                                  headers={"Authorization": "Bearer " + os.environ["OPENAI_API_KEY"], "Content-Type": "application/json"})
@@ -172,11 +176,14 @@ def main():
     model = None
     bs = cfg["digest"]["batch_size"]
     written = 0
+    recent_rows = db.q("SELECT id, title_vi FROM articles WHERE dup_of IS NULL AND title_vi IS NOT NULL AND published_at >= ? ORDER BY published_at DESC LIMIT 300",
+                       [NOW_MS - 36 * 3600 * 1000])
+    recent = [{"id": r["id"], "tieu_de": r["title_vi"][:120]} for r in recent_rows]
     for k in range(0, len(new), bs):
         batch = new[k:k + bs]
         if dry:
             continue
-        res, usage, model = gpt_batch(batch, cfg)
+        res, usage, model = gpt_batch(batch, cfg, recent)
         tot["in"] += int(usage.get("input_tokens", 0)); tot["out"] += int(usage.get("output_tokens", 0))
         tot["cached"] += int((usage.get("input_tokens_details") or {}).get("cached_tokens", 0))
         by_id = {b["id"]: b for b in res}
@@ -193,9 +200,16 @@ def main():
             if rows:
                 local_to_db[n] = rows[0]["id"]
                 written += 1
+        recent_ids = {r["id"] for r in recent}
         for n, b in by_id.items():
-            if b.get("trung_voi") and n in local_to_db and b["trung_voi"] in local_to_db and b["trung_voi"] != n:
+            if n not in local_to_db:
+                continue
+            if b.get("trung_voi_bai_cu") in recent_ids:
+                db.q("UPDATE articles SET dup_of=? WHERE id=?", [b["trung_voi_bai_cu"], local_to_db[n]])
+            elif b.get("trung_voi") and b["trung_voi"] in local_to_db and b["trung_voi"] != n:
                 db.q("UPDATE articles SET dup_of=? WHERE id=?", [local_to_db[b["trung_voi"]], local_to_db[n]])
+        # bài mới (không trùng) của lượt này cũng thành "bài đã có" cho các mẻ sau
+        recent += [{"id": local_to_db[n], "tieu_de": by_id[n]["tieu_de"][:120]} for n in local_to_db if not by_id[n].get("trung_voi") and not by_id[n].get("trung_voi_bai_cu")]
     usd = ((tot["in"] - tot["cached"]) * PRICE_IN + tot["cached"] * PRICE_CACHED + tot["out"] * PRICE_OUT) / 1e6
     db.q("UPDATE runs SET finished_at=?, new_articles=?, model=?, input_tokens=?, cached_tokens=?, output_tokens=?, est_usd=? WHERE id=?",
          [int(time.time() * 1000), written, model, tot["in"], tot["cached"], tot["out"], round(usd, 6), run_id])

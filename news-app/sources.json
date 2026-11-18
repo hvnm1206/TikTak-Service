@@ -78,10 +78,115 @@
         "https://deepmind.google/blog/rss.xml"
       ],
       "type": "rss"
+    },
+    {
+      "id": "the-decoder",
+      "name": "The Decoder",
+      "lang": "en",
+      "enabled": true,
+      "urls": [
+        "https://the-decoder.com/feed/"
+      ],
+      "type": "rss"
+    },
+    {
+      "id": "zdnet-ai",
+      "name": "ZDNET AI",
+      "lang": "en",
+      "enabled": true,
+      "urls": [
+        "https://www.zdnet.com/topic/artificial-intelligence/rss.xml"
+      ],
+      "type": "rss"
+    },
+    {
+      "id": "mit-tr-ai",
+      "name": "MIT Technology Review AI",
+      "lang": "en",
+      "enabled": true,
+      "urls": [
+        "https://www.technologyreview.com/topic/artificial-intelligence/feed"
+      ],
+      "type": "rss"
+    },
+    {
+      "id": "wired-ai",
+      "name": "Wired AI",
+      "lang": "en",
+      "enabled": true,
+      "urls": [
+        "https://www.wired.com/feed/tag/ai/latest/rss"
+      ],
+      "type": "rss"
+    },
+    {
+      "id": "thanhnien-cn",
+      "name": "Thanh Niên Công nghệ",
+      "lang": "vi",
+      "enabled": true,
+      "urls": [
+        "https://thanhnien.vn/rss/cong-nghe.rss"
+      ],
+      "type": "rss"
+    },
+    {
+      "id": "tuoitre-nss",
+      "name": "Tuổi Trẻ Nhịp sống số",
+      "lang": "vi",
+      "enabled": true,
+      "urls": [
+        "https://tuoitre.vn/rss/nhip-song-so.rss"
+      ],
+      "type": "rss",
+      "date_format": "%m/%d/%Y %I:%M:%S %p",
+      "wallclock_tz": "+07:00",
+      "_tz_note": "pubDate dạng 11/17/2026 3:19:00 PM, giờ Việt Nam, không ghi múi giờ."
+    },
+    {
+      "id": "hackernews-sec",
+      "name": "The Hacker News",
+      "lang": "en",
+      "enabled": true,
+      "urls": [
+        "https://feeds.feedburner.com/TheHackersNews"
+      ],
+      "type": "rss"
+    },
+    {
+      "id": "bleeping",
+      "name": "BleepingComputer",
+      "lang": "en",
+      "enabled": true,
+      "urls": [
+        "https://www.bleepingcomputer.com/feed/"
+      ],
+      "type": "rss"
+    },
+    {
+      "id": "securityweek-ai",
+      "name": "SecurityWeek AI",
+      "lang": "en",
+      "enabled": true,
+      "urls": [
+        "https://www.securityweek.com/category/artificial-intelligence/feed/"
+      ],
+      "type": "rss"
+    },
+    {
+      "id": "darkreading",
+      "name": "Dark Reading",
+      "lang": "en",
+      "enabled": true,
+      "urls": [
+        "https://www.darkreading.com/rss.xml"
+      ],
+      "type": "rss"
     }
   ],
   "categories": [
     "Mô hình & nghiên cứu AI",
+    "Ứng dụng AI thực tế",
+    "Bảo mật & an toàn AI",
     "Sản phẩm & ứng dụng",
     "Doanh nghiệp & đầu tư",
     "Chính sách & pháp lý",

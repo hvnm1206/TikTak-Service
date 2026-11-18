@@ -4,14 +4,15 @@ sys.path.insert(0, os.path.dirname(__file__))
 import daily, feeds
 
 MIG = open(os.path.join(os.path.dirname(__file__), "..", "migrations", "0001_init.sql"), encoding="utf-8").read()
-MIG2 = open(os.path.join(os.path.dirname(__file__), "..", "migrations", "0002_admin.sql"), encoding="utf-8").read()
+MDIR = os.path.join(os.path.dirname(__file__), "..", "migrations")
+MIGS = [open(os.path.join(MDIR, f), encoding="utf-8").read() for f in sorted(os.listdir(MDIR)) if f.endswith(".sql")]
 now = dt.datetime.now(dt.timezone.utc)
 rfc = lambda h: (now - dt.timedelta(hours=h)).strftime("%a, %d %b %Y %H:%M:%S +0000")
 
 
 class FakeD1:
     def __init__(self):
-        self.c = sqlite3.connect(":memory:"); self.c.row_factory = sqlite3.Row; self.c.executescript(MIG); self.c.executescript(MIG2); self.calls = 0
+        self.c = sqlite3.connect(":memory:"); self.c.row_factory = sqlite3.Row; [self.c.executescript(m) for m in MIGS]; self.calls = 0
 
     def q(self, sql, params=None):
         self.calls += 1
@@ -39,10 +40,13 @@ class T(unittest.TestCase):
         feeds.fetch = daily.fetch = fake_fetch
         daily.page_meta = lambda url: {"title": "Trang " + url.rsplit("/", 1)[-1], "summary": "Mô tả", "date": None}
         self.gpt_calls = []
-        def fake_gpt(items, cfg):
-            self.gpt_calls.append(len(items))
+        self.recent_seen = []
+        def fake_gpt(items, cfg, recent=None):
+            self.gpt_calls.append(len(items)); self.recent_seen.append(recent)
+            old = {r["tieu_de"].replace("VI ", ""): r["id"] for r in (recent or [])}
             out = [{"id": n, "tieu_de": "VI " + p["title"], "tom_tat": "Tóm tắt", "nhom": cfg["categories"][0], "muc_do": 3,
-                    "trung_voi": 1 if (n == 2 and "trùng" in p["title"]) else None} for n, p in enumerate(items, 1)]
+                    "trung_voi": 1 if (n == 2 and "trùng" in p["title"]) else None,
+                    "trung_voi_bai_cu": old.get(p["title"].replace(" (báo khác)", ""))} for n, p in enumerate(items, 1)]
             return out, {"input_tokens": 1000, "output_tokens": 500, "input_tokens_details": {"cached_tokens": 0}}, "gpt-6-luna"
         daily.gpt_batch = fake_gpt
         cfg = {"sources": [{"id": "tc", "name": "TC", "type": "rss", "urls": ["https://tc/feed"]},
@@ -85,6 +89,16 @@ class T(unittest.TestCase):
         self.run_daily()
         self.assertNotIn("https://tc/b", [a["url"] for a in self.db.q("SELECT url FROM articles")])
         self.assertEqual(self.db.q("SELECT admin_disabled FROM sources WHERE id='tc'")[0]["admin_disabled"], 1, "đồng bộ sources.json không ghi đè lựa chọn admin")
+
+    def test_cross_run_duplicate_marked(self):
+        self.pages["https://tc/feed"] = rss(("Tin X", "https://tc/x", rfc(3)))
+        self.pages["https://an/sitemap.xml"] = sitemap()
+        self.run_daily()
+        self.pages["https://tc/feed"] = rss(("Tin X", "https://tc/x", rfc(3)), ("Tin X (báo khác)", "https://other/x", rfc(1)))
+        self.run_daily()
+        x = self.db.q("SELECT id FROM articles WHERE url='https://tc/x'")[0]["id"]
+        self.assertEqual(self.db.q("SELECT dup_of FROM articles WHERE url='https://other/x'")[0]["dup_of"], x)
+        self.assertIn({"id": x, "tieu_de": "VI Tin X"}, self.recent_seen[-1])
 
     def test_source_error_recorded_not_fatal(self):
         self.pages["https://an/sitemap.xml"] = sitemap()

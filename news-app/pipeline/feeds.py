@@ -5,10 +5,17 @@ UA = "NMH-NewsFeed/0.1 (+https://nomahubvn.com)"
 NOW = dt.datetime.now(dt.timezone.utc)
 
 
-def parse_date(s):
+def parse_date(s, date_format=None):
+    """date_format: định dạng riêng của nguồn (strptime), ví dụ Tuổi Trẻ '%m/%d/%Y %I:%M:%S %p'."""
     if not s:
         return None
     s = s.strip()
+    if date_format:
+        try:
+            d = dt.datetime.strptime(s, date_format)
+            return d if d.tzinfo else d.replace(tzinfo=dt.timezone.utc)
+        except ValueError:
+            pass
     try:
         d = email.utils.parsedate_to_datetime(s)
     except Exception:
@@ -32,7 +39,7 @@ def local(tag):
     return tag.rsplit("}", 1)[-1]
 
 
-def parse_feed(raw, wallclock_tz=None, sitemap_prefix=None):
+def parse_feed(raw, wallclock_tz=None, sitemap_prefix=None, date_format=None):
     """wallclock_tz: với nguồn ghi sai múi giờ, giữ giờ ghi trong feed và gán múi giờ này."""
     fix = dt.datetime.strptime(wallclock_tz.replace(":", ""), "%z").tzinfo if wallclock_tz else None
     root = ET.fromstring(raw)
@@ -55,7 +62,7 @@ def parse_feed(raw, wallclock_tz=None, sitemap_prefix=None):
             elif n == "link":
                 rec["link"] = (c.get("href") or c.text or "").strip() or rec["link"]
             elif n in ("pubDate", "published", "updated", "date") and rec["date"] is None:
-                rec["date"] = parse_date(c.text)
+                rec["date"] = parse_date(c.text, date_format)
                 if fix and rec["date"]:
                     rec["date"] = rec["date"].replace(tzinfo=fix)
             elif n in ("description", "summary", "content", "encoded") and not rec["summary"]:

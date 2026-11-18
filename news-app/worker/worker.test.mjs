@@ -17,7 +17,7 @@ const mod = await import(join(tmp, 'worker.mjs'));
 const worker = mod.default;
 
 class D1 {
-  constructor() { this.db = new DatabaseSync(':memory:'); for (const f of ['0001_init.sql', '0002_admin.sql']) this.db.exec(readFileSync(join(here, '..', 'migrations', f), 'utf8')); }
+  constructor() { this.db = new DatabaseSync(':memory:'); for (const f of ['0001_init.sql', '0002_admin.sql', '0003_fix_tts_estimate.sql', '0004_sources_prefs.sql']) this.db.exec(readFileSync(join(here, '..', 'migrations', f), 'utf8')); }
   async batch(stmts) { return Promise.all(stmts.map(s => s.all())); }
   prepare(sql) {
     const db = this.db; let args = [];
@@ -206,4 +206,15 @@ test('hỏi đáp: hết lượt tra web trong ngày thì không gửi công c�
   assert.equal((await post(env, '/api/ask', { messages: [{ role: 'user', content: 'Giá vàng?' }] })).status, 200);
   assert.equal(sent.tools, undefined);
   assert.ok(sent.instructions.includes('hết lượt tra web'));
+});
+
+test('lựa chọn cũ: nguồn và nhóm thêm sau tự bật, cái người dùng đã tắt vẫn tắt', async () => {
+  const env = setup();
+  await post(env, '/api/prefs', { sources: ['techcrunch'], categories: ['Mô hình & nghiên cứu AI'] });
+  const d = env.DB.db, now = Date.now();
+  d.prepare("UPDATE settings SET value=? WHERE key='categories'").run(JSON.stringify(['Mô hình & nghiên cứu AI', 'Sản phẩm & ứng dụng', 'Khác', 'Bảo mật & an toàn AI']));
+  d.prepare('INSERT INTO sources (id,name,urls,is_default,created_at) VALUES (?,?,?,1,?)').run('bleeping', 'BleepingComputer', '[]', now);
+  const t = await (await get(env, '/api/today')).json();
+  assert.deepEqual(t.chosenSources.sort(), ['bleeping', 'techcrunch']);
+  assert.deepEqual(t.chosenCategories.sort(), ['Bảo mật & an toàn AI', 'Mô hình & nghiên cứu AI'].sort());
 });
