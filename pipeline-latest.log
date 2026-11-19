@@ -1,42 +1,19 @@
-SOURCE vnexpress-sohoa items=0 kept=0 errors=1 https://vnexpress.net/rss/so-hoa.rss: HTTPError HTTP Error 503: Service Unavailable
+SOURCE vnexpress-sohoa items=30 kept=30 errors=0 
 SOURCE genk items=65 kept=61 errors=0 
-SOURCE techcrunch items=40 kept=26 errors=0 
-SOURCE theverge items=20 kept=17 errors=0 
-SOURCE openai items=10 kept=10 errors=0 
+SOURCE techcrunch items=40 kept=25 errors=0 
+SOURCE theverge items=20 kept=16 errors=0 
+SOURCE openai items=9 kept=9 errors=0 
 SOURCE anthropic items=1 kept=1 errors=0 
-SOURCE google-ai items=2 kept=2 errors=1 https://deepmind.google/blog/rss.xml: ParseError not well-formed (invalid token): line 1, column 0
+SOURCE google-ai items=4 kept=4 errors=0 
 SOURCE the-decoder items=10 kept=10 errors=0 
 SOURCE zdnet-ai items=17 kept=17 errors=0 
 SOURCE mit-tr-ai items=3 kept=3 errors=0 
 SOURCE wired-ai items=10 kept=10 errors=0 
 SOURCE thanhnien-cn items=26 kept=26 errors=0 
 SOURCE tuoitre-nss items=1 kept=1 errors=0 
-SOURCE hackernews-sec items=22 kept=22 errors=0 
+SOURCE hackernews-sec items=23 kept=23 errors=0 
 SOURCE bleeping items=15 kept=15 errors=0 
-SOURCE securityweek-ai items=5 kept=5 errors=0 
-SOURCE darkreading items=10 kept=10 errors=0 
-NEW_ARTICLES 75 of pool 236
-GPT_MISSING https://www.darkreading.com/threat-intelligence/attackiq-research-reveals-iranian-cyber-groups
-GPT_MISSING https://techcrunch.com/2026/11/18/sam-altman-says-his-life-is-so-weird-that-hes-unfazed-by-andrew-garfield-portraying-him-in-upcoming-movie
-GPT_MISSING https://techcrunch.com/2026/11/18/snapchat-now-lets-developers-build-ar-lenses-with-ai-coding-assistants-like-claude-code-and-cursor
-GPT_MISSING https://www.bleepingcomputer.com/news/security/data-breach-impacts-40-irish-credit-unions-in-reported-it-provider-hack
-GPT_MISSING https://techcrunch.com/2026/11/18/spend-management-platform-payhawk-announces-280m-raise-2b-valuation
-GPT_MISSING https://www.theverge.com/tech/1036941/instagram-now-lets-you-edit-your-stories-after-you-post-them
-GPT_MISSING https://the-decoder.com/google-deepminds-project-genie-update-brings-genie-4-chainable-worlds-and-a-community-gallery-for-remixing
-GPT_MISSING https://www.theverge.com/policy/1036935/congress-forced-arbitration-deepfakes-defiance-act
-GPT_MISSING https://www.theverge.com/gadgets/1036693/sony-bravia-8-ii-oled-black-friday-2026-deal-sale
-GPT_MISSING https://the-decoder.com/microsoft-is-replacing-outside-ai-models-in-its-own-products-with-cheaper-in-house-alternatives
-GPT_MISSING https://www.theverge.com/gadgets/1028991/black-friday-best-early-deals-2026
-GPT_MISSING https://www.theverge.com/tech/1036880/nvidia-rtx-spark-ai-mini-pc-desktops
-GPT_MISSING https://www.theverge.com/ai-artificial-intelligence/1036776/nvidia-earnings-kress-jensen-huang-petition
-GPT_MISSING https://thehackernews.com/2026/11/10-year-old-nginx-http2-flaw-lets.html
-GPT_MISSING https://thehackernews.com/2026/11/f5-warns-6-critical-big-ip-flaws-can.html
-GPT_MISSING https://techcrunch.com/2026/11/18/googles-ai-feature-in-search-gets-its-own-incognito-mode
-GPT_MISSING https://www.zdnet.com/tech/google-wallet-iphone-ios-no-tap-to-pay
-GPT_MISSING https://www.zdnet.com/health/apple-health-ios-27-3-ai-features-compatible-iphones
-GPT_MISSING https://the-decoder.com/openai-says-its-models-delivered-a-years-worth-of-chip-optimization-on-top-of-amds-own-engineering
-GPT_MISSING https://www.theverge.com/tech/1036729/disney-star-wars-anzellans-animatronic-amazon-aws-cloud-ai
-GPT_MISSING https://www.wired.com/story/inside-nvidias-first-all-hands-without-jensen-huang-as-ceo
-GPT_MISSING https://techcrunch.com/2026/11/18/more-banks-says-customers-using-ai-agents-are-on-their-own-even-if-they-get-hacked
-GPT_MISSING https://techcrunch.com/2026/11/18/david-ellison-says-hbo-will-air-critical-elon-musk-documentary-despite-1b-investment-in-skydance
-RUN_SUMMARY {"run_id": "20261118-2226-849685", "new_written": 52, "model": "gpt-6-luna", "tokens": {"in": 16746, "cached": 0, "out": 6529}, "est_usd": 0.004939, "d1_calls": 103}
+SOURCE securityweek-ai items=6 kept=6 errors=0 
+SOURCE darkreading items=9 kept=9 errors=0 
+NEW_ARTICLES 74 of pool 266
+RUN_SUMMARY {"run_id": "20261119-0508-c32411", "new_written": 74, "model": "gpt-6-luna", "tokens": {"in": 16876, "cached": 0, "out": 9153}, "est_usd": 0.006264, "d1_calls": 151}
