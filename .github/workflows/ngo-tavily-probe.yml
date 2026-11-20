@@ -16,27 +16,16 @@ jobs:
           if [ -z "$TAVILY_KEY" ]; then echo "NGO_TAVILY key=MISSING"; exit 1; fi
           echo "NGO_TAVILY key=present"
           cat > /tmp/probe.mjs <<'JS'
-          const qs=[
-           "Giá vàng SJC hôm nay","Tỷ giá đô la Mỹ hôm nay Vietcombank","Giá xăng RON 95 kỳ điều chỉnh mới nhất",
-           "Tin tức Hà Nội hôm nay","Kết quả trận gần nhất của đội tuyển bóng đá Việt Nam","Lịch nghỉ Tết Nguyên đán 2027",
-           "Quán phở ngon gần Hồ Gươm","Giá iPhone mới nhất tại Việt Nam","Chủ tịch UBND thành phố Hà Nội hiện nay là ai",
-           "Tiến độ đường Vành đai 4 Hà Nội","Phim chiếu rạp tuần này ở Việt Nam","Giá cổ phiếu VNM hôm nay",
-           "Mức phạt nồng độ cồn khi lái ô tô hiện nay","Giá cửa nhôm Xingfa bao nhiêu một mét vuông","Tin tức OpenAI mới nhất",
-           "Giá vé máy bay Hà Nội Đà Nẵng tuần này","Giờ mở cửa Lăng Chủ tịch Hồ Chí Minh","Thủ tục đổi giấy phép lái xe",
-           "Đặt lịch khám bệnh viện Bạch Mai online","Thời tiết Hà Nội cuối tuần này"];
-          const key=process.env.TAVILY_KEY;let ok=0,lat=[];
-          for(const q of qs){
-            const body={query:q,search_depth:"basic",max_results:5,include_answer:false,country:"vietnam"};
-            const t0=Date.now();let r=await fetch("https://api.tavily.com/search",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+key},body:JSON.stringify(body)});
-            let note="";if(r.status===400){delete body.country;note=" (retry no country)";r=await fetch("https://api.tavily.com/search",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+key},body:JSON.stringify(body)})}
-            const ms=Date.now()-t0;const txt=await r.text();
-            if(!r.ok){console.log("NGO_TAVILY q="+JSON.stringify(q)+" http="+r.status+" ms="+ms+note+" err="+txt.replace(/\s+/g," ").slice(0,160));continue}
-            const p0=performance.now();const j=JSON.parse(txt);const trimmed=(j.results||[]).slice(0,5).map(x=>({title:String(x.title||"").slice(0,120),url:x.url,content:String(x.content||"").slice(0,500)}));const parseMs=(performance.now()-p0).toFixed(2);
-            ok++;lat.push(ms);
-            console.log("NGO_TAVILY q="+JSON.stringify(q)+" http=200 ms="+ms+note+" results="+trimmed.length+" bytes="+txt.length+" parse_ms="+parseMs+" credits="+(j.usage?.credits??"n/a"));
-            for(const x of trimmed.slice(0,3)){let d="";try{d=new URL(x.url).hostname}catch{}console.log("   - "+d+" | "+x.title.replace(/\s+/g," ")+" | "+x.content.replace(/\s+/g," ").slice(0,220))}
+          const qs=[["Giá xăng RON 95 kỳ điều chỉnh mới nhất","week"],["Chủ tịch UBND thành phố Hà Nội hiện nay là ai","month"],["Thời tiết Hà Nội cuối tuần này","day"],["Kết quả trận gần nhất của đội tuyển bóng đá Việt Nam","month"],["Giá vàng SJC hôm nay","day"],["Tin tức OpenAI mới nhất","week"]];
+          const key=process.env.TAVILY_KEY;
+          for(const [q,tr] of qs)for(const topic of ["general","news"]){
+            const body={query:q,search_depth:"basic",max_results:5,include_answer:false,topic,time_range:tr,...(topic==="general"?{country:"vietnam"}:{})};
+            const t0=Date.now();const r=await fetch("https://api.tavily.com/search",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+key},body:JSON.stringify(body)});
+            const ms=Date.now()-t0,txt=await r.text();
+            if(!r.ok){console.log("NGO_FRESH q="+JSON.stringify(q)+" topic="+topic+" range="+tr+" http="+r.status+" err="+txt.replace(/\s+/g," ").slice(0,200));continue}
+            const j=JSON.parse(txt),res=j.results||[];
+            console.log("NGO_FRESH q="+JSON.stringify(q)+" topic="+topic+" range="+tr+" http=200 ms="+ms+" results="+res.length+" with_date="+res.filter(x=>x.published_date).length);
+            for(const x of res.slice(0,3)){let d="";try{d=new URL(x.url).hostname}catch{}console.log("   - ["+(x.published_date||"no-date")+"] "+d+" | "+String(x.title||"").replace(/\s+/g," ").slice(0,90)+" | "+String(x.content||"").replace(/\s+/g," ").slice(0,140))}
           }
-          lat.sort((a,b)=>a-b);
-          console.log("NGO_TAVILY_SUMMARY ok="+ok+"/"+qs.length+" latency_p50_ms="+lat[Math.floor(lat.length/2)]+" latency_max_ms="+lat.at(-1));
           JS
           node /tmp/probe.mjs
