@@ -1,5 +1,17 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 20/11/2026 — Nghiêm túc: hết quên, hết nói một đằng làm một nẻo, hết đọc ghi chú nguồn; không cắt lời; tìm web Tavily, chi phí ≤ 5 USD/tháng
+- Chủ app: Ngố "nói trước quên sau, nói 1 đằng làm 1 nẻo, bịa đặt"; đọc ra "Dữ liệu này tra cứu từ hệ thống…"; chưa nói xong đã bị cắt; chi phí phải ≤ 5 USD/tháng.
+- Nguyên nhân (đọc code): ghi chú nguồn bị nối vào chính câu trả lời cũ của Ngố → mô hình bắt chước đọc ra; client cắt sạch hội thoại sau MỌI thao tác (kể cả thao tác lỗi); TURN_MISMATCH (trích lời không khớp dấu câu) để lọt câu "đã làm" không kiểm chứng; chốt câu 1,0 s sau khi chữ ngừng đổi (Safari trả chữ theo cụm); bộ nhớ ngầm gọi GPT thêm sau MỖI câu; tìm web OpenAI 0,01 USD/lần là khoản lớn nhất.
+- Sửa gốc: câu trả lời cũ giữ nguyên văn, nguồn gốc đi bằng MỘT ghi chú developer riêng; luôn gửi 12 mục gần nhất; so trích lời bỏ qua dấu câu/hoa thường, lỗi trả kèm lời hiện tại để thử lại, câu trả lời sau thao tác chưa thực hiện có dòng "⚠️ thao tác CHƯA thực hiện"; hướng dẫn: "Bạn là…", quy tắc chỉ nói đã làm/đã tra/đã đọc khi CÓ kết quả công cụ trong lượt, giờ để cuối (đến phút) cho giá đệm; max_output_tokens 800.
+- Mic: chờ mặc định 1,8 s; SETUP có thanh "Chờ anh nói hết" 1,0–3,5 s (lưu trên iPhone).
+- Tìm web: công cụ search_web qua Tavily (1.000 lượt miễn phí/tháng, khóa TAVILY_KEY là Cloudflare Secret), mô hình chọn độ mới day/week/month/any; Worker loại mọi nguồn không ngày hoặc quá hạn. Hết lượt Tavily → web_search OpenAI tối đa 5 lần/ngày (NGO_WEB_FALLBACK_DAILY), đếm trong D1 bảng ngo_usage_daily (migration 0008, chỉ thêm). NGO_SEARCH=openai trả về cách cũ.
+- Bộ nhớ cá nhân: học theo đợt từ iPhone (/api/memory-session: mỗi 6 câu, khi KẾT THÚC, khi ẩn trang) thay vì sau mỗi câu; lịch sử cũ đánh dấu đã học, không gửi lại. NGO_MEMORY_LEARN=per-turn trả về cách cũ.
+- Khả thi trước khi làm: probe Tavily 20 câu tiếng Việt 20/20, trung vị 1,1 s, parse 0,04–0,11 ms CPU (run 44715098426); lọc độ mới (run 44715809361).
+- Phát hành: bản 456f9ecd là d1b89f5a + "Add secret: TAVILY_KEY" từ dashboard (đã kiểm chứng) → dời mốc; production 5804101e-1414-46db-b5f7-2d151dd3307c (run 44718010764, test 211/211, smoke PASS); rollback 456f9ecd-9cb7-43fc-a225-2c590a186bd0.
+- Probe bản thật (run 44718348414): 5804101e 100%, giọng Google Leda 200, bảng ngo_usage_daily có, trang có các mốc mới, /api/memory-session hoạt động.
+- Chưa làm trong đợt: tạo trước giọng chỉ khi câu đang đọc sắp hết. Chưa nghiệm thu trên iPhone.
+
 ## 18/11/2026 — Sửa "Phản hồi bị ngắt" trên Workers Free mà không nâng gói
 - Nguyên nhân (đo được): Worker giải mã base64 âm thanh Google tốn 35–186 ms CPU/câu, giới hạn gói Free là 10 ms → Cloudflare chặn (exceededResources 08:15 sáng 18/11).
 - Sửa gốc: client gửi `wire:"b64"`, Worker chuyển thẳng JSON của Google (≈0 CPU), iPhone tự giải mã. Client cũ (lời nhắc, trang cache) giữ đường cũ.
