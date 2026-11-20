@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 20/11/2026 20:34 — "OpenAI: GPT không hoàn tất phản hồi" (không rõ lý do)
+- Lỗi phát ra khi OpenAI gửi response.failed/error giữa luồng trả lời; code cũ bỏ mất mã và lý do của OpenAI → không chẩn đoán được.
+- Sửa: giữ mã + lý do (che khóa) trên màn hình và Workers log; server_error/không mã thì tự thử lại 1 lần nếu chưa đọc tiếng nào. Test 212/212.
+- Production c4f98215-f3c6-4b2f-aec8-106b78f1f2d4 (run 44745729678); rollback 5804101e-1414-46db-b5f7-2d151dd3307c.
+- Còn mở: nguyên nhân gốc chờ lần lỗi tiếp theo hiện mã lỗi của OpenAI.
+
 ## 20/11/2026 — Nghiêm túc: hết quên, hết nói một đằng làm một nẻo, hết đọc ghi chú nguồn; không cắt lời; tìm web Tavily, chi phí ≤ 5 USD/tháng
 - Chủ app: Ngố "nói trước quên sau, nói 1 đằng làm 1 nẻo, bịa đặt"; đọc ra "Dữ liệu này tra cứu từ hệ thống…"; chưa nói xong đã bị cắt; chi phí phải ≤ 5 USD/tháng.
 - Nguyên nhân (đọc code): ghi chú nguồn bị nối vào chính câu trả lời cũ của Ngố → mô hình bắt chước đọc ra; client cắt sạch hội thoại sau MỌI thao tác (kể cả thao tác lỗi); TURN_MISMATCH (trích lời không khớp dấu câu) để lọt câu "đã làm" không kiểm chứng; chốt câu 1,0 s sau khi chữ ngừng đổi (Safari trả chữ theo cụm); bộ nhớ ngầm gọi GPT thêm sau MỖI câu; tìm web OpenAI 0,01 USD/lần là khoản lớn nhất.
