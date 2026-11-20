@@ -74,7 +74,7 @@ try{
  return new Response(data,{headers:{...headers,"x-nmh-doc-source":source}});
 }catch{return respond({error:"Không kết nối được GitHub"},502)}
 }
-if(!["/api/test","/api/chat","/api/tts","/api/chat-stream","/api/realtime-speech-preview","/api/route-check"].includes(u.pathname))return respond({error:"Not found"},404);
+if(!["/api/test","/api/chat","/api/tts","/api/chat-stream","/api/realtime-speech-preview","/api/route-check","/api/memory-session"].includes(u.pathname))return respond({error:"Not found"},404);
 if(request.method!=="POST")return respond({error:"POST only"},405);
 if((u.pathname==="/api/chat-stream"||u.pathname==="/api/realtime-speech-preview")&&env.NMH_FAST_VOICE!=="active")return respond({error:"Not found"},404);
 const origin=request.headers.get("origin");
@@ -83,6 +83,16 @@ if(!/application\/json/i.test(request.headers.get("content-type")||""))return re
 let body;try{const s=await request.text();if(s.length>18000)return respond({error:"Request too large"},413);body=JSON.parse(s)}catch{return respond({error:"Invalid JSON"},400)}
 const key=body?.apiKey;if(!valid(key))return respond({error:"API key không đúng định dạng"},400);
 if((u.pathname==="/api/chat"||u.pathname==="/api/chat-stream")&&!validMsgs(body.messages))return respond({error:"Lịch sử hội thoại không hợp lệ"},400);
+if(u.pathname==="/api/memory-session"){
+ const m=body.messages;
+ if(!(Array.isArray(m)&&m.length>=1&&m.length<=12&&m.every(x=>x&&(x.role==="user"||x.role==="assistant")&&typeof x.content==="string"&&x.content.length>0&&x.content.length<=1800)&&m.some(x=>x.role==="user")))return respond({error:"Lịch sử hội thoại không hợp lệ"},400);
+ if(!personalMemoryEnabled(env)||memoryMode(env)==="off"||!env.NMH_DB)return respond({ok:true,learning:"off"},200);
+ const sub=await memoryV2Subject(request,env).catch(()=>null);
+ if(!sub)return respond({ok:true,learning:"no-session"},200);
+ const run=observePersonalMemory({db:env.NMH_DB,sub,apiKey:key,messages:m,learnedAt:Date.now(),session:true}).catch(()=>{});
+ if(typeof ctx?.waitUntil==="function")ctx.waitUntil(run);else await run;
+ return respond({ok:true,learning:"queued"},202);
+}
 if(u.pathname==="/api/realtime-speech-preview"){
  const text=typeof body.text==="string"?body.text.trim():"";
  if(!text||text.length>300)return respond({error:"Văn bản thử phải từ 1 đến 300 ký tự."},400);
@@ -175,7 +185,8 @@ async function chatTurn(request,env,ctx,body,key,signal,onEvent){
  const rprov=env.NGO_ROUTE_PROVIDER==="tomtom"&&tmk?"tomtom":vmk?"vietmap":tmk?"tomtom":"google",rkey=rprov==="tomtom"?tmk:rprov==="vietmap"?vmk:gmk,cmpKey=env.NGO_ROUTE_COMPARE==="off"?null:rprov==="tomtom"?(vmk||null):rprov==="vietmap"?(tmk||null):null; // owner 17/11: Vietmap primary when its key exists; NGO_ROUTE_PROVIDER=tomtom reverts
  const routeContext=rq&&rq.enabled===true&&rkey&&env.NGO_ROUTES!=="off"?{apiKey:rkey,provider:rprov,compareKey:cmpKey,origin:(Number.isFinite(rq.origin?.lat)&&Number.isFinite(rq.origin?.lng)&&Math.abs(rq.origin.lat)<=90&&Math.abs(rq.origin.lng)<=180)?{lat:+rq.origin.lat,lng:+rq.origin.lng,...(Number.isFinite(+rq.origin.acc)&&+rq.origin.acc>=0?{acc:Math.round(+rq.origin.acc)}:{})}:null}:null;
  let result;
- try{result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal,actionRuntime,onEvent,routeContext,reasoning:env.NGO_REASONING||"low"})}
+ const searchContext=buildSearchContext(env);
+ try{result=await runAgent({apiKey:key,messages:body.messages,style:body.style,personalization,signal,actionRuntime,onEvent,routeContext,searchContext,reasoning:env.NGO_REASONING||"low"})}
  catch(e){console.warn(JSON.stringify({t:"ngo-turn",ok:false,err:String(e?.message||e).replace(/sk-[A-Za-z0-9_-]+/g,"sk-***").slice(0,200)}));throw e}
  // 17/11 trace for "không tra web được": tool names, search count, model only - no conversation content, no keys
  console.log(JSON.stringify({t:"ngo-turn",ok:true,tools:result?.tools||[],web:result?.webSearchCalls||0,model:result?.model,routes:!!routeContext}));
@@ -185,7 +196,10 @@ async function chatTurn(request,env,ctx,body,key,signal,onEvent){
  // The new analyzer is an isolated observer. Off by default, never changes the spoken reply.
  // No extra network call, SQL or mic/TTS handling when disabled.
  const mode=memoryMode(env);
- if(mode!=='off'&&typeof ctx?.waitUntil==='function'){
+ // 20/11/2026 owner (cost): personal memory learns from batches sent by the iPhone (/api/memory-session: every few turns
+ // and at KẾT THÚC), not after every sentence. NGO_MEMORY_LEARN=per-turn restores the old behaviour.
+ const perTurn=!personalMemoryEnabled(env)||env.NGO_MEMORY_LEARN==="per-turn";
+ if(perTurn&&mode!=='off'&&typeof ctx?.waitUntil==='function'){
   const observe=(async()=>{
    try{
     const sub=await memoryV2Subject(request,env);
@@ -200,6 +214,18 @@ async function chatTurn(request,env,ctx,body,key,signal,onEvent){
   ctx.waitUntil(observe);
  }
  return {...result,latency};
+}
+
+// 20/11/2026 owner: web search through Tavily's free quota; OpenAI web_search only as a fallback, at most N per day
+// (NGO_WEB_FALLBACK_DAILY, default 5) counted in D1. No D1 or a counter error = no paid fallback (fail closed).
+export function buildSearchContext(env){
+ const tavilyKey=String(env?.TAVILY_KEY||"").trim().replace(/^["']+|["']+$/g,"").trim();
+ if(!tavilyKey||env?.NGO_SEARCH==="openai")return null;
+ const cap=Math.max(0,Math.min(50,Number.parseInt(env?.NGO_WEB_FALLBACK_DAILY??"5",10)||0));
+ const day=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Ho_Chi_Minh"}).format(new Date());
+ return {tavilyKey,
+  async fallbackAvailable(){if(!env.NMH_DB||!cap)return false;const r=await env.NMH_DB.prepare("SELECT n FROM ngo_usage_daily WHERE day=? AND kind='openai_web_fallback'").bind(day()).first();return Number(r?.n||0)<cap},
+  async recordFallback(n){if(!env.NMH_DB)return;await env.NMH_DB.prepare("INSERT INTO ngo_usage_daily(day,kind,n) VALUES(?,'openai_web_fallback',?) ON CONFLICT(day,kind) DO UPDATE SET n=n+excluded.n").bind(day(),Math.max(1,Math.round(n)||1)).run()}};
 }
 
 function streamChat(request,execute){

@@ -81,7 +81,7 @@ test('DISC stays out of replies until a second user observation supports the sam
  assert.equal(result.length,1);
  assert.equal(result[0].kind,'inferred');
 });
-test('voice chat schedules learning in the background and a separate turn receives ASK and collaboration context',async()=>{
+test('20/11 batch learning: a chat turn makes no extra GPT call; the iPhone batch is learned in the background and a separate turn receives ASK and collaboration context',async()=>{
  const f=fixture();
  let release;
  const hold=new Promise(resolve=>{release=resolve});
@@ -105,8 +105,12 @@ test('voice chat schedules learning in the background and a separate turn receiv
  };
  try{
   const chat=async text=>worker.fetch(f.request('/api/chat','first','POST',{apiKey:key,messages:[{role:'user',content:text}]}),f.env,{waitUntil:p=>jobs.push(p)});
-  const response=await chat('Tôi từng tự kiểm tra thiết bị bằng nhật ký lỗi, từ nay cho tôi nghe kết luận trước.');
+  const said='Tôi từng tự kiểm tra thiết bị bằng nhật ký lỗi, từ nay cho tôi nghe kết luận trước.';
+  const response=await chat(said);
   assert.equal((await response.json()).answer,'Tôi đã hiểu.');
+  assert.equal(jobs.length,0,'no per-sentence learning call');
+  const batch=await worker.fetch(f.request('/api/memory-session','first','POST',{apiKey:key,messages:[{role:'user',content:said},{role:'assistant',content:'Tôi đã hiểu.'}]}),f.env,{waitUntil:p=>jobs.push(p)});
+  assert.equal(batch.status,202);
   assert.equal(jobs.length,1);
   assert.deepEqual((await listPersonalMemory(f.db,f.users.first)).entries,[]);
   release();
@@ -130,7 +134,7 @@ test('pilot exposes the section before loading and records only account-scoped s
   ? rejectAnalysis?new Response('{}',{status:429}):propose()
   : Response.json({output:[{type:'message',content:[{type:'output_text',text:'Tôi đã hiểu.'}]}]});
  try{
-  const chat=()=>worker.fetch(f.request('/api/chat','first','POST',{apiKey:key,messages:[{role:'user',content:'Hôm nay tôi đi bộ.'}]}),f.env,{waitUntil:p=>jobs.push(p)});
+  const chat=()=>worker.fetch(f.request('/api/memory-session','first','POST',{apiKey:key,messages:[{role:'user',content:'Hôm nay tôi đi bộ.'}]}),f.env,{waitUntil:p=>jobs.push(p)});
   const profile=async who=>(await worker.fetch(f.request('/api/v3/personal-memory',who),f.env)).json();
   await chat();await Promise.all(jobs.splice(0));
   const failed=(await profile('first')).lastRun;

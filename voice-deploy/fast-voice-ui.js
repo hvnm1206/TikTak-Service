@@ -1,8 +1,9 @@
 export function currentTurnContext(history,limit=12){
+ // 20/11/2026 owner: "từ sáng giờ không nhớ cái gì". Every completed or FAILED action (reminder, memory, note) used to
+ // drop all earlier conversation. Earlier commands are protected server-side (utterance_quote must come from the current
+ // utterance), so the conversation is no longer cut: always the last limit entries.
  const rows=Array.isArray(history)?history:[];
- let boundary=-1;
- for(let i=rows.length-1;i>=0;i--)if(rows[i]?.actionBoundary===true){boundary=i;break}
- return rows.slice(boundary+1).slice(-limit).map(m=>({role:m.role,content:m.content,...(m.role==="assistant"&&Array.isArray(m.tools)?{tools:m.tools}:{}),...(m.role==="assistant"&&m.web?{web:m.web}:{}),...(m.role==="assistant"&&Array.isArray(m.sources)&&m.sources.length?{sources:m.sources.slice(0,3).map(s=>({title:s.title,url:s.url}))}:{})}));
+ return rows.slice(-limit).map(m=>({role:m.role,content:m.content,...(m.role==="assistant"&&Array.isArray(m.tools)?{tools:m.tools}:{}),...(m.role==="assistant"&&m.web?{web:m.web}:{}),...(m.role==="assistant"&&Array.isArray(m.sources)&&m.sources.length?{sources:m.sources.slice(0,3).map(s=>({title:s.title,url:s.url}))}:{})}));
 }
 
 const client=String.raw`

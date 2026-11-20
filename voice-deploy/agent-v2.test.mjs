@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runAgent, MODEL, cleanVoiceAnswer, drivingRoute, tomtomRoute, vietmapRoute, vietmapCalc } from './agent-v2.js';
+import {provenanceLedger, runAgent, MODEL, cleanVoiceAnswer, drivingRoute, tomtomRoute, vietmapRoute, vietmapCalc } from './agent-v2.js';
 
 const key='sk-'+ 'a'.repeat(40);
 const msg=[{role:'user',content:'Tra thông tin cho tôi'}];
@@ -326,7 +326,7 @@ test('cost control is structural (one search per question, low context), not wor
   let req;
   await runAgent({apiKey:key,messages:msg,fetchImpl:async(url,opt)=>{req=JSON.parse(opt.body);return response([{type:'message',content:[{type:'output_text',text:'Ừ.'}]}])}});
   const ws=req.tools.find(t=>t.type==='web_search');assert.ok(ws);assert.equal(ws.search_context_size,'low');assert.equal(req.max_tool_calls,1);
-  assert.match(req.instructions,/Khi câu trả lời cần thông tin mới hoặc thông tin bạn không chắc chắn, dùng web_search\./);
+  assert.match(req.instructions,/Khi câu trả lời cần thông tin mới hoặc thông tin bạn không chắc chắn, dùng công cụ tìm web\./);
   assert.doesNotMatch(req.instructions,/TỐN PHÍ|chỉ dùng khi thật sự cần|chỉ tìm web khi người dùng muốn kiểm tra/,'no instruction that discourages searching');
   assert.match(req.instructions,/1–2 câu ngắn \(khoảng 15–35 từ\)/);
 });
@@ -566,7 +566,7 @@ test('reasoning "low" by default; if the model rejects the setting the same ques
   assert.deepEqual(bodies,['low','none']);assert.equal(r.answer,'Ừ.');
   await assert.rejects(()=>runAgent({apiKey:key,messages:msg,fetchImpl:async()=>new Response('{"error":{"message":"bad tools"}}',{status:400})}),/OpenAI HTTP 400/,'other 400s are not hidden');
 });
-test('owner 17/11 "nói đúng nhưng câu sau lại bảo không tra": earlier answers carry their provenance; unknown provenance adds nothing',async()=>{
+test('20/11 owner: provenance stays out of what Ngố said (it was read aloud) but still reaches the model as one separate note',async()=>{
   let req;
   await runAgent({apiKey:key,messages:[
     {role:'user',content:'Đi Hồ Tây thế nào?'},
@@ -577,8 +577,15 @@ test('owner 17/11 "nói đúng nhưng câu sau lại bảo không tra": earlier 
     {role:'assistant',content:'Câu cũ không rõ nguồn.'},
     {role:'user',content:'ok'}],
    fetchImpl:async(u,o)=>{req??=JSON.parse(o.body);return response([{type:'message',content:[{type:'output_text',text:'Ừ.'}]}])}});
-  assert.match(req.input[1].content,/\[Dữ liệu hệ thống: câu trả lời này dựa trên công cụ get_driving_route\.\]$/);
-  assert.match(req.input[3].content,/tìm web 1 lần, nguồn Báo A <https:\/\/a\.vn\/x>\.\]$/);
-  assert.equal(req.input[5].content,'Câu cũ không rõ nguồn.','no invented provenance for old entries');
-  assert.equal(req.input[0].content,'Đi Hồ Tây thế nào?');
+  assert.equal(req.input[1].content,'Đi qua Láng, khoảng 30 phút.','assistant turns are exactly what was said');
+  assert.equal(req.input[3].content,'Có triển lãm X ở Bảo tàng.');
+  assert.equal(req.input[5].content,'Câu cũ không rõ nguồn.');
+  for(const m of req.input.slice(0,7))assert.doesNotMatch(m.content,/Dữ liệu hệ thống|dựa trên công cụ/);
+  const note=req.input.at(-1);
+  assert.equal(note.role,'developer');assert.equal(req.input.length,8);
+  assert.match(note.content,/KHÔNG phải lời thoại/);
+  assert.match(note.content,/Câu trả lời thứ 1 .*dựa trên công cụ get_driving_route\./);
+  assert.match(note.content,/Câu trả lời thứ 2 .*tìm web 1 lần, nguồn Báo A <https:\/\/a\.vn\/x>\./);
+  assert.doesNotMatch(note.content,/Câu trả lời thứ 3/,'no invented provenance for old entries');
+  assert.equal(provenanceLedger([{role:'user',content:'a'},{role:'assistant',content:'b'}]),'','nothing known: no note at all');
 });

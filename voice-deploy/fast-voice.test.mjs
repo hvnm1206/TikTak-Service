@@ -29,21 +29,16 @@ test('pilot serves runnable opt-in voice UI and legacy route stays gated',async(
  assert.equal((await worker.fetch(request(),{})).status,404);
 });
 
-test('a completed action closes its command context before the next turn',()=>{
+test('20/11 owner "từ sáng giờ không nhớ cái gì": an action no longer cuts the conversation; only the last 12 entries are sent',()=>{
  const history=[
   {role:'user',content:'Hãy ghi nhớ tôi thích trà xanh'},
   {role:'assistant',content:'Đã ghi nhớ: tôi thích trà xanh',actionBoundary:true},
   {role:'user',content:'Ngày mai thời tiết thế nào?'}
  ];
- assert.deepEqual(currentTurnContext(history),[{role:'user',content:'Ngày mai thời tiết thế nào?'}]);
- const ordinary=[
-  {role:'user',content:'Hà Nội ở đâu?'},
-  {role:'assistant',content:'Ở miền Bắc Việt Nam.'},
-  {role:'user',content:'Còn Đà Nẵng?'}
- ];
- assert.deepEqual(currentTurnContext(ordinary),ordinary);
+ assert.deepEqual(currentTurnContext(history),[{role:'user',content:'Hãy ghi nhớ tôi thích trà xanh'},{role:'assistant',content:'Đã ghi nhớ: tôi thích trà xanh'},{role:'user',content:'Ngày mai thời tiết thế nào?'}]);
+ const long=Array.from({length:20},(_,i)=>({role:i%2?'assistant':'user',content:'m'+i}));
+ assert.deepEqual(currentTurnContext(long).map(m=>m.content),long.slice(-12).map(m=>m.content));
 });
-
 test('both fast and baseline clients mark completed actions and use closed-turn context',async()=>{
  const page=await (await worker.fetch(new Request(origin+'/'),env)).text();
  assert.match(page,/turn\.actionBoundary=!!result\.actionStatus/);

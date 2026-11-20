@@ -74,7 +74,7 @@ export async function getPersonalMemoryStatus(db,sub){
  return row||null;
 }
 
-export async function observePersonalMemory({db,sub,apiKey,messages,learnedAt,skipAction=false}){
+export async function observePersonalMemory({db,sub,apiKey,messages,learnedAt,skipAction=false,session=false}){
  const pref=await db.prepare(PREFERENCE).bind(sub).first();
  if(pref?.enabled!==1)return;
  const turnId=crypto.randomUUID();
@@ -86,7 +86,7 @@ export async function observePersonalMemory({db,sub,apiKey,messages,learnedAt,sk
  ).bind(sub,turnId,learnedAt,sub,pref.revision).run();
  let result;
  try{
-  result=skipAction?{status:'skipped-action',count:0}:await learnPersonalMemory({db,sub,apiKey,messages,turnId,learnedAt,expectedRevision:pref.revision});
+  result=skipAction?{status:'skipped-action',count:0}:await learnPersonalMemory({db,sub,apiKey,messages,turnId,learnedAt,expectedRevision:pref.revision,session});
  }catch(e){result={status:'analysis-failed',count:0,reason:['TimeoutError','AbortError'].includes(e?.name)?'timeout':'internal'}}
  if(result.status==='disabled')return;
  await db.prepare(
@@ -95,12 +95,21 @@ export async function observePersonalMemory({db,sub,apiKey,messages,learnedAt,sk
  ).bind(result.status,result.count,result.reason??null,sub,turnId,sub,pref.revision).run();
 }
 
-export async function learnPersonalMemory({db,sub,apiKey,messages,turnId,learnedAt,expectedRevision,fetchImpl=fetch}){
- const utterance=clean(messages.at(-1)?.content,1800);
+// 20/11/2026 owner (cost): one analysis per batch of turns instead of one GPT call after every sentence. In session mode the
+// user's utterances of the batch (newest kept first, max 1,800 chars, any utterance carrying a credential left out) are
+// analysed together; evidence must still be a verbatim part of what the user said.
+export function sessionUtterance(messages){
+ const users=(Array.isArray(messages)?messages:[]).filter(m=>m?.role==='user').map(m=>clean(m.content,1800)).filter(t=>t.length>=4&&!credential.test(t));
+ const picked=[];let len=0;
+ for(let i=users.length-1;i>=0;i--){if(len+users[i].length+1>1800)break;picked.unshift(users[i]);len+=users[i].length+1}
+ return picked.join('\n');
+}
+export async function learnPersonalMemory({db,sub,apiKey,messages,turnId,learnedAt,expectedRevision,fetchImpl=fetch,session=false}){
+ const utterance=session?sessionUtterance(messages):clean(messages.at(-1)?.content,1800);
  if(utterance.length<4||credential.test(utterance))return {status:'ignored',count:0};
  const preference=await db.prepare(PREFERENCE).bind(sub).first();
  if(preference?.enabled!==1||(expectedRevision!==undefined&&preference.revision!==expectedRevision))return {status:'disabled',count:0};
- const recent=messages.slice(-5,-1).filter(item=>!credential.test(item.content))
+ const recent=(session?messages.filter(item=>item?.role==='assistant').slice(-4):messages.slice(-5,-1)).filter(item=>!credential.test(item.content))
   .map(item=>({role:item.role,content:clean(item.content,1800).slice(0,450)}));
  const existing=await findCurrent(db,sub,[...recent.filter(x=>x.role==='user').map(x=>x.content),utterance].join(' '),true);
  const response=await fetchImpl('https://api.openai.com/v1/responses',{
@@ -120,7 +129,7 @@ export async function learnPersonalMemory({db,sub,apiKey,messages,turnId,learned
  if(!Array.isArray(proposals))return {status:'analysis-failed',count:0,reason:'invalid-output'};
  const prior=new Map(existing.map(x=>[x.id,x]));
  let count=0;
- for(const op of proposals.slice(0,3)){
+ for(const op of proposals.slice(0,session?5:3)){
   if(!op||!['add','update','discard','hold'].includes(op.action)||!Object.hasOwn(aspects,op.category)||!aspects[op.category].includes(op.aspect))continue;
   const quote=clean(op.evidence,250),body=clean(op.body,300),subject=clean(op.subject,100),domain=clean(op.domain,80);
   if(quote.length<6||!utterance.includes(quote)||!subject||!domain||body.length<5||credential.test([quote,body,subject,domain].join(' ')))continue;

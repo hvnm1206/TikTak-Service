@@ -8,10 +8,14 @@ export const deleteMemoryToolSchema={type:'function',name:'delete_memory',descri
 export const readMemoryToolSchema={type:'function',name:'read_memories',description:'Đọc các ghi nhớ đã lưu thuộc tài khoản hiện tại để trả lời, liên kết thông tin hoặc truy xuất khi không đủ ngữ cảnh. Dùng với câu hỏi cần nhớ lại dữ kiện; đây là thao tác chỉ đọc.',parameters:{type:'object',properties:{offset:{type:'integer',description:'Vị trí trang, bắt đầu 0'},utterance_quote:{type:'string',description:'Trích nguyên văn câu người dùng đang hỏi'}},required:['offset','utterance_quote'],additionalProperties:false},strict:true};
 export const memoryActionNames=new Set(['save_memory','save_note','update_memory','delete_memory','read_memories']);
 const denied=(code,answer)=>({ok:false,status:'failed',errorCode:code,answer});
+// 20/11/2026: Safari's transcript and the model's quote differ in punctuation, spacing and case ("Ngố, ghi lại..." vs
+// "ngố ghi lại"), which rejected real requests as TURN_MISMATCH. Compare letters/digits only; the quote must still be a
+// contiguous part of the CURRENT utterance, so commands from earlier turns are still refused.
+const quoteForm=text=>' '+String(text||'').normalize('NFC').toLocaleLowerCase('vi').replace(/[^\p{L}\p{N}]+/gu,' ').trim()+' ';
 export function matchesCurrentUtterance(args,utterance){
- const quote=String(args?.utterance_quote||'').normalize('NFC').trim();
- const current=String(utterance||'').normalize('NFC').trim();
- return quote.length>=5&&quote.length<=180&&current.toLocaleLowerCase('vi').includes(quote.toLocaleLowerCase('vi'));
+ const raw=String(args?.utterance_quote||'').normalize('NFC').trim();
+ const quote=quoteForm(raw);
+ return raw.length<=180&&quote.trim().length>=5&&quoteForm(utterance).includes(quote);
 }
 export function buildActionRuntime({request,env,utterance,requestId,signal}){
  if(!env?.NMH_DB)return null;

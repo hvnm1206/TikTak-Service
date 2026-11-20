@@ -5,7 +5,10 @@
 //    Uses WebKit navigator.audioSession when present; silently skipped elsewhere.
 // 2) Fast end-of-speech: Safari's own endpoint waits for a long silence before final result.
 //    When interim text stops changing for ENDPOINT_MS, stop recognition so the turn starts sooner.
-export const ENDPOINT_MS=1000;
+// 20/11/2026 owner: "chưa nói xong đã bị cắt". 1.0 s cut normal Vietnamese thinking pauses, and Safari delivers interim text
+// in bursts, so 1 s without a NEW word happens mid-sentence. Default 1.8 s (still well below Safari's own long endpoint);
+// the owner can tune it in SETUP (1.0-3.5 s), stored on this iPhone.
+export const ENDPOINT_MS=1800,ENDPOINT_MIN_MS=1000,ENDPOINT_MAX_MS=3500;
 export const TRIP_LOGIC=String.raw`
  // 17/11/2026 trip monitor (owner: "Hướng 2" - Google Maps does turn-by-turn, Ngố watches traffic while it stays open).
  // Pure decision: compare a fresh TomTom check from the current position with the trip baseline; speak only on real change.
@@ -32,6 +35,8 @@ export const TRIP_LOGIC=String.raw`
 `;
 const HELPERS=String.raw`
  let ngoLoudSpeaker=load("ngo_loud_speaker_v1","1")!=="0",ngoFastEndpoint=load("ngo_fast_endpoint_v1","1")!=="0";
+ const ngoEndpointClamp=v=>{const n=Math.round(Number(v));return Number.isFinite(n)?Math.min(${ENDPOINT_MAX_MS},Math.max(${ENDPOINT_MIN_MS},n)):${ENDPOINT_MS}};
+ let ngoEndpointMs=ngoEndpointClamp(load("ngo_endpoint_ms_v1","${ENDPOINT_MS}"));
  var ngoStreamVoice=load("ngo_stream_voice_v1","1")!=="0";
  // 16/11/2026: the last ~0.1-0.2 s of speech still sits in the iPhone output buffer when the final source ends;
  // opening the microphone at once switches the audio session and clips the last word. Wait for output latency + margin.
@@ -90,11 +95,23 @@ ${TRIP_LOGIC}
   ngoGpsStat=null;ngoTripOn=true;ngoWakeOn();
   ngoTrip={to:trip.to,path:String(trip.path||""),polyline:typeof trip.polyline==="string"&&trip.polyline.length<=20000?trip.polyline:null,expectEnd:now+(Number(trip.seconds)||0)*1000,started:now,lastCheck:now,lastAlertAt:0,alerted:[]};ngoTripChip()}catch{}};
  // 17/11 owner "tại sao nó không tra web được": show per answer which tools ran and whether web search happened (evidence, no guessing)
- function ngoDiag(d){try{const t=Array.isArray(d?.tools)?d.tools.filter(Boolean):[],w=Number(d?.webSearchCalls)||0;return "🔧 "+(t.length?t.join(", "):"không gọi công cụ")+" · "+(w?"đã tìm web ×"+w:"không tìm web")+(d?.model?" · "+d.model:"")}catch{return ""}}
+ function ngoDiag(d){try{const t=Array.isArray(d?.tools)?d.tools.filter(Boolean):[],w=Number(d?.webSearchCalls)||0,tv=Number(d?.searchCalls)||0;return "🔧 "+(t.length?t.join(", "):"không gọi công cụ")+" · "+(w||tv?"đã tìm web ×"+(w+tv)+(tv?" (Tavily"+(w?" + OpenAI":"")+")":""):"không tìm web")+(d?.model?" · "+d.model:"")+(d?.actionNotExecuted?" · ⚠️ thao tác CHƯA thực hiện ("+d.actionNotExecuted+")":"")}catch{return ""}}
  // 17/11 owner "không nhớ mạch chuyện" (after KẾT THÚC): the conversation lived only in page memory and stop()/start/reload
  // wiped it. It now persists on this iPhone (localStorage, last 40 entries); KẾT THÚC only stops voice; SETUP can clear it.
- function ngoHistLoad(){try{const a=JSON.parse(localStorage.getItem("ngo_history_v1")||"[]");return Array.isArray(a)?a.filter(m=>m&&(m.role==="user"||m.role==="assistant")&&typeof m.content==="string").slice(-40):[]}catch{return []}}
- function ngoHistSave(){try{localStorage.setItem("ngo_history_v1",JSON.stringify(history.slice(-40).map(m=>({role:m.role,content:String(m.content).slice(0,1500),...(m.diag?{diag:m.diag}:{}),...(Array.isArray(m.sources)&&m.sources.length?{sources:m.sources.slice(0,5)}:{}),...(m.actionBoundary?{actionBoundary:true}:{}),...(Array.isArray(m.tools)?{tools:m.tools.slice(0,6)}:{}),...(m.web?{web:m.web}:{})}))))}catch{}}
+ // first run with batch learning: turns stored before it were already analysed one by one - never send them again
+ function ngoHistLoad(){try{const a=JSON.parse(localStorage.getItem("ngo_history_v1")||"[]");const rows=Array.isArray(a)?a.filter(m=>m&&(m.role==="user"||m.role==="assistant")&&typeof m.content==="string").slice(-40):[];if(!localStorage.getItem("ngo_learn_batch_v1")){for(const m of rows)m.learned=1;localStorage.setItem("ngo_learn_batch_v1","1")}return rows}catch{return []}}
+ function ngoHistSave(){try{localStorage.setItem("ngo_history_v1",JSON.stringify(history.slice(-40).map(m=>({role:m.role,content:String(m.content).slice(0,1500),...(m.diag?{diag:m.diag}:{}),...(Array.isArray(m.sources)&&m.sources.length?{sources:m.sources.slice(0,5)}:{}),...(m.actionBoundary?{actionBoundary:true}:{}),...(Array.isArray(m.tools)?{tools:m.tools.slice(0,6)}:{}),...(m.web?{web:m.web}:{}),...(m.learned?{learned:1}:{})}))))}catch{}}
+ // 20/11/2026 owner (cost ≤ 5 USD/month): personal memory analyses a batch of turns (every 6 sentences, at KẾT THÚC and when
+ // the page is hidden) instead of one extra GPT call after every sentence. Only turns not yet sent are sent, once.
+ const NGO_LEARN_EVERY=6;
+ function ngoLearnSession(force){try{
+  const rows=history.filter(m=>!m.learned);const users=rows.filter(m=>m.role==="user");
+  if(!users.length||(!force&&users.length<NGO_LEARN_EVERY)||typeof key!=="string"||!key)return;
+  const batch=rows.slice(-12).map(m=>({role:m.role,content:String(m.content).slice(0,1800)})).filter(m=>m.content);
+  for(const m of rows)m.learned=true;ngoHistSave();
+  fetch("/api/memory-session",{method:"POST",keepalive:true,cache:"no-store",headers:{"Content-Type":"application/json"},body:JSON.stringify({apiKey:key,messages:batch})}).catch(()=>{});
+ }catch{}}
+ try{document.addEventListener?.("visibilitychange",()=>{if(document.hidden)ngoLearnSession(true)});addEventListener?.("pagehide",()=>ngoLearnSession(true))}catch{}
  globalThis.ngoHistClear=()=>{history.length=0;try{localStorage.removeItem("ngo_history_v1")}catch{}render()};
  function ngoTripSay(text){if(!active)return false;if(step!=="listening"||heard)return false;gen++;closeRec();const g=gen;history.push({role:"assistant",content:text});render();speak(text,g);return true}
  async function ngoTripTick(){try{
@@ -118,12 +135,13 @@ ${TRIP_LOGIC}
 `;
 const SETUP_HTML='<div style="margin:0 0 16px;padding-bottom:12px;border-bottom:1px solid #334155"><strong>TĂNG TỐC &amp; LOA</strong>'+
  '<label><input id="ngoLoudSpeaker" type="checkbox" style="width:auto"> Ưu tiên loa ngoài khi Ngố nói (iPhone)</label>'+
- '<label><input id="ngoFastEndpoint" type="checkbox" style="width:auto"> Chốt câu nhanh ('+(ENDPOINT_MS/1000).toFixed(1)+' giây im lặng)</label>'+
+ '<label><input id="ngoFastEndpoint" type="checkbox" style="width:auto"> Chốt câu khi anh ngừng nói</label>'+
+ '<label style="display:block;margin:6px 0">Chờ anh nói hết: <b id="ngoEndpointVal"></b> giây im lặng<input id="ngoEndpointMs" type="range" min="'+ENDPOINT_MIN_MS+'" max="'+ENDPOINT_MAX_MS+'" step="100" style="width:100%"></label>'+
  '<label><input id="ngoStreamVoice" type="checkbox" style="width:auto"> Phát giọng ngay khi đang tải (nhanh hơn ~3 giây)</label>'+
  '<label><input id="ngoRoutes" type="checkbox" style="width:auto"> Tra đường &amp; giao thông (ô tô, đường Vietmap, giao thông TomTom) — dùng vị trí iPhone</label>'+
  '<p class="hint" id="ngoGeoStatus"></p>'+
  '<p style="margin:8px 0"><button id="ngoHistClearBtn" type="button" style="width:auto">Xóa lịch sử hội thoại</button> <span class="hint" id="ngoHistInfo"></span></p>'+
- '<p class="hint">Tắt "chốt câu nhanh" nếu Ngố hay cắt ngang khi anh ngập ngừng. Tắt "loa ngoài" nếu micro không nhận sau khi Ngố nói. Tắt "phát ngay" để so với cách cũ (chậm hơn) nếu thấy tiếng không mượt.</p></div>';
+ '<p class="hint">Ngố hay cắt ngang khi anh ngập ngừng thì kéo "Chờ anh nói hết" lên. Tắt "loa ngoài" nếu micro không nhận sau khi Ngố nói. Tắt "phát ngay" để so với cách cũ (chậm hơn) nếu thấy tiếng không mượt.</p></div>';
 const SETUP_JS=String.raw`
  $("ngoHistInfo").textContent="Ngố nhớ mạch chuyện qua KẾT THÚC/mở lại (lưu trên iPhone này).";$("ngoHistClearBtn").onclick=()=>{globalThis.ngoHistClear();$("ngoHistInfo").textContent="Đã xóa lịch sử hội thoại."};
  $("ngoLoudSpeaker").checked=ngoLoudSpeaker;$("ngoFastEndpoint").checked=ngoFastEndpoint;
@@ -131,6 +149,8 @@ const SETUP_JS=String.raw`
  $("ngoStreamVoice").checked=ngoStreamVoice;$("ngoStreamVoice").onchange=()=>{ngoStreamVoice=$("ngoStreamVoice").checked;persist("ngo_stream_voice_v1",ngoStreamVoice?"1":"0")};
  $("ngoRoutes").checked=ngoRoutesOn;$("ngoRoutes").onchange=()=>{ngoRoutesOn=$("ngoRoutes").checked;persist("ngo_routes_v1",ngoRoutesOn?"1":"0");if(ngoRoutesOn)ngoGeoStart();else{ngoGeoStop();globalThis.ngoShowMapsLink(null);globalThis.ngoShowRouteCompare(null);globalThis.ngoShowTurns(null);ngoTripEnd()}ngoGeoShow()};ngoGeoShow();try{setInterval(ngoGeoShow,15000)}catch{}
  $("ngoFastEndpoint").onchange=()=>{ngoFastEndpoint=$("ngoFastEndpoint").checked;persist("ngo_fast_endpoint_v1",ngoFastEndpoint?"1":"0")};
+ $("ngoEndpointMs").value=String(ngoEndpointMs);$("ngoEndpointVal").textContent=(ngoEndpointMs/1000).toFixed(1);
+ $("ngoEndpointMs").oninput=()=>{ngoEndpointMs=ngoEndpointClamp($("ngoEndpointMs").value);$("ngoEndpointVal").textContent=(ngoEndpointMs/1000).toFixed(1);persist("ngo_endpoint_ms_v1",String(ngoEndpointMs))};
 `;
 function once(text,from,to){
  const n=text.split(from).length-1;
@@ -143,7 +163,8 @@ export function enhanceVoiceBoost(page){
  if(p.includes('history=[],active=false'))p=once(p,'history=[],active=false','history=ngoHistLoad(),active=false');
  if(p.includes('controller=null;history=[];heard="";render();setState("idle")'))p=once(p,'controller=null;history=[];heard="";render();setState("idle")','controller=null;heard="";render();setState("idle")');
  if(p.includes('active=true;gen++;history=[];render();'))p=once(p,'active=true;gen++;history=[];render();','active=true;gen++;render();');
- if(p.includes('function render(){'))p=once(p,'function render(){','function render(){ngoHistSave();');
+ if(p.includes('function render(){'))p=once(p,'function render(){','function render(){ngoHistSave();ngoLearnSession(false);');
+ if(p.includes('function stop(){gen++;'))p=once(p,'function stop(){gen++;','function stop(){ngoLearnSession(true);gen++;');
  // Audio session: playback while speaking, auto before the microphone opens.
  p=once(p,'if(!audioCtx)throw Error("AUDIO_NOT_UNLOCKED");','ngoAudioSession("playback");if(!audioCtx)throw Error("AUDIO_NOT_UNLOCKED");');
  p=once(p,'closeRec();heard="";','closeRec();ngoAudioSession("auto");heard="";');
@@ -157,11 +178,11 @@ export function enhanceVoiceBoost(page){
  }
  p=once(p,'setVoiceSource("OpenAI Marin — đã phát hoàn tất");listen();return}','setVoiceSource((String(globalThis.ngoTtsSource||"").startsWith("google")?"Google Leda":"OpenAI Marin")+" — đã phát hoàn tất");ngoListenAfterPlayback();return}');
  p=once(p,'if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110)};',
-  'if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110);clearTimeout(ngoEndTimer);if(ngoFastEndpoint&&heard)ngoEndTimer=setTimeout(()=>{if(rec===r){try{r.stop()}catch{}}},'+ENDPOINT_MS+')};');
+  'if(captionsOn)$("liveUtterance").textContent=heard.slice(0,110);clearTimeout(ngoEndTimer);if(ngoFastEndpoint&&heard)ngoEndTimer=setTimeout(()=>{if(rec===r){try{r.stop()}catch{}}},ngoEndpointMs)};');
  p=once(p,'r.onend=()=>{if(rec!==r)return;','r.onend=()=>{clearTimeout(ngoEndTimer);if(rec!==r)return;');
  // Per-answer tool/web-search line under each assistant bubble (evidence for "không tra web được").
- if(p.includes('turn.content=result.answer;turn.sources=result.sources||[];'))p=once(p,'turn.content=result.answer;turn.sources=result.sources||[];','turn.content=result.answer;turn.sources=result.sources||[];turn.diag=ngoDiag(result);turn.tools=Array.isArray(result.tools)?result.tools:[];turn.web=Number(result.webSearchCalls)||0;');
- if(p.includes('content:d.answer,sources:d.sources||[]'))p=once(p,'content:d.answer,sources:d.sources||[]','content:d.answer,sources:d.sources||[],diag:ngoDiag(d),tools:Array.isArray(d.tools)?d.tools:[],web:Number(d.webSearchCalls)||0');
+ if(p.includes('turn.content=result.answer;turn.sources=result.sources||[];'))p=once(p,'turn.content=result.answer;turn.sources=result.sources||[];','turn.content=result.answer;turn.sources=result.sources||[];turn.diag=ngoDiag(result);turn.tools=Array.isArray(result.tools)?result.tools:[];turn.web=(Number(result.webSearchCalls)||0)+(Number(result.searchCalls)||0);');
+ if(p.includes('content:d.answer,sources:d.sources||[]'))p=once(p,'content:d.answer,sources:d.sources||[]','content:d.answer,sources:d.sources||[],diag:ngoDiag(d),tools:Array.isArray(d.tools)?d.tools:[],web:(Number(d.webSearchCalls)||0)+(Number(d.searchCalls)||0)');
  if(p.includes('p.textContent=m.content;e.append(p);'))p=once(p,'p.textContent=m.content;e.append(p);','p.textContent=m.content;e.append(p);if(m.role==="assistant"&&m.diag){const q=document.createElement("div");q.style.cssText="font-size:11px;opacity:.65;margin-top:4px";q.textContent=m.diag;e.append(q)}');
  // SETUP switches next to the voice panel.
  p=once(p,'<h3 style="margin:0 0 12px">TÙY CHỈNH GIỌNG NÓI</h3>','<h3 style="margin:0 0 12px">TÙY CHỈNH GIỌNG NÓI</h3>'+SETUP_HTML);

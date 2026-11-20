@@ -405,6 +405,7 @@ test('owner 17/11 "không nhớ mạch chuyện": conversation persists on the i
   const store={};const localStorage={getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=String(v)},removeItem:k=>{delete store[k]}};
   const c={localStorage,history:[{role:'user',content:'Mai đi Hồ Tây'},{role:'assistant',content:'Ok',diag:'🔧 x'}]};
   vm.runInNewContext(pick('ngoHistLoad')+pick('ngoHistSave')+';globalThis.L=ngoHistLoad;globalThis.S=ngoHistSave;',c);
-  c.S();const reloaded=c.L();assert.deepEqual(JSON.parse(JSON.stringify(reloaded)),[{role:'user',content:'Mai đi Hồ Tây'},{role:'assistant',content:'Ok',diag:'🔧 x'}]);
+  c.S();const reloaded=c.L();assert.deepEqual(JSON.parse(JSON.stringify(reloaded)),[{role:'user',content:'Mai đi Hồ Tây',learned:1},{role:'assistant',content:'Ok',diag:'🔧 x',learned:1}],'20/11: turns stored before batch learning are never re-sent');
+  c.history=[{role:'user',content:'mới'}];c.S();assert.deepEqual(JSON.parse(JSON.stringify(c.L())),[{role:'user',content:'mới'}],'later turns stay unlearned until sent');
   store.ngo_history_v1='not json';assert.deepEqual(JSON.parse(JSON.stringify(c.L())),[],'corrupt storage never breaks the page');
 });
