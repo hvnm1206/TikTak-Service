@@ -348,7 +348,13 @@ function extractText(output){
 async function readResponseStream(body,{onEvent,permitSpeech}){
  let finalText='',finalItem=null,data=[],completed=null,previewSent=false,blocked=false;
  async function handle(event){
-  if(event.type==='error'||event.type==='response.failed')throw Error('GPT không hoàn tất phản hồi.');
+  // 20/11/2026 20:34 owner screenshot "GPT không hoàn tất phản hồi" with no reason: OpenAI's own code/message was dropped.
+  // Keep them (key masked) so the screen and Workers log show the real cause; spoke = a preview was already spoken.
+  if(event.type==='error'||event.type==='response.failed'){
+   const er=event.error||event.response?.error||{};
+   const e=Error('GPT không hoàn tất phản hồi'+(er.code?' ('+String(er.code).slice(0,40)+')':'')+(er.message?': '+String(er.message).replace(/sk-[A-Za-z0-9_-]+/g,'sk-***').slice(0,160):'')+'.');
+   e.openaiCode=String(er.code||'');e.spoke=previewSent;throw e;
+  }
   if(event.type==='response.completed'||event.type==='response.incomplete'){completed=event.response;return}
   if(event.type==='response.output_item.added'){
    const item=event.item;
@@ -440,7 +446,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
   const enabledActions=Array.isArray(actionRuntime?.tools)?actionRuntime.tools:[];
   const routeTools=routeContext?.apiKey?[ROUTE_TOOL,LOCATION_TOOL]:[];let mapsUrl=null,routeError=null,trip=null,routeCompare=null,routeTurns=null;
   const allSources=[];const toolCalls=[];let lastActionFailure=null;let webSearchCalls=0;let searchCalls=0,hostedFallback=false,tavilyOut=false;
-  const useTavily=!!searchContext?.tavilyKey;let usage={input_tokens:0,output_tokens:0,cached_input_tokens:0,api_calls:0};let response=null;
+  const useTavily=!!searchContext?.tavilyKey;let streamRetried=false;let usage={input_tokens:0,output_tokens:0,cached_input_tokens:0,api_calls:0};let response=null;
   for(let round=0;round<3;round++){
     // hosted web_search: offered once per question - always without Tavily (old behaviour), with Tavily only after its quota ran out
     const offerHosted=!webSearchCalls&&(!useTavily||hostedFallback);
@@ -454,6 +460,10 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
       if(!r.ok&&r.status===400&&ngoEffort!=="none"){const t=typeof r.clone==="function"?await r.clone().text().catch(()=>""):"";if(/reasoning|effort/i.test(t)){ngoEffort="none";round--;continue}}
       if(!r.ok)throw Error(r.status===401?"API key không hợp lệ":r.status===429?"API hết hạn mức":r.status===400?"OpenAI HTTP 400: cần kiểm tra quyền hỗ trợ web_search của model/API key":"OpenAI HTTP "+r.status);
       response=onEvent?await readResponseStream(r.body,{onEvent,permitSpeech:!lastActionFailure}):await r.json();
+    }catch(e){
+      // one retry for a transient OpenAI failure mid-stream (server_error or no code), never after speech already started
+      if(!streamRetried&&typeof e?.openaiCode==="string"&&(e.openaiCode===""||e.openaiCode==="server_error")&&!e.spoke&&!signal?.aborted){streamRetried=true;round--;continue}
+      throw e;
     }finally{clearTimeout(tm)}
     if(!Array.isArray(response.output))throw Error("Responses API trả dữ liệu không hợp lệ");
     const thisInput=Math.max(0,Number(response.usage?.input_tokens||0));

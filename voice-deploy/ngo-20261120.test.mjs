@@ -156,3 +156,16 @@ test('cut-off speech: default wait 1.8 s, owner-tunable and clamped, stored on t
     assert.equal(timers.at(-1),expected,String(stored));
   }
 });
+
+test('20/11 20:34 "GPT không hoàn tất phản hồi": OpenAI reason shown, one retry for server_error, no retry for other codes',async()=>{
+  const sse=events=>new Response(events.map(e=>'data: '+JSON.stringify(e)+'\n\n').join(''),{status:200,headers:{'content-type':'text/event-stream'}});
+  const failed=code=>({type:'response.failed',response:{error:{code,message:'Boom for sk-'+'z'.repeat(30)}}});
+  const done={type:'response.completed',response:{output:[{type:'message',content:[{type:'output_text',text:'Ổn rồi.'}]}],usage:{}}};
+  let n=0;
+  const r=await runAgent({apiKey:key,messages:[{role:'user',content:'x'}],onEvent:async()=>{},fetchImpl:async()=>++n===1?sse([failed('server_error')]):sse([done])});
+  assert.equal(n,2);assert.equal(r.answer,'Ổn rồi.');
+  n=0;
+  await assert.rejects(runAgent({apiKey:key,messages:[{role:'user',content:'x'}],onEvent:async()=>{},fetchImpl:async()=>{n++;return sse([failed('invalid_prompt')])}}),
+    e=>/GPT không hoàn tất phản hồi \(invalid_prompt\): Boom for sk-\*\*\*\./.test(e.message)&&!e.message.includes('zzzz'));
+  assert.equal(n,1,'no retry for a non-transient code');
+});
