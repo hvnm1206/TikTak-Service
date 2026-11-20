@@ -9,7 +9,26 @@ jobs:
     if: "${{ startsWith(github.event.head_commit.message, 'probe(ngo): tavily') }}"
     runs-on: ubuntu-latest
     steps:
+      - name: Worker versions and what created them (read-only)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.NMH_CF_API_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request
+          a='https://api.cloudflare.com/client/v4/accounts/769c2ab4af5ad50700039d473a72d48e/workers/scripts/nmh-voice-gpt-test'
+          def get(p):
+            req=urllib.request.Request(a+p,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN'],'User-Agent':'NMH-NGO-PROBE'})
+            with urllib.request.urlopen(req,timeout=30) as r:return json.load(r)['result']
+          dep=get('/deployments')['deployments'][0]
+          print('NGO_VER active',json.dumps(dep['versions']),'created',dep.get('created_on'),'source',dep.get('source'),'by',dep.get('author_email','')[:3]+'***')
+          for v in (get('/versions?per_page=5').get('items') or [])[:5]:
+            m=v.get('metadata',{});an=v.get('annotations',{})
+            print('NGO_VER',v['id'],m.get('created_on'),'source='+str(m.get('source')),'trigger='+str(an.get('workers/triggered_by')),'msg='+str(an.get('workers/message'))[:60])
+          sec=urllib.request.Request(a+'/secrets',headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN'],'User-Agent':'NMH-NGO-PROBE'})
+          with urllib.request.urlopen(sec,timeout=30) as r:print('NGO_SECRET_NAMES',sorted(x['name'] for x in json.load(r)['result']))
+          PY
       - name: Tavily Vietnamese search quality, latency and parse cost
+        if: false
         env:
           TAVILY_KEY: ${{ secrets.TAVILY_KEY }}
         run: |
