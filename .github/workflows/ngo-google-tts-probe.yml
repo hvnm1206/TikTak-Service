@@ -127,6 +127,10 @@ jobs:
             -d "{\"apiKey\":\"sk-probe$(printf 'x%.0s' $(seq 1 40))\",\"text\":\"Xin chào, đây là giọng thử.\",\"style\":\"danh_da\",\"format\":\"pcm\",\"wire\":\"b64\"}")
           echo "NGO_PROBE_b64 status=$code wire=$(grep -i '^x-nmh-tts-wire' h.txt | tr -d '\r' | cut -d' ' -f2) decoded_bytes=$(python3 -c 'import json,base64;print(len(base64.b64decode(json.load(open("out.json"))["audioContent"])))' 2>&1 | tail -1)"
           curl -sS "$U/" | grep -c 'wire:"b64"' | sed 's/^/NGO_PAGE_HAS_B64_CLIENT=/'
+          curl -sS "$U/" -o page.html
+          for m in 'id="ngoEndpointMs"' '/api/memory-session' 'return rows.slice(-limit)' 'thao tác CHƯA thực hiện' 'ngoLearnSession(true);gen++'; do echo "NGO_PAGE_20261120 $(grep -c -F "$m" page.html) $m"; done
+          code=$(curl -sS -o ms.json -w '%{http_code}' -X POST "$U/api/memory-session" -H "origin: $U" -H 'content-type: application/json' -d "{\"apiKey\":\"sk-probe$(printf 'x%.0s' $(seq 1 40))\",\"messages\":[{\"role\":\"user\",\"content\":\"thử\"}]}")
+          echo "NGO_MEMORY_SESSION_ANON status=$code body=$(head -c 120 ms.json)"
           LONG='Đi theo tuyến chính qua Phố Nguyễn Cơ Thạch → Hàm Nghi → Lê Đức Thọ → Hồ Tùng Mậu → Phạm Hùng → Đại Lộ Thăng Long → Phố Trần Bình → Phố Tôn Thất Thuyết → Đường Trần Thái Tông, quãng đường khoảng 9 km, mất chừng 17 phút, dự kiến tới lúc 7 giờ 40, có đoạn đông ở Phạm Hùng'
           code=$(curl -sS -o out.bin -D h.txt -w '%{http_code}' -X POST "$U/api/tts" -H "origin: $U" -H 'content-type: application/json' \
             --data-binary "$(python3 -c 'import json,sys;print(json.dumps({"apiKey":"sk-probe"+"x"*40,"text":sys.argv[1],"style":"danh_da","format":"pcm"}))' "$LONG")")
