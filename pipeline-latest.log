@@ -1,19 +1,37 @@
-SOURCE vnexpress-sohoa items=23 kept=23 errors=0 
-SOURCE genk items=55 kept=51 errors=0 
-SOURCE techcrunch items=38 kept=30 errors=0 
-SOURCE theverge items=20 kept=19 errors=0 
+SOURCE vnexpress-sohoa items=24 kept=24 errors=0 
+SOURCE genk items=54 kept=50 errors=0 
+SOURCE techcrunch items=32 kept=24 errors=0 
+SOURCE theverge items=20 kept=17 errors=0 
 SOURCE openai items=3 kept=3 errors=0 
 SOURCE anthropic items=0 kept=0 errors=0 
-SOURCE google-ai items=4 kept=4 errors=0 
+SOURCE google-ai items=2 kept=2 errors=1 https://deepmind.google/blog/rss.xml: ParseError not well-formed (invalid token): line 1, column 0
 SOURCE the-decoder items=10 kept=10 errors=0 
-SOURCE zdnet-ai items=5 kept=5 errors=0 
+SOURCE zdnet-ai items=1 kept=1 errors=0 
 SOURCE mit-tr-ai items=1 kept=1 errors=0 
-SOURCE wired-ai items=9 kept=9 errors=0 
-SOURCE thanhnien-cn items=21 kept=21 errors=0 
+SOURCE wired-ai items=8 kept=8 errors=0 
+SOURCE thanhnien-cn items=20 kept=20 errors=0 
 SOURCE tuoitre-nss items=1 kept=1 errors=0 
-SOURCE hackernews-sec items=19 kept=19 errors=0 
-SOURCE bleeping items=15 kept=15 errors=0 
+SOURCE hackernews-sec items=14 kept=14 errors=0 
+SOURCE bleeping items=14 kept=14 errors=0 
 SOURCE securityweek-ai items=2 kept=2 errors=0 
-SOURCE darkreading items=8 kept=8 errors=0 
-NEW_ARTICLES 40 of pool 221
-RUN_SUMMARY {"run_id": "20261121-1355-d45a28", "new_written": 40, "model": "gpt-6-luna", "tokens": {"in": 7812, "cached": 0, "out": 5183}, "est_usd": 0.003373, "d1_calls": 94}
+SOURCE darkreading items=7 kept=7 errors=0 
+NEW_ARTICLES 18 of pool 198
+GPT_MISSING https://www.theverge.com/tech/1039554/un-regulations-killer-robots
+GPT_MISSING https://techcrunch.com/2026/11/21/trump-says-reported-fbi-database-hack-is-not-good
+GPT_MISSING https://www.bleepingcomputer.com/news/security/microsoft-entra-connect-health-flaw-exploited-to-steal-tenant-data
+GPT_MISSING https://www.theverge.com/tech/1039543/fbi-usda-hacked
+GPT_MISSING https://techcrunch.com/2026/11/21/all-the-ai-agents-that-can-live-in-your-text-messages
+GPT_MISSING https://the-decoder.com/nvidia-researchers-argue-huge-ai-context-windows-are-a-dead-end
+GPT_MISSING https://the-decoder.com/silicon-valleys-growing-obsession-with-ai-doomsday-is-turning-parts-of-the-tech-industry-toward-cult-like-devotion
+GPT_MISSING https://techcrunch.com/2026/11/21/is-selling-an-ai-version-of-your-face-to-this-microdrama-startup-the-future-of-hollywood
+GPT_MISSING https://techcrunch.com/2026/11/21/alaska-your-next-governor-is-a-wikipedia-nerd
+GPT_MISSING https://www.bleepingcomputer.com/news/security/badbox-30-botnet-returns-with-record-breaking-40-billion-daily-ad-requests
+GPT_MISSING https://www.theverge.com/gadgets/1038762/amazon-alexa-photo-frame-black-friday-2026-deal-sale
+GPT_MISSING https://www.theverge.com/gadgets/1039160/anker-soundcore-liberty-5-pro-black-friday-2026-deal-sale
+GPT_MISSING https://www.bleepingcomputer.com/news/security/fbi-reportedly-hacked-again-this-time-targeting-nationwide-police-database
+GPT_MISSING https://vnexpress.net/hon-100-trieu-cua-do-tren-dao-giang-sinh-lu-luot-di-cu-5147515.html
+GPT_MISSING https://genk.vn/tai-khoan-ngan-hang-tu-dong-tru-tien-den-213-trieu-dong-sau-khi-quet-ma-qr-hai-nguoi-phu-nu-duoc-boi-thuong-40-trieu-165261121190244857.chn
+GPT_MISSING https://www.theverge.com/podcast/1038701/anthropic-ipo-ai-safety-openai-nvidia-structure
+GPT_MISSING https://www.theverge.com/report/1038463/john-roberts-linda-belcher-bobs-burgers-interview
+GPT_MISSING https://www.theverge.com/games/1038099/chess-classic-games-expansion-ai
+RUN_SUMMARY {"run_id": "20261121-2042-e5f67f", "new_written": 0, "model": "gpt-6-luna", "tokens": {"in": 5531, "cached": 0, "out": 14}, "est_usd": 0.00056, "d1_calls": 44}
