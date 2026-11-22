@@ -1,5 +1,12 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 22/11/2026 11:32 — "OpenAI HTTP 400: cần kiểm tra quyền hỗ trợ web_search…"
+- Câu báo lỗi là câu đoán viết cứng cho MỌI lỗi 400; lý do thật của OpenAI bị bỏ. Bản 4a38f311 (ceece34) đã hiện lý do thật (che khóa), bỏ mục lịch sử rỗng, giữ khai báo search_web suốt câu hỏi.
+- Nguyên nhân gốc: gọi OpenAI với store:false + suy luận; sau mỗi lần gọi công cụ, output vòng trước (có mục suy luận rs_…) được gửi lại, OpenAI không lưu nên báo "Item with id 'rs_…' not found". Từ khi dùng Tavily, mọi câu tìm web phải qua vòng 2 nên lỗi lộ ra thường xuyên.
+- Sửa: include ["reasoning.encrypted_content"] — mục suy luận mang trạng thái mã hóa để gửi lại (cách chuẩn cho chế độ không lưu). Test 214/214.
+- Production 92a3a282-6a01-4866-bc7c-2ff8a14af5f7 (run 44985952532); rollback 4a38f311-a717-46b6-b7e5-7de9e6115ea7.
+- Chưa nghiệm thu trên iPhone.
+
 ## 20/11/2026 20:34 — "OpenAI: GPT không hoàn tất phản hồi" (không rõ lý do)
 - Lỗi phát ra khi OpenAI gửi response.failed/error giữa luồng trả lời; code cũ bỏ mất mã và lý do của OpenAI → không chẩn đoán được.
 - Sửa: giữ mã + lý do (che khóa) trên màn hình và Workers log; server_error/không mã thì tự thử lại 1 lần nếu chưa đọc tiếng nào. Test 212/212.
