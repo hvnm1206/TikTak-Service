@@ -1,5 +1,10 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 22/11/2026 11:48 — "OpenAI HTTP 400: invalid_json · failed to parse JSON value"
+- Lý do thật hiện ra nhờ bản 4a38f311. Nguyên nhân gốc: cắt chữ bằng .slice(0,N) (lịch sử 1.500, ghi chú nguồn 50, trích Tavily 400, tiêu đề) có thể cắt đôi emoji (cặp surrogate UTF-16) → JSON chứa "\ud83d" lẻ → OpenAI không đọc được. Bài Facebook nhiều emoji nên hay gặp.
+- Sửa 2 lớp: cutText cắt theo ranh giới ký tự; safeJSON làm sạch mọi body gửi OpenAI/Tavily/Google (cả bộ nhớ và giọng). Test 215/215.
+- Production b0c2252f-9a0a-41e7-834c-202774805189 (run 44986735645); rollback 92a3a282-6a01-4866-bc7c-2ff8a14af5f7.
+
 ## 22/11/2026 11:32 — "OpenAI HTTP 400: cần kiểm tra quyền hỗ trợ web_search…"
 - Câu báo lỗi là câu đoán viết cứng cho MỌI lỗi 400; lý do thật của OpenAI bị bỏ. Bản 4a38f311 (ceece34) đã hiện lý do thật (che khóa), bỏ mục lịch sử rỗng, giữ khai báo search_web suốt câu hỏi.
 - Nguyên nhân gốc: gọi OpenAI với store:false + suy luận; sau mỗi lần gọi công cụ, output vòng trước (có mục suy luận rs_…) được gửi lại, OpenAI không lưu nên báo "Item with id 'rs_…' not found". Từ khi dùng Tavily, mọi câu tìm web phải qua vòng 2 nên lỗi lộ ra thường xuyên.
