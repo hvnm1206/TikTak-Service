@@ -1,3 +1,4 @@
+import {safeJSON} from "./safe-json.js";
 import { MEMORY_MODEL } from './memory-v2.js';
 
 export const personalMemoryEnabled=env=>env?.NMH_PERSONAL_MEMORY==='pilot';
@@ -115,7 +116,7 @@ export async function learnPersonalMemory({db,sub,apiKey,messages,turnId,learned
  const response=await fetchImpl('https://api.openai.com/v1/responses',{
   method:'POST',signal:AbortSignal.timeout(20000),
   headers:{authorization:'Bearer '+apiKey,'content-type':'application/json'},
-  body:JSON.stringify({model:MEMORY_MODEL,instructions:INSTRUCTIONS,
+  body:safeJSON({model:MEMORY_MODEL,instructions:INSTRUCTIONS,
    input:JSON.stringify({utterance,recent,memories:existing.map(({turn_id,learned_at,...row})=>row)}),
    text:{format},store:false,reasoning:{effort:'none'},max_output_tokens:1400})
  });

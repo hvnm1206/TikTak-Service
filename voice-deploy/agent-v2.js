@@ -1,3 +1,4 @@
+import {cutText,safeJSON} from "./safe-json.js";
 // NMH Voice V2 agent — ported architecture from Ngáo, NOT deployed until Cloudflare is authorized.
 // All remote data are untrusted. Public data integrations require no new API key.
 import { responseLines } from './response-events.js';
@@ -30,7 +31,7 @@ export async function tavilySearch(args,{searchContext,fetchImpl=fetch,signal,no
   if(query.length<2)return fnOutput(false,{error:"Truy vấn quá ngắn"});
   const body={query,search_depth:"basic",max_results:5,include_answer:false,...(freshness==="any"?{topic:"general",country:"vietnam"}:{topic:"news",time_range:freshness})};
   let r;
-  try{r=await fetchImpl("https://api.tavily.com/search",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+searchContext.tavilyKey},body:JSON.stringify(body),signal:signal?AbortSignal.any([signal,AbortSignal.timeout(9000)]):AbortSignal.timeout(9000)})}
+  try{r=await fetchImpl("https://api.tavily.com/search",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+searchContext.tavilyKey},body:safeJSON(body),signal:signal?AbortSignal.any([signal,AbortSignal.timeout(9000)]):AbortSignal.timeout(9000)})}
   catch(e){return fnOutput(false,{error:"Không kết nối được dịch vụ tìm kiếm: "+String(e?.name||e).slice(0,60)})}
   // 432/433 = plan or pay-as-you-go limit reached, 401 = key refused: the free quota path is unavailable for this question
   if([401,432,433].includes(r.status))return {...fnOutput(false,{error:"SEARCH_QUOTA",http:r.status}),quota:true};
@@ -38,7 +39,7 @@ export async function tavilySearch(args,{searchContext,fetchImpl=fetch,signal,no
   const j=await r.json().catch(()=>null);
   const all=Array.isArray(j?.results)?j.results:[];
   const limit=FRESH_MS[freshness];
-  const kept=all.map(x=>({title:str(x?.title,120),url:safeURL(x?.url),excerpt:clean(x?.content).slice(0,400),ms:Date.parse(x?.published_date||"")}))
+  const kept=all.map(x=>({title:str(x?.title,120),url:safeURL(x?.url),excerpt:cutText(clean(x?.content),400),ms:Date.parse(x?.published_date||"")}))
     .filter(x=>x.url&&x.excerpt&&(!limit||(Number.isFinite(x.ms)&&x.ms<=now+3600e3&&now-x.ms<=limit))).slice(0,5);
   const dropped=all.length-kept.length;
   if(!kept.length)return fnOutput(false,{error:limit?"Không có nguồn nào đăng trong khoảng thời gian yêu cầu ("+freshness+") cho truy vấn này; các kết quả cũ hoặc không rõ ngày đã bị loại.":"Không tìm thấy kết quả.",query,freshness});
@@ -47,7 +48,7 @@ export async function tavilySearch(args,{searchContext,fetchImpl=fetch,signal,no
     kept.map(x=>({title:x.title,url:x.url})));
 }
 const WEB_SEARCH_CALL_USD=0.01; // OpenAI published base rate; excludes search content tokens.
-const str=(x,max=180)=>String(x||"").trim().slice(0,max);
+const str=(x,max=180)=>cutText(String(x||"").trim(),max);
 const clean=(s)=>String(s||"").replace(/<[^>]*>/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/\s+/g," ").trim();
 const safeURL=(x)=>{try{const u=new URL(x);if(u.protocol!=="https:"||u.username||u.password)return null;return u.href}catch{return null}};
 const nowVN=()=>new Intl.DateTimeFormat("vi-VN",{timeZone:"Asia/Ho_Chi_Minh",dateStyle:"full",timeStyle:"short"}).format(new Date());
@@ -457,7 +458,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     let r;
     try{
       r=await fetchImpl(API,{method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},
-        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:offerHosted?[...TOOLS,...(useTavily?[SEARCH_TOOL]:[]),...routeTools,...enabledActions,WEB_SEARCH]:[...TOOLS,...(useTavily?[SEARCH_TOOL]:[]),...routeTools,...enabledActions],...(offerHosted?{max_tool_calls:1}:{}),tool_choice:round===2?"none":"auto",reasoning:{effort:ngoEffort},max_output_tokens:800,store:false,include:["reasoning.encrypted_content"],...(onEvent?{stream:true}:{})})});
+        signal:sig,body:safeJSON({model:MODEL,instructions,input,tools:offerHosted?[...TOOLS,...(useTavily?[SEARCH_TOOL]:[]),...routeTools,...enabledActions,WEB_SEARCH]:[...TOOLS,...(useTavily?[SEARCH_TOOL]:[]),...routeTools,...enabledActions],...(offerHosted?{max_tool_calls:1}:{}),tool_choice:round===2?"none":"auto",reasoning:{effort:ngoEffort},max_output_tokens:800,store:false,include:["reasoning.encrypted_content"],...(onEvent?{stream:true}:{})})});
       if(!r.ok&&r.status===400&&ngoEffort!=="none"){const t=typeof r.clone==="function"?await r.clone().text().catch(()=>""):"";if(/reasoning|effort/i.test(t)){ngoEffort="none";round--;continue}}
       // 22/11/2026 owner screenshot: every 400 showed a guessed "web_search permission" text and dropped OpenAI's reason.
       // Show OpenAI's own message/param/code (key masked) so the real cause is visible on screen and in the Workers log.

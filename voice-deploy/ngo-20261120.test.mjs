@@ -189,3 +189,16 @@ test('22/11 HTTP 400 root cause: stateless calls ask for encrypted reasoning, an
   for(const b of bodies){assert.equal(b.store,false);assert.deepEqual(b.include,['reasoning.encrypted_content'])}
   assert.deepEqual(bodies[1].input.find(x=>x.type==='reasoning'),reasoningItem);
 });
+
+test('22/11 invalid_json root cause: cuts never leave half an emoji and every OpenAI body is well-formed JSON',async()=>{
+  const {cutText,safeJSON}=await import('./safe-json.js');
+  const emoji='🔥';
+  for(let n=0;n<8;n++){const s='a'.repeat(n)+emoji.repeat(3);for(let max=0;max<=s.length;max++){const t=cutText(s,max);assert.ok(t.isWellFormed(),n+'/'+max);assert.ok(t.length<=max)}}
+  assert.equal(safeJSON({x:'giá \ud83d'}),'{"x":"giá �"}');
+  let raw;
+  const halfEmojiHistory=[{role:'user',content:'Giá vàng hôm nay'},{role:'assistant',content:'x'.repeat(1499)+'🔥 SJC tăng'},{role:'user',content:'thế còn xăng \ud83d'}];
+  await runAgent({apiKey:key,messages:halfEmojiHistory,searchContext:{tavilyKey:'k'},
+    toolFetchImpl:async(u,o)=>{assert.ok(o.body.isWellFormed());return new Response(JSON.stringify({results:[{title:'FB',url:'https://facebook.com/p',content:'y'.repeat(399)+'😀 giá',published_date:new Date().toUTCString()}]}),{status:200})},
+    fetchImpl:async(u,o)=>{raw=o.body;assert.doesNotMatch(o.body,/\\ud83d(?!\\ud)/i,'no lone surrogate escape');JSON.parse(o.body);assert.ok(o.body.isWellFormed());
+      return raw&&o.body.includes('function_call_output')?text('Ừ.'):{ok:true,json:async()=>({output:[{type:'function_call',name:'search_web',call_id:'c',arguments:JSON.stringify({query:'giá xăng',freshness:'day'})}],usage:{}})}}});
+});

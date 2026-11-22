@@ -1,3 +1,4 @@
+import {safeJSON} from "./safe-json.js";
 // Memory V2: isolated opt-in pipeline. OFF by default; SHADOW never mutates D1.
 export const MEMORY_MODEL='gpt-6-luna';
 export const memoryMode=env=>['shadow','active'].includes(env?.NMH_MEMORY_V2_MODE)?env.NMH_MEMORY_V2_MODE:'off';
@@ -53,7 +54,7 @@ const INSTRUCTIONS=[
 export async function analyzeMemory({apiKey,userText,existing,fetchImpl=fetch,signal}){
  if(typeof apiKey!=='string'||apiKey.length<20)throw Error('memory-key-unavailable');
  const input=JSON.stringify({memories:existing.slice(0,100).map(x=>({id:x.id,body:tidy(x.body).slice(0,500)})),user:tidy(userText).slice(0,1500)});
- const r=await fetchImpl('https://api.openai.com/v1/responses',{method:'POST',signal,headers:{authorization:'Bearer '+apiKey,'content-type':'application/json'},body:JSON.stringify({model:MEMORY_MODEL,instructions:INSTRUCTIONS,input,text:{format:{type:'json_schema',name:'nmh_memory_v2_proposal',strict:true,schema:{
+ const r=await fetchImpl('https://api.openai.com/v1/responses',{method:'POST',signal,headers:{authorization:'Bearer '+apiKey,'content-type':'application/json'},body:safeJSON({model:MEMORY_MODEL,instructions:INSTRUCTIONS,input,text:{format:{type:'json_schema',name:'nmh_memory_v2_proposal',strict:true,schema:{
   type:'object',additionalProperties:false,properties:{ops:{type:'array',items:{
    type:'object',additionalProperties:false,
    properties:{type:{type:'string',enum:['add','update','delete']},id:{type:['string','null']},body:{type:['string','null']},evidence:{type:'string'},confidence:{type:'number'}},

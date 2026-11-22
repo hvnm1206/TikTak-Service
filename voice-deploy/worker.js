@@ -1,3 +1,4 @@
+import {safeJSON} from "./safe-json.js";
 import {observePersonalMemory,personalMemoryEnabled} from './personal-memory.js';
 import {previewRealtimeSpeech} from './realtime-speech.js';
 import {enhanceFastVoice} from './fast-voice-ui.js';
@@ -122,7 +123,7 @@ if(u.pathname==="/api/tts"){
   const gtext=text.replace(/\s*(?:→|->|⇒)\s*/g,", ").split(/(?<=[.!?…])\s+/).map(sn=>{if(sn.length<=160)return sn;const out=[];let cur="";for(const part of sn.split(/,\s*/)){if(cur&&(cur+", "+part).length>140){out.push(cur);cur=part}else cur=cur?cur+", "+part:part}if(cur)out.push(cur);return out.map(x=>/[.!?…]$/.test(x)?x:x+".").join(" ")}).join(" ");
   try{
    const gr=await fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key="+encodeURIComponent(env.GOOGLE_TTS_KEY),{method:"POST",headers:{"Content-Type":"application/json"},signal:gctl.signal,
-    body:JSON.stringify({input:{text:gtext},voice:{languageCode:"vi-VN",name:env.NGO_GOOGLE_VOICE||"vi-VN-Chirp3-HD-Leda"},audioConfig:{audioEncoding:pcm?"LINEAR16":"MP3",sampleRateHertz:24000,speakingRate:speakingSpeed}})});
+    body:safeJSON({input:{text:gtext},voice:{languageCode:"vi-VN",name:env.NGO_GOOGLE_VOICE||"vi-VN-Chirp3-HD-Leda"},audioConfig:{audioEncoding:pcm?"LINEAR16":"MP3",sampleRateHertz:24000,speakingRate:speakingSpeed}})});
    // 18/11/2026: exceededResources on Workers Free. Decoding Google's base64 audio here cost 35-186 ms CPU per sentence
    // (measured), far over the 10 ms limit. Clients that ask for wire "b64" get Google's JSON untouched (zero CPU) and
    // decode on the iPhone; older clients (reminders player, cached pages) keep the binary path below.
@@ -141,7 +142,7 @@ if(u.pathname==="/api/tts"){
  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),30000);
  try{
   const r=await fetch("https://api.openai.com/v1/audio/speech",{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},signal:ctl.signal,
-  body:JSON.stringify({model:"gpt-4o-mini-tts",voice:"marin",input:text,instructions,response_format:pcm?"pcm":"mp3",speed:speakingSpeed})});
+  body:safeJSON({model:"gpt-4o-mini-tts",voice:"marin",input:text,instructions,response_format:pcm?"pcm":"mp3",speed:speakingSpeed})});
   if(!r.ok){
    let detail="";try{const err=await r.json();detail=String(err?.error?.message||"").slice(0,160)}catch{}
    const code=r.status===401?"TTS_INVALID_API_KEY":r.status===403?"TTS_PERMISSION_DENIED":r.status===429?"TTS_RATE_LIMIT":r.status===400?"TTS_INVALID_REQUEST":"TTS_UPSTREAM_ERROR";
