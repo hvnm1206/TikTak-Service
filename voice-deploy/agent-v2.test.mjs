@@ -149,7 +149,7 @@ test('existing function tool survives alongside web search without extra charge'
 });
 
 test('OpenAI web search incompatibility does not silently fall back or invent results',async()=>{
-  await assert.rejects(()=>runAgent({apiKey:key,messages:msg,fetchImpl:async()=>({ok:false,status:400})}),/quyền hỗ trợ web_search/);
+  await assert.rejects(()=>runAgent({apiKey:key,messages:msg,fetchImpl:async()=>({ok:false,status:400})}),/OpenAI HTTP 400/);
 });
 
 test('extra hosted search calls returned by OpenAI keep the paid answer and are all counted in cost',async()=>{

@@ -440,7 +440,8 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
   // copied it as part of how it speaks. Root fix: assistant turns stay exactly what was said; provenance is ONE separate developer
   // note after the conversation (also keeps the conversation prefix stable for prompt caching).
   const history=messages.slice(-16);
-  const input=history.map(m=>({role:m.role,content:str(m.content,1500)}));
+  // a whitespace-only entry becomes an empty string after trimming, which OpenAI rejects with HTTP 400: never send it
+  const input=history.map(m=>({role:m.role,content:str(m.content,1500)})).filter(m=>m.content);
   const ledger=provenanceLedger(history);
   if(ledger)input.push({role:"developer",content:ledger});
   const enabledActions=Array.isArray(actionRuntime?.tools)?actionRuntime.tools:[];
@@ -456,9 +457,16 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     let r;
     try{
       r=await fetchImpl(API,{method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},
-        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:offerHosted?[...TOOLS,...routeTools,...enabledActions,WEB_SEARCH]:[...TOOLS,...(useTavily&&!tavilyOut?[SEARCH_TOOL]:[]),...routeTools,...enabledActions],...(offerHosted?{max_tool_calls:1}:{}),tool_choice:round===2?"none":"auto",reasoning:{effort:ngoEffort},max_output_tokens:800,store:false,...(onEvent?{stream:true}:{})})});
+        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:offerHosted?[...TOOLS,...(useTavily?[SEARCH_TOOL]:[]),...routeTools,...enabledActions,WEB_SEARCH]:[...TOOLS,...(useTavily?[SEARCH_TOOL]:[]),...routeTools,...enabledActions],...(offerHosted?{max_tool_calls:1}:{}),tool_choice:round===2?"none":"auto",reasoning:{effort:ngoEffort},max_output_tokens:800,store:false,...(onEvent?{stream:true}:{})})});
       if(!r.ok&&r.status===400&&ngoEffort!=="none"){const t=typeof r.clone==="function"?await r.clone().text().catch(()=>""):"";if(/reasoning|effort/i.test(t)){ngoEffort="none";round--;continue}}
-      if(!r.ok)throw Error(r.status===401?"API key không hợp lệ":r.status===429?"API hết hạn mức":r.status===400?"OpenAI HTTP 400: cần kiểm tra quyền hỗ trợ web_search của model/API key":"OpenAI HTTP "+r.status);
+      // 22/11/2026 owner screenshot: every 400 showed a guessed "web_search permission" text and dropped OpenAI's reason.
+      // Show OpenAI's own message/param/code (key masked) so the real cause is visible on screen and in the Workers log.
+      if(!r.ok){
+        let why="";
+        if(r.status!==401){const t=typeof r.text==="function"?await r.text().catch(()=>""):"";let j=null;try{j=JSON.parse(t)}catch{}const e=j?.error||{};
+          why=[e.code,e.param,e.message||(!j&&t)].filter(Boolean).map(x=>String(x)).join(" · ").replace(/sk-[A-Za-z0-9_-]+/g,"sk-***").replace(/\s+/g," ").slice(0,220)}
+        throw Error(r.status===401?"API key không hợp lệ":(r.status===429?"API hết hạn mức":"OpenAI HTTP "+r.status)+(why?": "+why:""));
+      }
       response=onEvent?await readResponseStream(r.body,{onEvent,permitSpeech:!lastActionFailure}):await r.json();
     }catch(e){
       // one retry for a transient OpenAI failure mid-stream (server_error or no code), never after speech already started
@@ -528,7 +536,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
           estimateBasis:'standard_short_context_excludes_other_fees',searchCalls,searchProvider:webSearchCalls?'openai_web_search':searchCalls?'tavily':'public_sources_only'};
       }
       let data;
-      try{const args=JSON.parse(c.arguments||"{}");data=await callTool(c.name,args,{fetchImpl:toolFetchImpl,signal,routeContext,searchContext});
+      try{const args=JSON.parse(c.arguments||"{}");data=c.name==="search_web"&&tavilyOut?fnOutput(false,{error:hostedFallback?"Dịch vụ tìm kiếm miễn phí đã hết lượt; dùng công cụ web_search.":"Đã hết lượt tìm web hôm nay (giới hạn chi phí). Nói rõ với người dùng là chưa tra được, không đoán."}):await callTool(c.name,args,{fetchImpl:toolFetchImpl,signal,routeContext,searchContext});
         if(c.name==="search_web")searchCalls++;
         if(data?.quota){tavilyOut=true; // free quota used up: hosted search for this question only if today's paid-fallback cap allows
           hostedFallback=!webSearchCalls&&await Promise.resolve(searchContext.fallbackAvailable?.()).catch(()=>false)===true;

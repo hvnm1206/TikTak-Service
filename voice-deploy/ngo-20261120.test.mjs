@@ -68,7 +68,7 @@ test('Tavily quota used up: OpenAI web_search offered once only while the daily 
       searchContext:{tavilyKey:'k',fallbackAvailable:async()=>allowed,recordFallback:async n=>recorded.push(n)}});
     const second=bodies[1];
     assert.equal(second.tools.some(t=>t.type==='web_search'),allowed,'hosted search only within the cap');
-    assert.ok(!second.tools.some(t=>t.name==='search_web'),'the exhausted provider is not offered again');
+    assert.ok(second.tools.some(t=>t.name==='search_web'),'22/11: still declared so the earlier function_call matches a declared tool');
     const out=JSON.parse(second.input.find(x=>x.type==='function_call_output').output);
     assert.equal(out.ok,false);
     if(allowed){assert.deepEqual(recorded,[1]);assert.equal(r.webSearchCalls,1)}
@@ -168,4 +168,13 @@ test('20/11 20:34 "GPT không hoàn tất phản hồi": OpenAI reason shown, on
   await assert.rejects(runAgent({apiKey:key,messages:[{role:'user',content:'x'}],onEvent:async()=>{},fetchImpl:async()=>{n++;return sse([failed('invalid_prompt')])}}),
     e=>/GPT không hoàn tất phản hồi \(invalid_prompt\): Boom for sk-\*\*\*\./.test(e.message)&&!e.message.includes('zzzz'));
   assert.equal(n,1,'no retry for a non-transient code');
+});
+
+test('22/11 HTTP 400: OpenAI reason shown instead of the guessed web_search text; whitespace-only history never sent',async()=>{
+  const bad=new Response(JSON.stringify({error:{message:"Invalid 'input[3].content': string too short. key sk-"+"q".repeat(30),param:'input[3].content',code:'string_below_min_length'}}),{status:400});
+  await assert.rejects(runAgent({apiKey:key,messages:[{role:'user',content:'x'}],fetchImpl:async()=>bad}),
+    e=>e.message.startsWith('OpenAI HTTP 400: string_below_min_length · input[3].content · Invalid')&&!/qqqq|web_search/.test(e.message));
+  let req;
+  await runAgent({apiKey:key,messages:[{role:'user',content:'a'},{role:'assistant',content:'   '},{role:'user',content:'b'}],fetchImpl:async(u,o)=>{req=JSON.parse(o.body);return text('ok')}});
+  assert.deepEqual(req.input.map(m=>m.content),['a','b']);
 });
