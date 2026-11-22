@@ -457,7 +457,7 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
     let r;
     try{
       r=await fetchImpl(API,{method:"POST",headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},
-        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:offerHosted?[...TOOLS,...(useTavily?[SEARCH_TOOL]:[]),...routeTools,...enabledActions,WEB_SEARCH]:[...TOOLS,...(useTavily?[SEARCH_TOOL]:[]),...routeTools,...enabledActions],...(offerHosted?{max_tool_calls:1}:{}),tool_choice:round===2?"none":"auto",reasoning:{effort:ngoEffort},max_output_tokens:800,store:false,...(onEvent?{stream:true}:{})})});
+        signal:sig,body:JSON.stringify({model:MODEL,instructions,input,tools:offerHosted?[...TOOLS,...(useTavily?[SEARCH_TOOL]:[]),...routeTools,...enabledActions,WEB_SEARCH]:[...TOOLS,...(useTavily?[SEARCH_TOOL]:[]),...routeTools,...enabledActions],...(offerHosted?{max_tool_calls:1}:{}),tool_choice:round===2?"none":"auto",reasoning:{effort:ngoEffort},max_output_tokens:800,store:false,include:["reasoning.encrypted_content"],...(onEvent?{stream:true}:{})})});
       if(!r.ok&&r.status===400&&ngoEffort!=="none"){const t=typeof r.clone==="function"?await r.clone().text().catch(()=>""):"";if(/reasoning|effort/i.test(t)){ngoEffort="none";round--;continue}}
       // 22/11/2026 owner screenshot: every 400 showed a guessed "web_search permission" text and dropped OpenAI's reason.
       // Show OpenAI's own message/param/code (key masked) so the real cause is visible on screen and in the Workers log.
@@ -507,6 +507,9 @@ export async function runAgent({apiKey,messages,style="nghiem_tuc",fetchImpl=fet
       const known=new Set(),sources=allSources.filter(x=>{if(!x?.url||known.has(x.url))return false;known.add(x.url);return true}).slice(0,8);
       return {answer,...notExecuted,mapsUrl,routeError,trip,routeCompare,routeTurns,sources,documentReferences:relatedDocs.map(x=>({name:x.name,segment:x.segment})),tools:toolCalls,model:MODEL,usage,webSearchCalls,estimatedWebSearchUsd:webSearchCalls*WEB_SEARCH_CALL_USD,estimatedModelUsd:Math.round(((usage.input_tokens-usage.cached_input_tokens)*0.10+usage.cached_input_tokens*0.01+usage.output_tokens*0.50)/1e6*1e8)/1e8,estimateBasis:"standard_short_context_excludes_other_fees",searchCalls,searchProvider:webSearchCalls?"openai_web_search":searchCalls?"tavily":"public_sources_only"};
     }
+    // 22/11/2026 HTTP 400 root cause: with store:false OpenAI keeps no copy of reasoning items, so replaying a reasoning item
+    // by id after a tool call fails ("Item with id 'rs_…' not found"). include reasoning.encrypted_content returns each
+    // reasoning item with its encrypted state, which is what is replayed here (documented stateless multi-turn pattern).
     input.push(...response.output);
     for(const c of calls.slice(0,3)){
       if(onEvent)await onEvent({type:'tool',name:c.name});

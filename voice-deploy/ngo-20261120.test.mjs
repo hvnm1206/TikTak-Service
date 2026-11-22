@@ -178,3 +178,14 @@ test('22/11 HTTP 400: OpenAI reason shown instead of the guessed web_search text
   await runAgent({apiKey:key,messages:[{role:'user',content:'a'},{role:'assistant',content:'   '},{role:'user',content:'b'}],fetchImpl:async(u,o)=>{req=JSON.parse(o.body);return text('ok')}});
   assert.deepEqual(req.input.map(m=>m.content),['a','b']);
 });
+
+test('22/11 HTTP 400 root cause: stateless calls ask for encrypted reasoning, and the second round replays it intact',async()=>{
+  const bodies=[];
+  const reasoningItem={type:'reasoning',id:'rs_1',summary:[],encrypted_content:'gAAA-enc'};
+  await runAgent({apiKey:key,messages:[{role:'user',content:'giá vàng hôm nay'}],searchContext:{tavilyKey:'k'},
+    toolFetchImpl:async()=>new Response(JSON.stringify({results:[{title:'Giá vàng',url:'https://a.vn',content:'SJC 136',published_date:new Date().toUTCString()}]}),{status:200}),
+    fetchImpl:async(u,o)=>{const b=JSON.parse(o.body);bodies.push(b);
+      return bodies.length===1?{ok:true,json:async()=>({output:[reasoningItem,{type:'function_call',name:'search_web',call_id:'c1',arguments:JSON.stringify({query:'giá vàng',freshness:'day'})}],usage:{}})}:text('SJC 136 triệu.')}});
+  for(const b of bodies){assert.equal(b.store,false);assert.deepEqual(b.include,['reasoning.encrypted_content'])}
+  assert.deepEqual(bodies[1].input.find(x=>x.type==='reasoning'),reasoningItem);
+});
