@@ -1,19 +1,19 @@
-SOURCE vnexpress-sohoa items=19 kept=19 errors=0 
-SOURCE genk items=65 kept=59 errors=0 
-SOURCE techcrunch items=26 kept=18 errors=0 
-SOURCE theverge items=17 kept=15 errors=0 
+SOURCE vnexpress-sohoa items=16 kept=16 errors=0 
+SOURCE genk items=60 kept=55 errors=0 
+SOURCE techcrunch items=21 kept=14 errors=0 
+SOURCE theverge items=15 kept=13 errors=0 
 SOURCE openai items=1 kept=1 errors=0 
 SOURCE anthropic items=0 kept=0 errors=0 
 SOURCE google-ai items=1 kept=1 errors=0 
 SOURCE the-decoder items=10 kept=10 errors=0 
-SOURCE zdnet-ai items=1 kept=1 errors=0 
+SOURCE zdnet-ai items=0 kept=0 errors=0 
 SOURCE mit-tr-ai items=1 kept=1 errors=0 
-SOURCE wired-ai items=5 kept=5 errors=0 
-SOURCE thanhnien-cn items=16 kept=16 errors=0 
-SOURCE tuoitre-nss items=1 kept=1 errors=0 
-SOURCE hackernews-sec items=14 kept=14 errors=0 
-SOURCE bleeping items=11 kept=11 errors=0 
-SOURCE securityweek-ai items=2 kept=2 errors=0 
-SOURCE darkreading items=3 kept=3 errors=0 
-NEW_ARTICLES 41 of pool 177
-RUN_SUMMARY {"run_id": "20261122-1032-c84353", "new_written": 41, "model": "gpt-6-luna", "tokens": {"in": 9824, "cached": 0, "out": 5099}, "est_usd": 0.003532, "d1_calls": 91}
+SOURCE wired-ai items=4 kept=4 errors=0 
+SOURCE thanhnien-cn items=15 kept=15 errors=0 
+SOURCE tuoitre-nss items=0 kept=0 errors=0 
+SOURCE hackernews-sec items=8 kept=8 errors=0 
+SOURCE bleeping items=8 kept=8 errors=0 
+SOURCE securityweek-ai items=1 kept=1 errors=0 
+SOURCE darkreading items=2 kept=2 errors=0 
+NEW_ARTICLES 29 of pool 149
+RUN_SUMMARY {"run_id": "20261122-1851-a45b3d", "new_written": 29, "model": "gpt-6-luna", "tokens": {"in": 5833, "cached": 0, "out": 3689}, "est_usd": 0.002428, "d1_calls": 77}
