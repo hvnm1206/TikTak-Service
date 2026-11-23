@@ -1,0 +1,42 @@
+name: NGỐ — read-only memory statistics probe (counts and times only, NO personal content — repo is public)
+on:
+  push:
+    branches: [nmh-voice-actions-reminders-p0-20261114]
+jobs:
+  probe:
+    if: "${{ startsWith(github.event.head_commit.message, 'probe(ngo): memory stats') }}"
+    runs-on: ubuntu-latest
+    steps:
+      - name: D1 memory statistics
+        env:
+          CLOUDFLARE_D1_TOKEN: ${{ secrets.NMH_V3_CF_PROVISION_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,datetime
+          url='https://api.cloudflare.com/client/v4/accounts/769c2ab4af5ad50700039d473a72d48e/d1/database/3ce295cb-a84d-4a50-abee-d14fdd903514/query'
+          def q(sql):
+            req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_D1_TOKEN'],'Content-Type':'application/json'},data=json.dumps({'sql':sql,'params':[]}).encode(),method='POST')
+            with urllib.request.urlopen(req,timeout=30) as r:j=json.load(r)
+            return j['result'][0]['results']
+          ts=lambda ms:datetime.datetime.utcfromtimestamp(ms/1000).strftime('%Y-%m-%d %H:%MZ') if ms else None
+          for label,sql in [
+           ('users_with_explicit_memories',"SELECT COUNT(DISTINCT user_id) n FROM v3_memories"),
+           ('explicit_memories_per_user',"SELECT COUNT(*) n, MAX(created_at) newest, MIN(created_at) oldest, AVG(LENGTH(body)) avg_len FROM v3_memories GROUP BY user_id ORDER BY n DESC"),
+           ('explicit_memories_beyond_prompt_window_20',"SELECT user_id IS NOT NULL k, MAX(0,COUNT(*)-20) hidden FROM v3_memories GROUP BY user_id ORDER BY 2 DESC"),
+           ('personal_current_by_state_category',"SELECT state,category,COUNT(*) n FROM v3_personal_memory_current GROUP BY state,category ORDER BY state,category"),
+           ('personal_learned_times',"SELECT COUNT(*) n, MAX(learned_at) newest FROM v3_personal_memory"),
+           ('personal_learned_since_20nov_release',"SELECT COUNT(*) n FROM v3_personal_memory WHERE learned_at>=1763632800000"),
+           ('personal_status',"SELECT state,saved_count,learned_at,LENGTH(reason) reason_len FROM v3_personal_memory_status"),
+           ('personal_pref',"SELECT enabled,revision,updated_at FROM v3_memory_v2_preferences"),
+           ('notes_doc',"SELECT segment_count, LENGTH(raw_text) chars, created_at FROM v3_documents WHERE name='GHI_CHU.md'"),
+           ('documents',"SELECT COUNT(*) n FROM v3_documents"),
+           ('sessions_active',"SELECT COUNT(*) n, MAX(expires_at) latest_expiry FROM v3_sessions"),
+           ('usage_daily',"SELECT day,kind,n FROM ngo_usage_daily ORDER BY day DESC LIMIT 5")]:
+            try:
+              rows=q(sql)
+              for r in rows:
+                for k in ('newest','oldest','learned_at','updated_at','created_at','latest_expiry'):
+                  if isinstance(r.get(k),(int,float)) and r[k]>1e11: r[k]=ts(r[k])
+              print('NGO_MEM',label,json.dumps(rows,ensure_ascii=False))
+            except Exception as e: print('NGO_MEM',label,'ERROR',str(e)[:160])
+          PY
