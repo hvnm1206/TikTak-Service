@@ -1,5 +1,11 @@
 # NMH VOICE GPT — BẢO TRÌ HIỆN HÀNH (14/11/2026)
 
+## 23/11/2026 — "Trí nhớ như cứt": Ngố chỉ thấy 20/41 ghi nhớ, sổ ghi chú gần như không đọc lại được
+- Probe D1 chỉ đọc số liệu, không in nội dung (repo CÔNG KHAI) — run 45093911958: 41 ghi nhớ, chỉ 20 mới nhất được đưa vào GPT (21 bị khuất); sổ GHI_CHU.md 17 mục chỉ hiện khi câu hỏi trùng đúng từ khóa; read_memories không đọc sổ.
+- Sửa gốc: đưa TOÀN BỘ ghi nhớ (trần 120 mục / 12.000 ký tự, vượt trần thì báo dùng read_memories) và 6.000 ký tự mới nhất của sổ ghi chú vào mỗi lượt. Thêm ≈2k token vào, khối ổn định nên được giá đệm. Test 216/216.
+- Production 2ff45be5-31b6-431f-b8ea-d7851a2c2c83 (run 45094190361); rollback b0c2252f-9a0a-41e7-834c-202774805189.
+- Còn mở: hồ sơ "Ngố đã học" có 55 mục "collaboration" phần lớn là lời phàn nàn; chọn theo từ khóa tối đa 8 mục/lượt.
+
 ## 22/11/2026 11:48 — "OpenAI HTTP 400: invalid_json · failed to parse JSON value"
 - Lý do thật hiện ra nhờ bản 4a38f311. Nguyên nhân gốc: cắt chữ bằng .slice(0,N) (lịch sử 1.500, ghi chú nguồn 50, trích Tavily 400, tiêu đề) có thể cắt đôi emoji (cặp surrogate UTF-16) → JSON chứa "\ud83d" lẻ → OpenAI không đọc được. Bài Facebook nhiều emoji nên hay gặp.
 - Sửa 2 lớp: cutText cắt theo ranh giới ký tự; safeJSON làm sạch mọi body gửi OpenAI/Tavily/Google (cả bộ nhớ và giọng). Test 215/215.
