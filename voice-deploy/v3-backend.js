@@ -87,6 +87,7 @@ function scoreSegment(query,text){
  for(const t of q){if(tokens.has(t))score+=3;else if(text.toLocaleLowerCase('vi').includes(t))score+=1}
  return score;
 }
+export const MEMORY_CONTEXT_MAX=120,MEMORY_CONTEXT_CHARS=12000,NOTEBOOK_CONTEXT_CHARS=6000;
 export async function loadV3Context(req,env,question){
  if(!productionReady(env))return {personalPrompt:'',memories:[],documents:[]};
  const sub=await sessionSubject(req,env);
@@ -95,17 +96,26 @@ export async function loadV3Context(req,env,question){
  try{
   // Independent owner-scoped reads run in parallel: one D1 round trip instead of four sequential ones.
   const terms=extractTerms(question).slice(0,5);
-  const [profile,recent,rows,learned]=await Promise.all([
+  // 23/11/2026 owner "trí nhớ như cứt": D1 showed 41 saved memories but only the newest 20 ever reached the model, and the
+  // notebook (GHI_CHU.md, where "ghi lại ..." goes) was only found when the question repeated its exact words. Root fix:
+  // all memories up to a size cap (stable block, prompt-cached), and the newest part of the notebook, every turn.
+  const [profile,recent,rows,learned,notebook]=await Promise.all([
    env.NMH_DB.prepare('SELECT prompt FROM v3_profiles WHERE user_id=?').bind(sub).first(),
-   env.NMH_DB.prepare('SELECT body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT 40').bind(sub).all(),
+   env.NMH_DB.prepare('SELECT body FROM v3_memories WHERE user_id=? ORDER BY created_at DESC LIMIT '+(MEMORY_CONTEXT_MAX+1)).bind(sub).all(),
    terms.length?env.NMH_DB.prepare('SELECT c.body, c.segment, d.name FROM v3_chunks c JOIN v3_documents d ON d.id=c.doc_id AND d.user_id=c.user_id WHERE c.user_id=? AND ('+terms.map(()=>'c.body LIKE ?').join(' OR ')+') LIMIT 80').bind(sub,...terms.map(x=>'%'+x+'%')).all():{results:[]},
-   personalMemoryEnabled(env)?getPersonalContext(env.NMH_DB,sub,question).catch(()=>[]):[]
+   personalMemoryEnabled(env)?getPersonalContext(env.NMH_DB,sub,question).catch(()=>[]):[],
+   env.NMH_DB.prepare("SELECT raw_text FROM v3_documents WHERE user_id=? AND name='GHI_CHU.md' ORDER BY created_at DESC LIMIT 1").bind(sub).first().catch(()=>null)
   ]);
   // Supply the latest owner-scoped facts to GPT without hardcoded relationship
   // graphs, lexical bridges, or phrase-specific selection rules.
-  const memories=(recent.results||[]).filter(x=>typeof x.body==='string'&&x.body.trim()).slice(0,20);
+  const all=(recent.results||[]).filter(x=>typeof x.body==='string'&&x.body.trim());
+  const memories=[];let used=0;
+  for(const x of all.slice(0,MEMORY_CONTEXT_MAX)){const b=x.body.trim().slice(0,500);if(used+b.length>MEMORY_CONTEXT_CHARS)break;memories.push({body:b});used+=b.length}
+  const memoriesComplete=memories.length===all.length;
+  const noteText=String(notebook?.raw_text||'');
+  const notes=noteText.trim()?(noteText.length>NOTEBOOK_CONTEXT_CHARS?'…'+noteText.slice(-NOTEBOOK_CONTEXT_CHARS):noteText).trim():'';
   const docs=(rows.results||[]).map(x=>({...x,score:scoreSegment(question,x.body)})).filter(x=>x.score>=3).sort((a,b)=>b.score-a.score).slice(0,4).map(x=>({name:x.name,segment:x.segment,text:x.body.slice(0,900)}));
-  return {personalPrompt:maxText(profile?.prompt,2500),memories:memories.map(x=>x.body),documents:docs,...(learned.length?{learned}: {})};
+  return {personalPrompt:maxText(profile?.prompt,2500),memories:memories.map(x=>x.body),memoriesComplete,documents:docs,...(notes?{notes,notesTruncated:noteText.length>NOTEBOOK_CONTEXT_CHARS}:{}),...(learned.length?{learned}: {})};
  }catch(e){lastErr=e;console.warn(JSON.stringify({t:'ngo-v3-context',attempt,err:String(e?.message||e).slice(0,200)}))}
  }
  return {personalPrompt:'',memories:[],documents:[],contextError:'Không truy cập được kho cá nhân, không thể xác minh tài liệu. (D1: '+String(lastErr?.message||lastErr||'lỗi không rõ').replace(/\s+/g,' ').slice(0,90)+')'};

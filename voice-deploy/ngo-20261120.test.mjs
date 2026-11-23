@@ -202,3 +202,12 @@ test('22/11 invalid_json root cause: cuts never leave half an emoji and every Op
     fetchImpl:async(u,o)=>{raw=o.body;assert.doesNotMatch(o.body,/\\ud83d(?!\\ud)/i,'no lone surrogate escape');JSON.parse(o.body);assert.ok(o.body.isWellFormed());
       return raw&&o.body.includes('function_call_output')?text('Ừ.'):{ok:true,json:async()=>({output:[{type:'function_call',name:'search_web',call_id:'c',arguments:JSON.stringify({query:'giá xăng',freshness:'day'})}],usage:{}})}}});
 });
+
+test('23/11 memory: every saved memory and the notebook reach the model; a capped list says more exist',async()=>{
+  let req;const mems=Array.from({length:41},(_,i)=>'Ghi nhớ '+i);
+  await runAgent({apiKey:key,messages:[{role:'user',content:'tao dặn gì'}],personalization:{memories:mems,memoriesComplete:true,notes:'- 2026-11-22 10:00 — Link: https://a.vn/x'},fetchImpl:async(u,o)=>{req=JSON.parse(o.body);return text('Ừ.')}});
+  assert.match(req.instructions,/TOÀN BỘ 41 ghi nhớ/);assert.match(req.instructions,/Ghi nhớ 40/);
+  assert.match(req.instructions,/SỔ GHI CHÚ .*https:\/\/a\.vn\/x/);
+  await runAgent({apiKey:key,messages:[{role:'user',content:'x'}],personalization:{memories:mems,memoriesComplete:false},fetchImpl:async(u,o)=>{req=JSON.parse(o.body);return text('Ừ.')}});
+  assert.match(req.instructions,/còn mục cũ hơn: dùng read_memories/);
+});

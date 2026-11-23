@@ -165,7 +165,19 @@ test('real RSA signature, Google audience, owner-scoped D1 profile, document ret
   const indirect=await loadV3Context(req('/api/chat','POST',{},cookie),e,'Mày biết tao là ai không?');
   assert.ok(indirect.memories.includes('Chủ nhân tên là Hải béo'),'owner identity must be available without matching words');
   assert.ok(indirect.memories.includes('Mày tên là Ngố'),'assistant identity must be available without matching words');
-  assert.ok(indirect.memories.length<=20,'memory context remains bounded');
+  assert.ok(indirect.memories.length<=120,'memory context remains bounded');
+  // 23/11/2026 owner "trí nhớ như cứt": with 41 memories only the newest 20 reached the model. Now every saved memory does
+  // (up to the cap), oldest included, and the notebook is part of the context every turn.
+  for(let i=0;i<45;i++)assert.equal((await asBody(await handleV3(req('/api/v3/memories','POST',{body:'Ghi nhớ số '+i+' về việc nhà'},cookie),e))).status,201);
+  const full=await loadV3Context(req('/api/chat','POST',{},cookie),e,'hôm nay ăn gì');
+  assert.equal(full.memoriesComplete,true);
+  assert.ok(full.memories.includes('Chủ nhân tên là Hải béo'),'the oldest memory is still visible after 45 newer ones');
+  assert.ok(full.memories.includes('Ghi nhớ số 0 về việc nhà')&&full.memories.includes('Ghi nhớ số 44 về việc nhà'));
+  {const real=e.NMH_DB.prepare;let asked=0; // this mock DB has no notebook table logic: answer the notebook read directly
+   e.NMH_DB.prepare=function(sql){if(sql.startsWith("SELECT raw_text FROM v3_documents WHERE user_id=? AND name='GHI_CHU.md'")){asked++;return {bind(){return this},async first(){return {raw_text:'\n\n- 2026-11-22 10:00 — Link tài liệu: https://example.com/tai-lieu'}}}}return real.call(this,sql)};
+   const withNotes=await loadV3Context(req('/api/chat','POST',{},cookie),e,'cái hồi nãy tao bảo ghi là gì');
+   assert.equal(asked,1);assert.match(withNotes.notes,/https:\/\/example\.com\/tai-lieu/,'notebook recalled without matching words');
+   e.NMH_DB.prepare=real}
   const polite=await loadV3Context(req('/api/chat','POST',{},cookie),e,'Bạn có biết tôi là ai không?');
   assert.ok(polite.memories.includes('Chủ nhân tên là Hải béo'));
   // A different Google account cannot see, delete or retrieve user one's records.
