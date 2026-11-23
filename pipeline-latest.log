@@ -1,19 +1,19 @@
-SOURCE vnexpress-sohoa items=17 kept=17 errors=0 
-SOURCE genk items=62 kept=56 errors=0 
-SOURCE techcrunch items=19 kept=13 errors=0 
-SOURCE theverge items=13 kept=11 errors=0 
+SOURCE vnexpress-sohoa items=15 kept=15 errors=0 
+SOURCE genk items=66 kept=61 errors=0 
+SOURCE techcrunch items=20 kept=13 errors=0 
+SOURCE theverge items=14 kept=11 errors=0 
 SOURCE openai items=1 kept=1 errors=0 
 SOURCE anthropic items=0 kept=0 errors=0 
 SOURCE google-ai items=0 kept=0 errors=0 
 SOURCE the-decoder items=10 kept=10 errors=0 
 SOURCE zdnet-ai items=0 kept=0 errors=0 
 SOURCE mit-tr-ai items=0 kept=0 errors=0 
-SOURCE wired-ai items=2 kept=2 errors=0 
-SOURCE thanhnien-cn items=14 kept=14 errors=0 
+SOURCE wired-ai items=4 kept=4 errors=0 
+SOURCE thanhnien-cn items=17 kept=17 errors=0 
 SOURCE tuoitre-nss items=0 kept=0 errors=0 
-SOURCE hackernews-sec items=7 kept=7 errors=0 
-SOURCE bleeping items=7 kept=7 errors=0 
+SOURCE hackernews-sec items=8 kept=8 errors=0 
+SOURCE bleeping items=9 kept=9 errors=0 
 SOURCE securityweek-ai items=1 kept=1 errors=0 
 SOURCE darkreading items=0 kept=0 errors=0 
-NEW_ARTICLES 7 of pool 139
-RUN_SUMMARY {"run_id": "20261123-0115-3f8e81", "new_written": 7, "model": "gpt-6-luna", "tokens": {"in": 3555, "cached": 0, "out": 960}, "est_usd": 0.000835, "d1_calls": 51}
+NEW_ARTICLES 48 of pool 150
+RUN_SUMMARY {"run_id": "20261123-1131-2e0751", "new_written": 48, "model": "gpt-6-luna", "tokens": {"in": 10820, "cached": 0, "out": 6089}, "est_usd": 0.004126, "d1_calls": 95}
