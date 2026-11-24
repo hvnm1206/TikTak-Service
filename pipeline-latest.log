@@ -1,32 +1,19 @@
 SOURCE vnexpress-sohoa items=18 kept=18 errors=0 
-SOURCE genk items=67 kept=61 errors=0 
+SOURCE genk items=68 kept=62 errors=0 
 SOURCE techcrunch items=36 kept=22 errors=0 
-SOURCE theverge items=20 kept=14 errors=0 
-SOURCE openai items=4 kept=4 errors=0 
-SOURCE anthropic items=1 kept=1 errors=0 
-SOURCE google-ai items=2 kept=2 errors=1 https://deepmind.google/blog/rss.xml: ParseError not well-formed (invalid token): line 1, column 0
+SOURCE theverge items=20 kept=16 errors=0 
+SOURCE openai items=3 kept=3 errors=0 
+SOURCE anthropic items=0 kept=0 errors=0 
+SOURCE google-ai items=3 kept=3 errors=0 
 SOURCE the-decoder items=10 kept=10 errors=0 
 SOURCE zdnet-ai items=6 kept=6 errors=0 
 SOURCE mit-tr-ai items=1 kept=1 errors=0 
 SOURCE wired-ai items=7 kept=7 errors=0 
-SOURCE thanhnien-cn items=18 kept=18 errors=0 
-SOURCE tuoitre-nss items=1 kept=1 errors=0 
+SOURCE thanhnien-cn items=20 kept=20 errors=0 
+SOURCE tuoitre-nss items=2 kept=2 errors=0 
 SOURCE hackernews-sec items=10 kept=10 errors=0 
-SOURCE bleeping items=14 kept=14 errors=0 
+SOURCE bleeping items=13 kept=13 errors=0 
 SOURCE securityweek-ai items=1 kept=1 errors=0 
 SOURCE darkreading items=5 kept=5 errors=0 
-NEW_ARTICLES 93 of pool 195
-GPT_MISSING https://the-decoder.com/gpt-6-2-astra-solved-a-math-theorem-no-other-ai-could-crack-then-invented-its-own-proof-strategy
-GPT_MISSING https://www.securityweek.com/ai-inference-providers-failed-to-detect-hacking-and-prompt-theft-says-dragos
-GPT_MISSING https://genk.vn/nghi-huu-duoc-nghi-he-bay-muoi-tuoi-van-co-the-quay-o-leonida-165261123161312947.chn
-GPT_MISSING https://www.bleepingcomputer.com/news/security/call-center-operator-gets-8-years-for-helping-scam-30-000-americans
-GPT_MISSING https://vnexpress.net/tau-cho-hang-chay-dien-lon-nhat-the-gioi-5148119.html
-GPT_MISSING https://genk.vn/trai-nghiem-van-hoa-viet-ngay-tai-phong-khach-voi-tv-va-man-hinh-giai-tri-16526112318372802.chn
-GPT_MISSING https://www.wired.com/story/livestream-will-anyone-keep-us-safe-from-ai
-GPT_MISSING https://thanhnien.vn/ford-dung-cong-nghe-pin-trung-quoc-de-san-xuat-xe-dien-gia-re-185261123143133578.htm
-GPT_MISSING https://genk.vn/tai-khoan-vietinbank-bidv-vpbank-co-the-tu-dong-tru-2000-5000-dong-moi-thang-neu-khach-hang-nhan-vao-nut-nay-khi-chuyen-tien-165261123182813074.chn
-GPT_MISSING https://tuoitre.vn/di-xem-su-kien-van-hoa-duoc-tich-diem-ho-chieu-so-tai-tphcm-100261123165131972.htm
-GPT_MISSING https://openai.com/business/learn/connected-intelligence-for-in-house-legal
-GPT_MISSING https://openai.com/business/customer-stories/richpanel-ai-customer-support
-GPT_MISSING https://www.anthropic.com/research/working-with-ai
-RUN_SUMMARY {"run_id": "20261123-2306-bd965f", "new_written": 80, "model": "gpt-6-luna", "tokens": {"in": 18614, "cached": 0, "out": 10090}, "est_usd": 0.006906, "d1_calls": 154}
+NEW_ARTICLES 48 of pool 199
+RUN_SUMMARY {"run_id": "20261124-0740-3c3e53", "new_written": 48, "model": "gpt-6-luna", "tokens": {"in": 12842, "cached": 0, "out": 6105}, "est_usd": 0.004337, "d1_calls": 99}
