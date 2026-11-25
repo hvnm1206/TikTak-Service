@@ -1,19 +1,65 @@
 SOURCE vnexpress-sohoa items=19 kept=19 errors=0 
-SOURCE genk items=64 kept=57 errors=0 
-SOURCE techcrunch items=40 kept=27 errors=0 
-SOURCE theverge items=20 kept=19 errors=0 
-SOURCE openai items=8 kept=8 errors=0 
+SOURCE genk items=65 kept=58 errors=0 
+SOURCE techcrunch items=40 kept=28 errors=0 
+SOURCE theverge items=20 kept=17 errors=0 
+SOURCE openai items=6 kept=6 errors=0 
 SOURCE anthropic items=0 kept=0 errors=0 
-SOURCE google-ai items=3 kept=3 errors=1 https://deepmind.google/blog/rss.xml: ParseError not well-formed (invalid token): line 1, column 0
+SOURCE google-ai items=4 kept=4 errors=0 
 SOURCE the-decoder items=10 kept=10 errors=0 
-SOURCE zdnet-ai items=9 kept=9 errors=0 
+SOURCE zdnet-ai items=7 kept=7 errors=0 
 SOURCE mit-tr-ai items=2 kept=2 errors=0 
-SOURCE wired-ai items=10 kept=10 errors=0 
-SOURCE thanhnien-cn items=27 kept=27 errors=0 
+SOURCE wired-ai items=7 kept=7 errors=0 
+SOURCE thanhnien-cn items=26 kept=26 errors=0 
 SOURCE tuoitre-nss items=3 kept=3 errors=0 
-SOURCE hackernews-sec items=18 kept=18 errors=0 
+SOURCE hackernews-sec items=20 kept=20 errors=0 
 SOURCE bleeping items=15 kept=15 errors=0 
 SOURCE securityweek-ai items=3 kept=3 errors=0 
-SOURCE darkreading items=8 kept=8 errors=0 
-NEW_ARTICLES 47 of pool 238
-RUN_SUMMARY {"run_id": "20261125-0352-487925", "new_written": 47, "model": "gpt-6-luna", "tokens": {"in": 13627, "cached": 0, "out": 5937}, "est_usd": 0.004331, "d1_calls": 103}
+SOURCE darkreading items=13 kept=13 errors=0 
+NEW_ARTICLES 86 of pool 238
+GPT_MISSING https://thanhnien.vn/microsoft-xac-nhan-loi-la-tren-office-nguoi-dung-can-cap-nhat-ngay-185261125175802623.htm
+GPT_MISSING https://genk.vn/huawei-mate-x8-ra-mat-mong-42-mm-nep-gap-gan-nhu-bien-mat-gia-tu-50-trieu-dong-165261125180109469.chn
+GPT_MISSING https://the-decoder.com/mit-team-discovers-that-unrealistic-training-data-makes-ai-climate-predictions-more-reliable
+GPT_MISSING https://thehackernews.com/2026/11/ex-openai-employee-accused-of-bugging.html
+GPT_MISSING https://genk.vn/chinh-thuc-tu-thang-nay-toan-bo-giao-dich-rut-chuyen-tien-online-qua-nen-tang-sau-se-bi-ngung-lai-16526112516344376.chn
+GPT_MISSING https://www.bleepingcomputer.com/news/security/hackers-now-exploit-critical-drupal-rce-flaw-to-hijack-sites
+GPT_MISSING https://genk.vn/trieu-tien-bat-ngo-trinh-lang-chatbot-ai-rieng-mang-ten-suoi-nguon-tri-tue-165261125153020929.chn
+GPT_MISSING https://www.technologyreview.com/2026/11/25/1149702/ai-is-straining-americas-open-records-systems
+GPT_MISSING https://genk.vn/huawei-ra-mat-laptop-gap-matebook-fold-s-man-hinh-oled-120-hz-nang-chi-639-g-165261125165649821.chn
+GPT_MISSING https://thanhnien.vn/chatgpt-co-the-bia-nguon-tin-va-quen-chi-dan-cua-nguoi-dung-185261125154223534.htm
+GPT_MISSING https://genk.vn/google-muon-lam-kenh-tv-toan-phim-ai-do-chinh-ban-dong-quang-cao-cung-duoc-do-ni-dong-giay-165261125163316238.chn
+GPT_MISSING https://thehackernews.com/2026/11/hackers-exploited-cvss-100-hexpm-rce.html
+GPT_MISSING https://vnexpress.net/dich-vu-nhac-truc-tuyen-tidal-cam-nhac-ai-5148751.html
+GPT_MISSING https://www.bleepingcomputer.com/news/microsoft/microsoft-confirms-authentication-issues-after-november-updates
+GPT_MISSING https://genk.vn/startup-dua-tuong-tac-tam-co-apple-vision-pro-vao-kinh-45-gram-gia-chua-bang-mot-phan-tu-165261125155819518.chn
+GPT_MISSING https://genk.vn/game-moi-ra-mat-4-ngay-game-thu-da-dot-gan-78000-nam-cuoc-doi-vao-gta-6-165261125114352469.chn
+GPT_MISSING https://genk.vn/han-quoc-huy-dong-hon-31-ty-usd-nho-quy-cua-cac-quy-viet-nam-vua-buoc-vao-cuoc-choi-do-165261125152354563.chn
+GPT_MISSING https://vnexpress.net/trung-quoc-dua-phi-hanh-gia-nuoc-ngoai-dau-tien-len-tram-thien-cung-5148770.html
+GPT_MISSING https://www.securityweek.com/drupal-flaw-found-by-anthropic-scanner-exploited-in-attacks
+GPT_MISSING https://thanhnien.vn/galaxy-s27-ultra-co-the-cat-giam-them-mot-cam-bien-camera-quen-thuoc-185261125133403819.htm
+GPT_MISSING https://www.bleepingcomputer.com/news/security/hackers-reportedly-breached-cia-intelligence-analysis-system
+GPT_MISSING https://genk.vn/ram-8gb-sap-pho-bien-tro-lai-tren-laptop-16gb-dan-thanh-xa-xi-vi-gia-bo-nho-tang-cao-165261125132651311.chn
+GPT_MISSING https://genk.vn/tho-lam-banh-tot-nghiep-cap-hai-mot-minh-tao-nen-loat-phim-khoa-hoc-vien-tuong-dat-chuc-trieu-luot-xem-moi-tap-phim-dai-ai-trung-quoc-dang-bung-no-du-doi-165261125105757939.chn
+GPT_MISSING https://tuoitre.vn/phat-trien-dien-hat-nhan-khong-chi-don-thuan-la-xay-dung-va-van-hanh-cac-nha-may-100261125132049212.htm
+GPT_MISSING https://thehackernews.com/2026/11/hackers-compromise-24-check-point.html
+GPT_MISSING https://thehackernews.com/2026/11/com-affiliated-hackers-hijack-cloud.html
+GPT_MISSING https://genk.vn/da-dong-chrome-van-bi-ngon-toi-700mb-ram-thu-pham-nam-o-mot-tuy-chon-it-ai-de-y-165261125131316931.chn
+GPT_MISSING https://genk.vn/ai-ai-cung-co-the-lam-phan-mem-nho-ai-claude-bien-y-tuong-cua-ban-thanh-ung-dung-chay-tren-may-tinh-165261125132955218.chn
+GPT_MISSING https://thehackernews.com/2026/11/wordpress-blocks-six-backdoored-wp.html
+GPT_MISSING https://genk.vn/gay-sot-toan-mang-dat-hon-60-trieu-luot-xem-moi-thang-vi-sao-ly-tu-that-cua-gioi-meo-lai-noi-dinh-noi-dam-nhu-vay-165261125105327209.chn
+GPT_MISSING https://thanhnien.vn/apple-chuan-bi-thay-doi-lon-tren-iphone-20-pro-voi-camera-200-mp-185261125114843203.htm
+GPT_MISSING https://genk.vn/nang-639-gram-gap-gon-nhu-tablet-huawei-matebook-fold-s-co-gi-dang-gia-58-trieu-dong-165261125105218334.chn
+GPT_MISSING https://genk.vn/luong-bac-khong-lo-thoi-co-dai-trung-quoc-di-ve-dau-vi-sao-nay-bong-bien-mat-165261125105111228.chn
+GPT_MISSING https://thanhnien.vn/phat-hien-cai-dat-tren-chrome-am-tham-ngon-ram-du-da-dong-trinh-duyet-185261125112754029.htm
+GPT_MISSING https://vnexpress.net/hung-yen-tim-loi-giai-bang-cong-nghe-cho-doanh-nghiep-5148648.html
+GPT_MISSING https://genk.vn/dung-riu-cung-hai-vat-la-nguoi-dan-ong-ireland-pha-nat-van-tai-co-my-60-trieu-usd-165261125105013443.chn
+GPT_MISSING https://genk.vn/tat-ca-nguoi-dan-co-nhu-cau-lam-visa-dac-biet-chu-y-165261125104649869.chn
+GPT_MISSING https://thanhnien.vn/trai-nghiem-may-ghi-am-ai-plaud-co-du-de-chinh-phuc-nguoi-dung-viet-185261123161424279.htm
+GPT_MISSING https://genk.vn/gta-6-he-lo-toi-13-ket-thuc-khac-nhau-cai-ket-bi-kich-nhat-khien-khong-it-game-thu-phai-am-uc-165261125110629703.chn
+GPT_MISSING https://genk.vn/mot-chiec-iphone-cu-dang-re-hon-gia-mo-ban-gan-26-trieu-dong-165261125103441817.chn
+GPT_MISSING https://thanhnien.vn/xiaomi-giam-dan-dien-thoai-gia-re-chuyen-trong-tam-sang-smartphone-gap-cao-cap-185261125065038288.htm
+GPT_MISSING https://vnexpress.net/may-chu-ai-tang-gia-den-45-du-da-ky-hop-dong-5148227.html
+GPT_MISSING https://www.theverge.com/entertainment/1041596/blade-runner-2099-interview-showrunner-silka-luisa
+GPT_MISSING https://www.darkreading.com/cybersecurity-operations/how-southeastern-university-handle-data
+GPT_MISSING https://www.theverge.com/ai-artificial-intelligence/1040081/vibe-coding-open-source-music-firmware
+GPT_MISSING https://www.theverge.com/gadgets/1040178/xteink-x4-classic-e-reader-black-friday-2026-deal-sale
+RUN_SUMMARY {"run_id": "20261125-1630-c3a44e", "new_written": 40, "model": "gpt-6-luna", "tokens": {"in": 21958, "cached": 0, "out": 5183}, "est_usd": 0.004787, "d1_calls": 91}
