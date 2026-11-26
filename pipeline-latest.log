@@ -1,42 +1,24 @@
-SOURCE vnexpress-sohoa items=25 kept=25 errors=0 
-SOURCE genk items=69 kept=63 errors=0 
-SOURCE techcrunch items=40 kept=30 errors=0 
-SOURCE theverge items=20 kept=18 errors=0 
-SOURCE openai items=2 kept=2 errors=0 
+SOURCE vnexpress-sohoa items=0 kept=0 errors=1 https://vnexpress.net/rss/so-hoa.rss: HTTPError HTTP Error 503: Service Unavailable
+SOURCE genk items=69 kept=61 errors=0 
+SOURCE techcrunch items=37 kept=28 errors=0 
+SOURCE theverge items=17 kept=17 errors=0 
+SOURCE openai items=0 kept=0 errors=0 
 SOURCE anthropic items=0 kept=0 errors=0 
-SOURCE google-ai items=3 kept=3 errors=0 
+SOURCE google-ai items=1 kept=1 errors=1 https://deepmind.google/blog/rss.xml: ParseError not well-formed (invalid token): line 1, column 0
 SOURCE the-decoder items=10 kept=10 errors=0 
-SOURCE zdnet-ai items=6 kept=6 errors=0 
+SOURCE zdnet-ai items=4 kept=4 errors=0 
 SOURCE mit-tr-ai items=1 kept=1 errors=0 
-SOURCE wired-ai items=6 kept=6 errors=0 
-SOURCE thanhnien-cn items=31 kept=31 errors=0 
-SOURCE tuoitre-nss items=4 kept=4 errors=0 
-SOURCE hackernews-sec items=20 kept=20 errors=0 
+SOURCE wired-ai items=3 kept=3 errors=0 
+SOURCE thanhnien-cn items=28 kept=28 errors=0 
+SOURCE tuoitre-nss items=3 kept=3 errors=0 
+SOURCE hackernews-sec items=16 kept=16 errors=0 
 SOURCE bleeping items=15 kept=15 errors=0 
-SOURCE securityweek-ai items=3 kept=3 errors=0 
-SOURCE darkreading items=9 kept=9 errors=0 
-NEW_ARTICLES 101 of pool 246
-GPT_MISSING https://thanhnien.vn/viettel-cung-cap-internet-ve-tinh-starlink-tai-viet-nam-185261126181520825.htm
-GPT_MISSING https://the-decoder.com/microsoft-details-how-state-backed-hackers-use-the-artex-ai-framework-to-automate-cyberattacks
-GPT_MISSING https://the-decoder.com/nvidia-halts-server-shipments-to-malaysia-singapore-thailand-and-indonesia-after-tighter-us-export-controls
-GPT_MISSING https://www.zdnet.com/tech/zdnet-best-headphones-of-2026
-GPT_MISSING https://www.wired.com/story/meta-refused-to-share-muse-for-testing-uk-financial-watchdog-complains
-GPT_MISSING https://www.theverge.com/news/1043078/x-parental-controls-features
-GPT_MISSING https://vnexpress.net/han-quoc-vien-tro-30-trieu-usd-thuc-day-nghien-cuu-tai-viet-nam-5149295.html
-GPT_MISSING https://genk.vn/ngoi-sao-f1-max-verstappen-choi-gta-6-tan-40-tieng-van-thang-chang-las-vegas-ca-the-troi-cua-lang-game-la-day-165261126172156659.chn
-GPT_MISSING https://thanhnien.vn/chon-starlink-hay-internet-5g-de-tiet-kiem-chi-phi-185261029005902129.htm
-GPT_MISSING https://genk.vn/mma-impact-lan-dau-den-ha-noi-ban-bai-toan-tang-truong-ben-vung-165261126163220137.chn
-GPT_MISSING https://genk.vn/cu-tuong-mon-hoi-vi-mua-xe-dien-gia-chi-hon-600-trieu-chu-xe-phai-cho-gan-3-thang-chi-de-thay-mot-thanh-dam-sau-165261126160014457.chn
-GPT_MISSING https://www.theverge.com/policy/1042620/character-ai-sale-state-ags-block-selling-users-chats
-GPT_MISSING https://genk.vn/tidal-chuan-bi-xoa-toan-bo-nhac-do-ai-tao-ra-165261126152726243.chn
-GPT_MISSING https://genk.vn/quay-video-du-lich-de-den-the-nao-voi-insta360-luna-pro-165261126161409614.chn
-GPT_MISSING https://thanhnien.vn/take-two-dap-tat-hy-vong-som-choi-gta-6-tren-pc-cua-cong-dong-game-thu-185261126151007989.htm
+SOURCE securityweek-ai items=1 kept=1 errors=0 
+SOURCE darkreading items=8 kept=8 errors=0 
+NEW_ARTICLES 62 of pool 196
 GPT_MISSING https://thanhnien.vn/vi-sao-nguoi-dung-bat-dau-chan-dien-thoai-apple-va-samsung-185261126113055519.htm
 GPT_MISSING https://genk.vn/fan-dung-ngoi-khong-yen-truoc-bo-vat-pham-danh-cho-trien-lam-20-nam-bigbang-165261126155419038.chn
-GPT_MISSING https://vnexpress.net/dong-cong-binh-chon-may-loc-nuoc-ro-hydrogen-duoc-yeu-thich-5149193.html
 GPT_MISSING https://genk.vn/chu-nhan-gia-vo-qua-doi-gemini-ai-tu-mo-vi-tien-so-tu-kiem-tien-de-duy-tri-su-song-165261126154816217.chn
-GPT_MISSING https://vnexpress.net/viettel-bat-dau-cung-cap-internet-ve-tinh-starlink-5149233.html
-GPT_MISSING https://vnexpress.net/tau-nasa-lam-bet-be-mat-tieu-hanh-tinh-sau-va-cham-5149158.html
 GPT_MISSING https://tuoitre.vn/viettel-day-manh-ket-noi-xoa-lom-song-tai-nhung-ban-lang-nam-2026-100261126142744007.htm
 GPT_MISSING https://www.darkreading.com/cyberattacks-data-breaches/cyprus-espionage-target-iranian-hackers
 GPT_MISSING https://thanhnien.vn/cong-nghe-sac-pin-xe-dien-4-phut-tien-gan-hon-den-hien-thuc-185261126100425822.htm
@@ -46,14 +28,14 @@ GPT_MISSING https://thehackernews.com/2026/11/drupal-warns-of-new-highly-critica
 GPT_MISSING https://thanhnien.vn/samsung-co-the-phat-hanh-gioi-han-galaxy-z-trifold2-185261126133357454.htm
 GPT_MISSING https://thehackernews.com/2026/11/hackers-exploit-10-vulnerabilities.html
 GPT_MISSING https://thanhnien.vn/tien-ich-chrome-am-tham-ghi-hon-300-gb-du-lieu-len-ssd-185261126110256182.htm
-GPT_MISSING https://vnexpress.net/viet-nam-khong-the-chi-lam-lap-rap-trong-nganh-ban-dan-5148931.html
 GPT_MISSING https://genk.vn/tien-ich-adobe-bi-nguoi-dung-phat-hien-am-tham-bao-ssd-lien-tuc-ghi-du-lieu-du-may-de-khong-165261126125459526.chn
 GPT_MISSING https://genk.vn/tu-01-01-2027-bang-luong-moi-ap-dung-tai-34-tinh-thanh-pho-co-nhung-muc-cu-the-ra-sao-165261126113914928.chn
-GPT_MISSING https://vnexpress.net/my-cho-phep-spacex-trien-khai-mot-trieu-ve-tinh-5149014.html
 GPT_MISSING https://thanhnien.vn/nen-tang-quan-ly-mat-khau-1password-bi-tin-tac-danh-cap-du-lieu-khach-hang-185261126112259171.htm
 GPT_MISSING https://genk.vn/ro-trend-cho-khach-nuoc-ngoai-thue-tai-khoan-claude-tuong-de-kiem-tien-ma-vi-pham-phap-luat-luc-nao-khong-hay-165261126104735226.chn
-GPT_MISSING https://vnexpress.net/ben-trong-trung-tam-du-lieu-hien-dai-nhat-cua-fpt-5149085.html
 GPT_MISSING https://thanhnien.vn/gta-6-lap-ky-luc-39-trieu-nguoi-choi-sau-3-ngay-185261126103640085.htm
 GPT_MISSING https://thanhnien.vn/vi-sao-co-phieu-nvidia-giam-sau-khi-ceo-jensen-huang-tro-lai-185261126103235667.htm
-GPT_MISSING https://thehackernews.com/2026/11/1password-hacked-customer-data-and.html
-RUN_SUMMARY {"run_id": "20261126-1143-6f4357", "new_written": 61, "model": "gpt-6-luna", "tokens": {"in": 20325, "cached": 0, "out": 8042}, "est_usd": 0.006053, "d1_calls": 119}
+GPT_MISSING https://www.theverge.com/gadgets/1041762/best-black-friday-streaming-deals-2026
+GPT_MISSING https://www.theverge.com/entertainment/1042629/gta-6-city-design
+GPT_MISSING https://www.theverge.com/tech/1042613/samsung-r95h-rgb-led-tv-review
+GPT_MISSING https://www.theverge.com/gadgets/1040110/zelda-ocarina-of-time-switch-2-black-friday-2026-deal-sale
+RUN_SUMMARY {"run_id": "20261126-2043-1199d8", "new_written": 40, "model": "gpt-6-luna", "tokens": {"in": 14361, "cached": 0, "out": 5414}, "est_usd": 0.004143, "d1_calls": 92}
