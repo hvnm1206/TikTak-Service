@@ -1,59 +1,59 @@
-SOURCE vnexpress-sohoa items=19 kept=19 errors=0 
-SOURCE genk items=66 kept=59 errors=0 
+SOURCE vnexpress-sohoa items=25 kept=25 errors=0 
+SOURCE genk items=69 kept=63 errors=0 
 SOURCE techcrunch items=40 kept=30 errors=0 
 SOURCE theverge items=20 kept=18 errors=0 
 SOURCE openai items=2 kept=2 errors=0 
-SOURCE anthropic items=1 kept=1 errors=0 
-SOURCE google-ai items=2 kept=2 errors=1 https://deepmind.google/blog/rss.xml: ParseError not well-formed (invalid token): line 1, column 0
+SOURCE anthropic items=0 kept=0 errors=0 
+SOURCE google-ai items=3 kept=3 errors=0 
 SOURCE the-decoder items=10 kept=10 errors=0 
-SOURCE zdnet-ai items=5 kept=5 errors=0 
+SOURCE zdnet-ai items=6 kept=6 errors=0 
 SOURCE mit-tr-ai items=1 kept=1 errors=0 
 SOURCE wired-ai items=6 kept=6 errors=0 
-SOURCE thanhnien-cn items=25 kept=25 errors=0 
-SOURCE tuoitre-nss items=3 kept=3 errors=0 
-SOURCE hackernews-sec items=19 kept=19 errors=0 
+SOURCE thanhnien-cn items=31 kept=31 errors=0 
+SOURCE tuoitre-nss items=4 kept=4 errors=0 
+SOURCE hackernews-sec items=20 kept=20 errors=0 
 SOURCE bleeping items=15 kept=15 errors=0 
 SOURCE securityweek-ai items=3 kept=3 errors=0 
-SOURCE darkreading items=8 kept=8 errors=0 
-NEW_ARTICLES 83 of pool 226
-GPT_MISSING https://genk.vn/trung-quoc-quyet-tam-tu-chu-ban-dan-thi-truong-ty-dan-ngay-cang-kho-voi-nvidia-165261126072135543.chn
-GPT_MISSING https://thanhnien.vn/loi-tut-suc-khoe-pin-sau-khi-cap-nhat-one-ui-90-sap-duoc-xu-ly-185261125154551591.htm
-GPT_MISSING https://www.theverge.com/tech/1042938/google-home-familiar-faces-onn-cameras
-GPT_MISSING https://vnexpress.net/chang-trai-16-tuoi-lap-startup-ten-lua-dan-duong-bang-ai-5148691.html
-GPT_MISSING https://www.theverge.com/tech/1042870/amazon-recall-order-cpsc
-GPT_MISSING https://vnexpress.net/cach-apple-giai-bai-toan-ung-dung-cho-iphone-duo-5146198.html
-GPT_MISSING https://techcrunch.com/2026/11/25/sp-considers-nvidia-credit-downgrade-over-governance-and-key-man-risks
-GPT_MISSING https://www.theverge.com/gadgets/1021917/best-gifts-for-travelers-2026
-GPT_MISSING https://www.bleepingcomputer.com/news/security/palo-alto-networks-warns-of-fragnesia-flaw-exploited-in-pan-os-attacks
-GPT_MISSING https://vnexpress.net/tac-nhan-ai-thiet-ke-kien-truc-cpu-tu-con-so-0-5148262.html
-GPT_MISSING https://www.theverge.com/entertainment/1042221/google-my-channel-ai-video-patent
-GPT_MISSING https://www.bleepingcomputer.com/news/security/1password-customer-data-stolen-after-employee-github-account-breach
-GPT_MISSING https://techcrunch.com/2026/11/25/fcc-approves-spacex-plan-to-put-ai-data-centers-in-space
-GPT_MISSING https://the-decoder.com/us-chip-access-curbs-and-anti-distillation-measures-are-reportedly-already-slowing-chinese-ai-labs
-GPT_MISSING https://www.theverge.com/tech/1042532/whatsapp-scheduled-messages
-GPT_MISSING https://the-decoder.com/anthropic-ceo-dario-amodei-says-letting-ai-govern-society-would-be-a-bad-idea
-GPT_MISSING https://techcrunch.com/2026/11/25/openai-says-heavy-chatgpt-users-may-hit-limits-sooner-as-it-merges-chat-and-work
-GPT_MISSING https://techcrunch.com/2026/11/25/jensen-huang-broke-nvidias-code-of-conduct-and-his-employees-may-not-forget-it
-GPT_MISSING https://techcrunch.com/2026/11/25/the-canceled-tesla-cybertruck-is-the-fastest-selling-used-truck-in-america
-GPT_MISSING https://www.theverge.com/science/1042109/us-army-detonation-lead-azide-explosives-iowa-ammunition-plant
-GPT_MISSING https://techcrunch.com/2026/11/25/anthropics-dario-amodei-calls-accusations-of-surrendering-human-control-to-ai-absurd
-GPT_MISSING https://www.bleepingcomputer.com/news/security/italy-and-switzerland-warn-of-autonomous-ai-driven-cyberattacks
-GPT_MISSING https://www.theverge.com/tech/1042409/1password-data-breach-leak
-GPT_MISSING https://www.zdnet.com/innovation/claude-artifacts-desktop-apps-mac-windows
-GPT_MISSING https://techcrunch.com/2026/11/25/1password-said-hackers-broke-into-its-internal-systems-but-customer-passwords-are-safe
-GPT_MISSING https://the-decoder.com/openai-wants-companies-to-trust-it-with-sensitive-work-by-promising-not-to-look-at-their-data
-GPT_MISSING https://techcrunch.com/2026/11/25/want-to-buy-your-kid-an-ai-toy-this-christmas-not-in-new-york
-GPT_MISSING https://www.zdnet.com/innovation/gen-z-employees-ai-survey
-GPT_MISSING https://www.theverge.com/science/1042278/spacex-fcc-starmind-ai-space-data-centers
-GPT_MISSING https://techcrunch.com/2026/11/25/doj-accuses-former-cyber-executive-of-defrauding-ransomware-victims-by-secretly-paying-hackers
-GPT_MISSING https://techcrunch.com/2026/11/25/state-ags-fight-character-ais-plan-to-auction-off-users-private-chats
-GPT_MISSING https://techcrunch.com/2026/11/25/xs-latest-update-for-creators-focuses-on-vertical-video
-GPT_MISSING https://research.google/blog/verifiable-social-reasoning-for-llm-assistants
-GPT_MISSING https://techcrunch.com/2026/11/25/whatsapp-now-lets-you-schedule-messages-in-group-and-individual-chats
-GPT_MISSING https://the-decoder.com/amazon-and-meta-are-in-talks-to-end-the-block-on-metas-ai-shopping-agent-muse-in-amazons-online-store
-GPT_MISSING https://vnexpress.net/nhom-ky-su-viet-duoc-binance-chon-danh-gia-bao-mat-sau-vu-hack-ty-usd-5148905.html
-GPT_MISSING https://www.theverge.com/column/1041761/optimizer-peptide-parties-afterglow
-GPT_MISSING https://thanhnien.vn/microsoft-xac-nhan-loi-la-tren-office-nguoi-dung-can-cap-nhat-ngay-185261125175802623.htm
-GPT_MISSING https://genk.vn/huawei-mate-x8-ra-mat-mong-42-mm-nep-gap-gan-nhu-bien-mat-gia-tu-50-trieu-dong-165261125180109469.chn
-GPT_MISSING https://the-decoder.com/mit-team-discovers-that-unrealistic-training-data-makes-ai-climate-predictions-more-reliable
-RUN_SUMMARY {"run_id": "20261126-0120-bd0efc", "new_written": 43, "model": "gpt-6-luna", "tokens": {"in": 20883, "cached": 0, "out": 5866}, "est_usd": 0.005021, "d1_calls": 98}
+SOURCE darkreading items=9 kept=9 errors=0 
+NEW_ARTICLES 101 of pool 246
+GPT_MISSING https://thanhnien.vn/viettel-cung-cap-internet-ve-tinh-starlink-tai-viet-nam-185261126181520825.htm
+GPT_MISSING https://the-decoder.com/microsoft-details-how-state-backed-hackers-use-the-artex-ai-framework-to-automate-cyberattacks
+GPT_MISSING https://the-decoder.com/nvidia-halts-server-shipments-to-malaysia-singapore-thailand-and-indonesia-after-tighter-us-export-controls
+GPT_MISSING https://www.zdnet.com/tech/zdnet-best-headphones-of-2026
+GPT_MISSING https://www.wired.com/story/meta-refused-to-share-muse-for-testing-uk-financial-watchdog-complains
+GPT_MISSING https://www.theverge.com/news/1043078/x-parental-controls-features
+GPT_MISSING https://vnexpress.net/han-quoc-vien-tro-30-trieu-usd-thuc-day-nghien-cuu-tai-viet-nam-5149295.html
+GPT_MISSING https://genk.vn/ngoi-sao-f1-max-verstappen-choi-gta-6-tan-40-tieng-van-thang-chang-las-vegas-ca-the-troi-cua-lang-game-la-day-165261126172156659.chn
+GPT_MISSING https://thanhnien.vn/chon-starlink-hay-internet-5g-de-tiet-kiem-chi-phi-185261029005902129.htm
+GPT_MISSING https://genk.vn/mma-impact-lan-dau-den-ha-noi-ban-bai-toan-tang-truong-ben-vung-165261126163220137.chn
+GPT_MISSING https://genk.vn/cu-tuong-mon-hoi-vi-mua-xe-dien-gia-chi-hon-600-trieu-chu-xe-phai-cho-gan-3-thang-chi-de-thay-mot-thanh-dam-sau-165261126160014457.chn
+GPT_MISSING https://www.theverge.com/policy/1042620/character-ai-sale-state-ags-block-selling-users-chats
+GPT_MISSING https://genk.vn/tidal-chuan-bi-xoa-toan-bo-nhac-do-ai-tao-ra-165261126152726243.chn
+GPT_MISSING https://genk.vn/quay-video-du-lich-de-den-the-nao-voi-insta360-luna-pro-165261126161409614.chn
+GPT_MISSING https://thanhnien.vn/take-two-dap-tat-hy-vong-som-choi-gta-6-tren-pc-cua-cong-dong-game-thu-185261126151007989.htm
+GPT_MISSING https://thanhnien.vn/vi-sao-nguoi-dung-bat-dau-chan-dien-thoai-apple-va-samsung-185261126113055519.htm
+GPT_MISSING https://genk.vn/fan-dung-ngoi-khong-yen-truoc-bo-vat-pham-danh-cho-trien-lam-20-nam-bigbang-165261126155419038.chn
+GPT_MISSING https://vnexpress.net/dong-cong-binh-chon-may-loc-nuoc-ro-hydrogen-duoc-yeu-thich-5149193.html
+GPT_MISSING https://genk.vn/chu-nhan-gia-vo-qua-doi-gemini-ai-tu-mo-vi-tien-so-tu-kiem-tien-de-duy-tri-su-song-165261126154816217.chn
+GPT_MISSING https://vnexpress.net/viettel-bat-dau-cung-cap-internet-ve-tinh-starlink-5149233.html
+GPT_MISSING https://vnexpress.net/tau-nasa-lam-bet-be-mat-tieu-hanh-tinh-sau-va-cham-5149158.html
+GPT_MISSING https://tuoitre.vn/viettel-day-manh-ket-noi-xoa-lom-song-tai-nhung-ban-lang-nam-2026-100261126142744007.htm
+GPT_MISSING https://www.darkreading.com/cyberattacks-data-breaches/cyprus-espionage-target-iranian-hackers
+GPT_MISSING https://thanhnien.vn/cong-nghe-sac-pin-xe-dien-4-phut-tien-gan-hon-den-hien-thuc-185261126100425822.htm
+GPT_MISSING https://genk.vn/con-nguoi-la-trung-tam-cua-sang-tao-cuoc-thi-marketing-sinh-vien-dat-cuoc-vao-dieu-ai-kho-lam-thay-165261126144603294.chn
+GPT_MISSING https://genk.vn/ceo-epic-games-goi-mot-co-che-quan-trong-cua-claude-la-rac-ruoi-noi-anthropic-dang-can-tro-cong-viec-cua-khach-hang-165261126142658815.chn
+GPT_MISSING https://thehackernews.com/2026/11/drupal-warns-of-new-highly-critical.html
+GPT_MISSING https://thanhnien.vn/samsung-co-the-phat-hanh-gioi-han-galaxy-z-trifold2-185261126133357454.htm
+GPT_MISSING https://thehackernews.com/2026/11/hackers-exploit-10-vulnerabilities.html
+GPT_MISSING https://thanhnien.vn/tien-ich-chrome-am-tham-ghi-hon-300-gb-du-lieu-len-ssd-185261126110256182.htm
+GPT_MISSING https://vnexpress.net/viet-nam-khong-the-chi-lam-lap-rap-trong-nganh-ban-dan-5148931.html
+GPT_MISSING https://genk.vn/tien-ich-adobe-bi-nguoi-dung-phat-hien-am-tham-bao-ssd-lien-tuc-ghi-du-lieu-du-may-de-khong-165261126125459526.chn
+GPT_MISSING https://genk.vn/tu-01-01-2027-bang-luong-moi-ap-dung-tai-34-tinh-thanh-pho-co-nhung-muc-cu-the-ra-sao-165261126113914928.chn
+GPT_MISSING https://vnexpress.net/my-cho-phep-spacex-trien-khai-mot-trieu-ve-tinh-5149014.html
+GPT_MISSING https://thanhnien.vn/nen-tang-quan-ly-mat-khau-1password-bi-tin-tac-danh-cap-du-lieu-khach-hang-185261126112259171.htm
+GPT_MISSING https://genk.vn/ro-trend-cho-khach-nuoc-ngoai-thue-tai-khoan-claude-tuong-de-kiem-tien-ma-vi-pham-phap-luat-luc-nao-khong-hay-165261126104735226.chn
+GPT_MISSING https://vnexpress.net/ben-trong-trung-tam-du-lieu-hien-dai-nhat-cua-fpt-5149085.html
+GPT_MISSING https://thanhnien.vn/gta-6-lap-ky-luc-39-trieu-nguoi-choi-sau-3-ngay-185261126103640085.htm
+GPT_MISSING https://thanhnien.vn/vi-sao-co-phieu-nvidia-giam-sau-khi-ceo-jensen-huang-tro-lai-185261126103235667.htm
+GPT_MISSING https://thehackernews.com/2026/11/1password-hacked-customer-data-and.html
+RUN_SUMMARY {"run_id": "20261126-1143-6f4357", "new_written": 61, "model": "gpt-6-luna", "tokens": {"in": 20325, "cached": 0, "out": 8042}, "est_usd": 0.006053, "d1_calls": 119}
