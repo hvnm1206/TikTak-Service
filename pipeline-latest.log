@@ -1,48 +1,25 @@
-SOURCE vnexpress-sohoa items=30 kept=30 errors=0 
-SOURCE genk items=67 kept=61 errors=0 
-SOURCE techcrunch items=27 kept=19 errors=0 
-SOURCE theverge items=15 kept=14 errors=0 
+SOURCE vnexpress-sohoa items=29 kept=29 errors=0 
+SOURCE genk items=65 kept=59 errors=0 
+SOURCE techcrunch items=7 kept=5 errors=0 
+SOURCE theverge items=11 kept=11 errors=0 
 SOURCE openai items=0 kept=0 errors=0 
 SOURCE anthropic items=0 kept=0 errors=0 
-SOURCE google-ai items=1 kept=1 errors=1 https://deepmind.google/blog/rss.xml: ParseError not well-formed (invalid token): line 1, column 0
+SOURCE google-ai items=0 kept=0 errors=1 https://deepmind.google/blog/rss.xml: ParseError not well-formed (invalid token): line 1, column 0
 SOURCE the-decoder items=10 kept=10 errors=0 
-SOURCE zdnet-ai items=3 kept=3 errors=0 
+SOURCE zdnet-ai items=1 kept=1 errors=0 
 SOURCE mit-tr-ai items=0 kept=0 errors=0 
 SOURCE wired-ai items=2 kept=2 errors=0 
-SOURCE thanhnien-cn items=24 kept=24 errors=0 
-SOURCE tuoitre-nss items=3 kept=3 errors=0 
-SOURCE hackernews-sec items=12 kept=12 errors=0 
+SOURCE thanhnien-cn items=25 kept=25 errors=0 
+SOURCE tuoitre-nss items=4 kept=4 errors=0 
+SOURCE hackernews-sec items=13 kept=13 errors=0 
 SOURCE bleeping items=15 kept=15 errors=0 
 SOURCE securityweek-ai items=0 kept=0 errors=0 
-SOURCE darkreading items=5 kept=5 errors=0 
-NEW_ARTICLES 67 of pool 199
-GPT_MISSING https://www.theverge.com/entertainment/1043362/grand-theft-auto-6-ending
-GPT_MISSING https://the-decoder.com/rockstars-ai-dilemma-can-gta-6s-staggered-release-model-survive-coding-agents
-GPT_MISSING https://www.theverge.com/gadgets/1039978/airpods-pro-3-apple-earbuds-black-friday-2026-deal-sale
-GPT_MISSING https://www.bleepingcomputer.com/news/security/us-air-force-cloud-platform-reportedly-hacked-in-latest-federal-breach
-GPT_MISSING https://www.bleepingcomputer.com/news/security/your-firewall-isnt-enough-the-hidden-risk-of-unmanaged-vms
-GPT_MISSING https://the-decoder.com/sap-plans-to-cut-at-least-10000-jobs-as-it-pivots-to-ai
-GPT_MISSING https://www.theverge.com/gadgets/1039190/best-black-friday-2026-deals-tech-gadgets-gift-ideas
-GPT_MISSING https://www.bleepingcomputer.com/news/security/malwarebytes-antivirus-get-50-percent-off-during-black-friday-2026
-GPT_MISSING https://www.theverge.com/gadgets/1042512/best-black-friday-laptop-notebook-deals-2026
-GPT_MISSING https://www.theverge.com/gadgets/1043272/zepath-rechargeable-aa-batteries-black-friday-2026-deal-sale
-GPT_MISSING https://genk.vn/apple-van-dang-phat-trien-ipad-man-hinh-gap-20-inch-gia-co-the-len-toi-132-trieu-dong-165261127193344571.chn
-GPT_MISSING https://genk.vn/black-friday-san-deal-gia-dung-tu-panasonic-locklock-elmich-gia-tot-bat-ngo-nhieu-mon-con-duoc-tang-qua-165261127160842598.chn
-GPT_MISSING https://genk.vn/ra-mat-cu-sac-laptop-gaming-360w-gia-khoang-186-trieu-dong-nang-400g-va-co-quat-tan-nhiet-165261127190146599.chn
-GPT_MISSING https://vnexpress.net/tham-vong-lien-hanh-tinh-nang-gia-tri-spacex-cua-elon-musk-5149606.html
-GPT_MISSING https://vnexpress.net/ai-tao-cu-phanh-ngan-rui-ro-dong-tien-tren-momo-5148006.html
-GPT_MISSING https://thehackernews.com/2026/11/microsoft-store-app-found-delivering.html
-GPT_MISSING https://www.bleepingcomputer.com/news/microsoft/microsoft-removes-wsus-server-role-in-windows-server-2028
-GPT_MISSING https://vnexpress.net/sunhouse-doat-giai-may-loc-nuoc-ro-hydrogen-duoc-yeu-thich-nhat-5149725.html
-GPT_MISSING https://genk.vn/khong-chia-se-otp-khong-tai-app-la-van-co-nguy-co-mat-tien-canh-bao-khan-cho-nguoi-dung-iphone-165261127155807425.chn
-GPT_MISSING https://thehackernews.com/2026/11/how-to-keep-your-security-picture.html
+SOURCE darkreading items=3 kept=3 errors=0 
+NEW_ARTICLES 57 of pool 177
 GPT_MISSING https://thanhnien.vn/samsung-galaxy-s27-ultra-mat-bao-lau-de-sac-day-vien-pin-5700-mah-18526112713323919.htm
 GPT_MISSING https://thanhnien.vn/gam-chieu-mo-crazyguy-cho-muc-tieu-chinh-phuc-cac-giai-quoc-te-185261127133813728.htm
-GPT_MISSING https://www.theverge.com/gadgets/1041299/oura-ring-5-black-friday-2026-deal-sale
-GPT_MISSING https://www.theverge.com/gadgets/1042744/best-black-friday-tv-deals-2026
 GPT_MISSING https://www.bleepingcomputer.com/news/security/drupal-warns-of-new-access-bypass-flaw-exploited-in-attacks
 GPT_MISSING https://genk.vn/ram-dat-do-microsoft-quay-sang-xu-chinh-ung-dung-cua-minh-de-tiet-kiem-gan-900mb-165261127160956448.chn
-GPT_MISSING https://www.theverge.com/gadgets/1040313/apple-watch-se-3-black-friday-2026-deal-sale
 GPT_MISSING https://www.bleepingcomputer.com/news/security/sap-confirms-security-incident-after-suspicious-github-activity
 GPT_MISSING https://thanhnien.vn/galaxy-s25-dung-truoc-nguy-co-roi-khoi-thi-truong-my-185261127141121583.htm
 GPT_MISSING https://vnexpress.net/khao-sat-su-hai-long-cua-nguoi-dan-voi-dich-vu-hanh-chinh-cong-5149710.html
@@ -56,4 +33,4 @@ GPT_MISSING https://genk.vn/bi-cam-dien-thoai-hoc-sinh-trung-quoc-do-xo-mua-phim
 GPT_MISSING https://www.bleepingcomputer.com/news/security/new-nfs2root-linux-flaw-can-let-attackers-gain-root-privileges
 GPT_MISSING https://genk.vn/vi-sao-apple-whatsapp-va-viettel-tammi-lua-chon-cong-nghe-ma-hoa-dau-cuoi-165261127135623952.chn
 GPT_MISSING https://thanhnien.vn/iphone-20-pro-ban-gioi-han-se-dat-hon-ca-iphone-duo-185261127113539544.htm
-RUN_SUMMARY {"run_id": "20261127-1551-53ea4a", "new_written": 27, "model": "gpt-6-luna", "tokens": {"in": 12146, "cached": 0, "out": 3436}, "est_usd": 0.002933, "d1_calls": 72}
+RUN_SUMMARY {"run_id": "20261128-0052-09ef1f", "new_written": 40, "model": "gpt-6-luna", "tokens": {"in": 11608, "cached": 0, "out": 5446}, "est_usd": 0.003884, "d1_calls": 88}
