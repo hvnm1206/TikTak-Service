@@ -1,36 +1,19 @@
-SOURCE vnexpress-sohoa items=29 kept=29 errors=0 
-SOURCE genk items=65 kept=59 errors=0 
+SOURCE vnexpress-sohoa items=25 kept=25 errors=0 
+SOURCE genk items=55 kept=51 errors=0 
 SOURCE techcrunch items=7 kept=5 errors=0 
-SOURCE theverge items=11 kept=11 errors=0 
+SOURCE theverge items=10 kept=10 errors=0 
 SOURCE openai items=0 kept=0 errors=0 
 SOURCE anthropic items=0 kept=0 errors=0 
 SOURCE google-ai items=0 kept=0 errors=1 https://deepmind.google/blog/rss.xml: ParseError not well-formed (invalid token): line 1, column 0
 SOURCE the-decoder items=10 kept=10 errors=0 
-SOURCE zdnet-ai items=1 kept=1 errors=0 
+SOURCE zdnet-ai items=2 kept=2 errors=0 
 SOURCE mit-tr-ai items=0 kept=0 errors=0 
 SOURCE wired-ai items=2 kept=2 errors=0 
-SOURCE thanhnien-cn items=25 kept=25 errors=0 
-SOURCE tuoitre-nss items=4 kept=4 errors=0 
-SOURCE hackernews-sec items=13 kept=13 errors=0 
+SOURCE thanhnien-cn items=21 kept=21 errors=0 
+SOURCE tuoitre-nss items=2 kept=2 errors=0 
+SOURCE hackernews-sec items=11 kept=11 errors=0 
 SOURCE bleeping items=15 kept=15 errors=0 
 SOURCE securityweek-ai items=0 kept=0 errors=0 
-SOURCE darkreading items=3 kept=3 errors=0 
-NEW_ARTICLES 57 of pool 177
-GPT_MISSING https://thanhnien.vn/samsung-galaxy-s27-ultra-mat-bao-lau-de-sac-day-vien-pin-5700-mah-18526112713323919.htm
-GPT_MISSING https://thanhnien.vn/gam-chieu-mo-crazyguy-cho-muc-tieu-chinh-phuc-cac-giai-quoc-te-185261127133813728.htm
-GPT_MISSING https://www.bleepingcomputer.com/news/security/drupal-warns-of-new-access-bypass-flaw-exploited-in-attacks
-GPT_MISSING https://genk.vn/ram-dat-do-microsoft-quay-sang-xu-chinh-ung-dung-cua-minh-de-tiet-kiem-gan-900mb-165261127160956448.chn
-GPT_MISSING https://www.bleepingcomputer.com/news/security/sap-confirms-security-incident-after-suspicious-github-activity
-GPT_MISSING https://thanhnien.vn/galaxy-s25-dung-truoc-nguy-co-roi-khoi-thi-truong-my-185261127141121583.htm
-GPT_MISSING https://vnexpress.net/khao-sat-su-hai-long-cua-nguoi-dan-voi-dich-vu-hanh-chinh-cong-5149710.html
-GPT_MISSING https://genk.vn/lg-cong-bo-co-cau-to-chuc-moi-va-tap-trung-vao-mang-robot-ai-165261127163049152.chn
-GPT_MISSING https://thehackernews.com/2026/11/hackers-trojanize-official-q-dir-and.html
-GPT_MISSING https://genk.vn/gui-ngan-hang-bao-nhieu-tien-de-khong-di-lam-van-co-15-trieu-thang-165261127152825955.chn
-GPT_MISSING https://www.bleepingcomputer.com/news/microsoft/new-out-of-band-oob-emergency-hotpatch-fixes-windows-server-2025-crashes
-GPT_MISSING https://genk.vn/microsoft-trao-cho-fpt-mot-chung-nhan-chua-doi-tac-nao-tren-the-gioi-co-165261127155824339.chn
-GPT_MISSING https://genk.vn/macbook-man-hinh-cam-ung-dau-tien-cua-apple-chinh-thuc-mo-ban-tai-viet-nam-ban-cao-nhat-gan-400-trieu-dong-165261127153833964.chn
-GPT_MISSING https://genk.vn/bi-cam-dien-thoai-hoc-sinh-trung-quoc-do-xo-mua-phim-ngan-ai-in-tren-giay-gia-4000-dong-tap-165261127152436306.chn
-GPT_MISSING https://www.bleepingcomputer.com/news/security/new-nfs2root-linux-flaw-can-let-attackers-gain-root-privileges
-GPT_MISSING https://genk.vn/vi-sao-apple-whatsapp-va-viettel-tammi-lua-chon-cong-nghe-ma-hoa-dau-cuoi-165261127135623952.chn
-GPT_MISSING https://thanhnien.vn/iphone-20-pro-ban-gioi-han-se-dat-hon-ca-iphone-duo-185261127113539544.htm
-RUN_SUMMARY {"run_id": "20261128-0052-09ef1f", "new_written": 40, "model": "gpt-6-luna", "tokens": {"in": 11608, "cached": 0, "out": 5446}, "est_usd": 0.003884, "d1_calls": 88}
+SOURCE darkreading items=2 kept=2 errors=0 
+NEW_ARTICLES 50 of pool 156
+RUN_SUMMARY {"run_id": "20261128-1109-471256", "new_written": 50, "model": "gpt-6-luna", "tokens": {"in": 11652, "cached": 0, "out": 6442}, "est_usd": 0.004386, "d1_calls": 97}
